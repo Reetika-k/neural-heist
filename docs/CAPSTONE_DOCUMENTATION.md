@@ -82,13 +82,14 @@ Player → Browser game (Vite + Three.js)
 | Sound | Web Audio API synthesis | replaces Howler.js + Kenney audio (no downloads) |
 | 3D assets | Procedural low-poly models | replaces Kenney/Quaternius packs (no downloads) |
 | Testing | `node:test`; Chrome DevTools Protocol scripts | no test framework dependencies |
-| Hosting | Cloudflare Pages (or GitHub Pages) + Workers | prepared, see `docs/DEPLOYMENT.md` |
+| Hosting | GitHub Pages, built and published by GitHub Actions on every push to `main`; LLM proxy as a Cloudflare Worker | game live; Worker prepared, see `docs/DEPLOYMENT.md` |
 | AI coding assistant | vibe coding: prompts, code, tests and debugging | every prompt in `docs/prompts-log.md` |
 
 ## 9. Working prototype
 
 - Local: `npm install && npm run dev` → http://localhost:5173 (with LLM: `npm run dev:llm` and `VITE_LLM_URL=http://localhost:8787/ask npm run dev`).
-- Public URL: _(add after deployment)_.
+- Public URL: https://reetika-k.github.io/neural-heist/ (project dashboard: https://reetika-k.github.io/neural-heist/dashboard.html).
+- Online, Mission 3's assistant runs in its offline mode (best-matching emails) until the LLM Worker and its free Gemini key are set up; locally it is tested with a real model (Ollama).
 - Screenshots in `docs/screenshots/`: start (01), Lab (08), drone marks and tags (09), Q-learning Lab (10), dog crossing (11), RAG Lab (12), terminal with LLM answer (13-terminal-llm), Heist Complete (14), AI Brain panel (15), one per mission after the visual pass (16–18), phone-size Lab (19), debrief (06).
 
 ## 10. Prompts used
@@ -116,4 +117,4 @@ TensorFlow.js MobileNet embeddings and Transformers.js neural embeddings as an o
 ## 15. Project demo
 
 - Five-minute demo: `docs/DEMO_SCRIPT.md`.
-- Public URL: _(add after deployment)_ · Repository: _(add GitHub URL)_.
+- Public URL: https://reetika-k.github.io/neural-heist/ · Repository: https://github.com/Reetika-k/neural-heist

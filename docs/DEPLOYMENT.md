@@ -1,14 +1,16 @@
 # Deployment
 
-Two pieces: the static game (Cloudflare Pages or GitHub Pages) and the LLM proxy (a Cloudflare Worker holding the Gemini key). The game works without the Worker: Mission 3's assistant then uses its offline fallback and shows the best-matching emails.
+**Live:** https://reetika-k.github.io/neural-heist/ (GitHub Pages, published by `.github/workflows/deploy-pages.yml` on every push to `main`: `npm ci` → `npm test` → `npm run build` → deploy `dist/`).
+
+Two pieces: the static game (GitHub Pages, or Cloudflare Pages as an alternative) and the LLM proxy (a Cloudflare Worker holding the Gemini key). The game works without the Worker: Mission 3's assistant then uses its offline fallback and shows the best-matching emails.
 
 Verified locally: `npm run build` produces `dist/` (relative asset paths, `data/emails.json` included) and the full browser test passes 66/66 against `vite preview` of that build (2026-10-22).
 
-## 1. Game on Cloudflare Pages (recommended)
+## 1. Alternative: game on Cloudflare Pages
 
-1. Push the repository to GitHub (the game lives in the `neural-heist/` folder).
+1. Use the GitHub repository https://github.com/Reetika-k/neural-heist.
 2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git**, choose the repo.
-3. Build settings: **Root directory** `neural-heist` · **Build command** `npm run build` · **Output directory** `dist`.
+3. Build settings: **Root directory** `/` · **Build command** `npm run build` · **Output directory** `dist`.
 4. Deploy. The game is live at `https://<project>.pages.dev`.
 
 ## 2. LLM proxy on Cloudflare Workers
@@ -26,9 +28,9 @@ Then in Cloudflare Pages → **Settings → Environment variables** add `VITE_LL
 
 What the Worker enforces: only `ALLOWED_ORIGIN` may call it; 20 requests per IP per hour; JSON validation; the prompt is rebuilt server-side from the question and context (clients cannot inject instructions); context is truncated; the key is never returned. The rate limit is per Worker isolate, which is fine for a demo; use KV or Durable Objects for a strict global limit.
 
-## 3. Alternative: GitHub Pages
+## 3. GitHub Pages (in use)
 
-`npm run build` and publish `dist/` (for example with the `peaceiris/actions-gh-pages` action or by pushing `dist/` to a `gh-pages` branch). Asset paths are relative, so a sub-folder URL works. The Worker setup is the same; set `ALLOWED_ORIGIN` to the GitHub Pages origin.
+Repository **Settings → Pages → Source: GitHub Actions**. The workflow builds with Node 22, runs the unit tests and publishes `dist/`. Asset paths are relative, so the `/neural-heist/` sub-folder works. To connect the LLM: deploy the Worker (section 2) with `ALLOWED_ORIGIN = "https://reetika-k.github.io"`, then add a repository variable `VITE_LLM_URL` (Settings → Secrets and variables → Actions → Variables) and re-run the workflow.
 
 ## 4. Local LLM for development (no key)
 
