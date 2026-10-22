@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070b1f">
+  <title>Neural Heist</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <canvas id="scene" aria-label="Game view"></canvas>
+  <div id="overlay" class="overlay hidden" aria-hidden="true"></div>
+  <div id="nav-arrow" class="nav-arrow hidden" aria-hidden="true"><svg class="nav-chev" viewBox="0 0 16 16" width="20" height="20"><path d="M1 6.5h8V2.5l6 5.5-6 5.5V9.5H1z" fill="currentColor"/></svg><span class="nav-text">CONSOLE</span></div>
+
+  <div id="hud" class="hud hidden" aria-live="polite">
+    <span class="hud-chip" id="hud-mission"><b>MISSION 1</b> · Rooftop</span>
+    <span class="hud-chip hud-objective" id="hud-objective">Find the data drive</span>
+    <span class="hud-chip hud-time" id="hud-time">0:00</span>
+    <span class="hud-chip hud-alarm hidden" id="hud-alarm">ALARM 25s</span>
+    <span class="hud-chip hud-alert" id="hud-alert" data-level="none">Alert 0%</span>
+    <span class="hud-chip hud-teammate hidden" id="hud-teammate">Drone</span>
+    <span class="hud-chip hud-sneak" id="hud-sneak">Sneaking</span>
+    <span class="hud-chip hud-hint hidden" id="hud-hint">Press <kbd>E</kbd></span>
+    <span class="hud-chip hud-tip hidden" id="hud-tip"></span>
+    <span class="hud-chip hud-keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> move · <kbd>Shift</kbd> sneak · <kbd>E</kbd> use · <kbd>Tab</kbd> AI brain · <kbd>Esc</kbd> menu</span>
+  </div>
+
+  <button id="btn-mute" class="btn-mute" aria-label="Mute" title="Mute (M)">🔊</button>
+  <button id="btn-brain" class="btn-brain hidden" aria-label="Open AI Brain panel (Tab)" title="AI Brain (Tab)">🧠</button>
+  <aside id="brain" class="brain" aria-hidden="true" aria-label="AI Brain panel"></aside>
+
+  <section id="screen-start" class="screen">
+    <div class="start-card">
+      <p class="eyebrow">An IIT Patna capstone · Vibe-coded</p>
+      <h1 class="title">NEURAL<span>HEIST</span></h1>
+      <p class="tagline">Train your AI crew. Then trust them with the job.</p>
+      <div id="no-webgl" class="no-webgl hidden" role="alert">
+        <b>3D graphics are turned off in this browser, so the game can't start.</b>
+        <ol>
+          <li>Chrome → Settings → System → turn on <i>Use graphics acceleration when available</i>, then click <i>Relaunch</i>.</li>
+          <li>Already on? Quit Chrome completely (⌘Q) and open it again.</li>
+          <li>Check <code>chrome://gpu</code>: WebGL should say <i>Hardware accelerated</i>.</li>
+        </ol>
+      </div>
+      <button id="btn-start" class="btn-primary">Start</button>
+      <div class="start-links"><button id="btn-howto" class="btn-ghost">How to play</button><button id="btn-settings" class="btn-ghost">Settings</button></div>
+      <p class="fine">3 missions · each one needs an AI skill you train yourself</p>
+    </div>
+  </section>
+
+  <section id="screen-settings" class="screen hidden">
+    <form id="settings-form" class="start-card settings-card" onsubmit="return false">
+      <p class="eyebrow">Settings</p>
+      <fieldset><legend>Difficulty</legend>
+        <label><input type="radio" name="difficulty" value="easy"> Easy</label><label><input type="radio" name="difficulty" value="normal"> Normal</label><label><input type="radio" name="difficulty" value="hard"> Hard</label>
+        <p class="fine" id="set-diff-desc"></p></fieldset>
+      <fieldset><legend>Sound</legend>
+        <label class="row">Volume <input type="range" name="volume" min="0" max="100" step="5"> <b id="set-volume-v">70%</b></label>
+        <label><input type="checkbox" name="muted"> Mute (also <kbd>M</kbd> or 🔊)</label></fieldset>
+      <fieldset><legend>Graphics quality</legend>
+        <label><input type="radio" name="quality" value="high"> High (bloom glow, shadows)</label><label><input type="radio" name="quality" value="low"> Low (faster on old laptops)</label></fieldset>
+      <fieldset><legend>Vision cone colours</legend>
+        <label><input type="radio" name="palette" value="standard"> White → yellow → red</label><label><input type="radio" name="palette" value="colorblind"> Colour-blind safe: white → yellow → blue</label></fieldset>
+      <p class="fine">Saved automatically in this browser.</p>
+      <button type="button" class="btn-primary" data-back="start">Done</button>
+    </form>
+  </section>
+
+  <section id="screen-howto" class="screen hidden">
+    <div class="start-card howto-card">
+      <p class="eyebrow">How to play</p>
+      <h1 class="title brief-title">THE JOB</h1>
+      <p class="brief-text">Each mission: <b>train</b> one AI teammate in the Lab, then <b>use</b> it to steal the <b class="gold">data drive</b> and reach the <b class="green">exit</b>. Your teammate performs exactly as well as you trained it.</p>
+      <table class="howto-table">
+        <tr><td><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> (or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>)</td><td>Move</td></tr>
+        <tr><td><kbd>Shift</kbd></td><td>Sneak: slower, and guards notice you more slowly</td></tr>
+        <tr><td><kbd>E</kbd></td><td>Use the vault console (Mission 2) or the terminal (Mission 3)</td></tr>
+        <tr><td><kbd>Tab</kbd> or 🧠</td><td>AI Brain panel: every AI's live numbers, and export</td></tr>
+        <tr><td><kbd>M</kbd> or 🔊</td><td>Mute</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Menu · <kbd>Enter</kbd> restart after failing</td></tr>
+      </table>
+      <ul class="howto-list">
+        <li><b>Guards</b> have vision cones. White → yellow → red as they grow suspicious. A full meter means a chase; contact means caught. Walls block sight.</li>
+        <li><b>Alarm</b>: the first chase (or a laser, or 3 wrong passwords) starts a 25-second alarm that never resets.</li>
+        <li><b>Stars</b>: finish · never chased · under par time. Score adds your AI's accuracy.</li>
+      </ul>
+      <button class="btn-primary" data-back="start">Got it</button>
+    </div>
+  </section>
+
+  <section id="screen-briefing" class="screen hidden">
+    <div class="start-card brief-card">
+      <p class="eyebrow" id="brief-eyebrow">Mission 1 of 3</p>
+      <h1 class="title brief-title" id="brief-title">ROOFTOP</h1>
+      <p class="brief-text" id="brief-text"></p>
+      <ol class="brief-steps"><li><b>Lab</b>: train your AI teammate.</li><li><b>Mission</b>: steal the <b class="gold">data drive</b>, reach the <b class="green">exit</b>, stay out of the cones.</li><li>A guard who chases you starts a 25&nbsp;s alarm.</li></ol>
+      <button id="btn-brief-lab" class="btn-primary">Enter the Lab</button>
+      <p class="fine">Best score <b id="brief-best">0</b> · <button id="btn-brief-back" class="btn-link inline">Main menu</button></p>
+    </div>
+  </section>
+
+  <section id="screen-lab" class="screen screen-lab hidden"><div id="lab-root" class="lab-root"></div></section>
+
+  <section id="screen-terminal" class="screen screen-terminal hidden">
+    <div id="terminal" class="terminal" data-state="loading" role="dialog" aria-label="Hacking terminal">
+      <header class="term-head"><span class="term-title">VELORA//VAULT-ACCESS</span><button id="term-close" class="btn-link" aria-label="Close terminal">close [Esc]</button></header>
+      <p class="term-status" id="term-status">Assistant: retrieving emails…</p>
+      <div class="term-body">
+        <div class="term-col"><h3>Retrieved emails</h3><div id="term-hits" class="rag-results"></div></div>
+        <div class="term-col">
+          <h3>Assistant's answer</h3><pre id="term-answer" class="term-answer"></pre>
+          <details><summary>Exact prompt sent to the model</summary><pre id="term-prompt" class="term-prompt"></pre></details>
+          <form id="term-form" class="term-form"><label for="term-input">Vault password</label><div><input id="term-input" autocomplete="off" spellcheck="false"><button class="btn-primary" type="submit">Enter</button></div></form>
+          <p class="term-msg" id="term-msg"></p><p class="fine" id="term-attempts">3 attempts left</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-caught" class="screen screen-caught hidden">
+    <div class="start-card caught-card">
+      <p class="eyebrow">Security alert · mission failed</p>
+      <h1 class="title caught-title" id="caught-title">CAUGHT</h1>
+      <p class="tagline" id="caught-reason">A guard spotted you and closed in.</p>
+      <div class="deb-actions"><button id="btn-restart" class="btn-primary">Restart</button><button id="btn-caught-lab" class="btn-ghost">Retrain in Lab</button></div>
+      <p class="fine">Best score <b id="caught-best">0</b> · <kbd>Enter</kbd> to restart</p>
+    </div>
+  </section>
+
+  <section id="screen-debrief" class="screen screen-debrief hidden">
+    <div class="start-card debrief-card">
+      <p class="eyebrow" id="deb-eyebrow">Mission 1 · Rooftop · complete</p>
+      <h1 class="title debrief-title">DRIVE SECURED</h1>
+      <div class="stars" id="deb-stars" aria-label="Stars"></div>
+      <ul class="star-legend">
+        <li id="deb-star-1">★ Finished the mission</li>
+        <li id="deb-star-2">★ Never chased by a guard</li>
+        <li id="deb-star-3">★ Under par time</li>
+      </ul>
+      <dl class="deb-grid">
+        <div><dt>Score</dt><dd id="deb-score">0</dd></div>
+        <div><dt>Time</dt><dd id="deb-time">0:00</dd><small id="deb-par">par 0:45</small></div>
+        <div><dt id="deb-ai-label">AI</dt><dd id="deb-ai">0%</dd></div>
+        <div><dt>Best</dt><dd id="deb-best">0</dd></div>
+      </dl>
+      <p class="fine" id="deb-break"></p>
+      <p class="new-best hidden" id="deb-newbest">New best score!</p>
+      <div class="deb-actions">
+        <button id="btn-next" class="btn-primary">Next mission</button>
+        <button id="btn-retry" class="btn-ghost">Retry</button>
+        <button id="btn-relab" class="btn-ghost">Retrain in Lab</button>
+      </div>
+      <button id="btn-menu" class="btn-link">Main menu</button>
+    </div>
+  </section>
+
+  <section id="screen-complete" class="screen screen-debrief hidden">
+    <div class="start-card debrief-card">
+      <p class="eyebrow">VeloraTech exposed</p>
+      <h1 class="title debrief-title">HEIST COMPLETE</h1>
+      <p class="tagline">Your crew: a drone you taught to see, a dog you taught to move, an assistant you taught to search.</p>
+      <ul class="complete-list" id="complete-list"></ul>
+      <p class="total">Total best score <b id="complete-total">0</b></p>
+      <button id="btn-complete-menu" class="btn-primary">Main menu</button>
+    </div>
+  </section>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

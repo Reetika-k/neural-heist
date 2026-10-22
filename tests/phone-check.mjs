@@ -1,0 +1,32 @@
+// README scenario 11: on a phone-size screen the game loads and the menus are usable.
+// Usage: node tests/phone-check.mjs [url]  (Chrome on --remote-debugging-port=9337)
+const base = process.argv[2] || "http://localhost:5173/";
+const target = await (await fetch(`http://localhost:9337/json/new?${encodeURIComponent(base)}`, { method: "PUT" })).json();
+const ws = new WebSocket(target.webSocketDebuggerUrl); await new Promise((r) => (ws.onopen = r));
+let id = 0; const pending = new Map(); const errors = [];
+ws.onmessage = (ev) => { const m = JSON.parse(ev.data); if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); } if (m.method === "Runtime.exceptionThrown") errors.push(m.params.exceptionDetails.text); };
+const send = (method, params = {}) => new Promise((res) => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params })); });
+const js = async (e) => (await send("Runtime.evaluate", { expression: e, returnByValue: true, awaitPromise: true })).result?.result?.value;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const results = []; const check = (n, ok, d = "") => { results.push(ok); console.log(`${ok ? "PASS" : "FAIL"}  ${n}${d ? " — " + d : ""}`); };
+await send("Runtime.enable"); await send("Page.enable");
+await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+await send("Emulation.setTouchEmulationEnabled", { enabled: true });
+await send("Page.reload"); await sleep(1500);
+for (let i = 0; i < 50 && !(await js("!!window.__heist")); i++) await sleep(100);
+const fits = `document.documentElement.scrollWidth <= innerWidth + 1`;
+const visible = (sel) => `(() => { const r = document.querySelector("${sel}").getBoundingClientRect(); return r.width > 40 && r.left >= 0 && r.right <= innerWidth + 1; })()`;
+check("start screen fits the phone width; Start visible", await js(fits) && await js(visible("#btn-start")));
+await js(`document.querySelector("#btn-howto").click()`); await sleep(150);
+check("How to play readable without horizontal scrolling", await js(fits) && await js(visible("#screen-howto [data-back]")));
+await js(`document.querySelector("#screen-howto [data-back]").click()`); await js(`document.querySelector("#btn-settings").click()`); await sleep(150);
+check("Settings fit and controls are reachable", await js(fits) && await js(visible("#screen-settings [data-back]")));
+await js(`document.querySelector("#screen-settings [data-back]").click()`); await js(`document.querySelector("#btn-start").click()`); await sleep(200);
+check("Briefing fits; Enter the Lab visible", await js(fits) && await js(visible("#btn-brief-lab")));
+await js(`document.querySelector("#btn-brief-lab").click()`); await sleep(300);
+check("Lab: snapshot grid and Train button usable on a phone", await js(fits) && await js(visible("#lab-train")) && await js(`document.querySelectorAll(".snap-card").length === 30`));
+check("no JavaScript errors", errors.length === 0, errors.join(" | "));
+const fs = await import("node:fs");
+const r = await send("Page.captureScreenshot", { format: "png" }); fs.writeFileSync("docs/screenshots/19-phone-lab.png", Buffer.from(r.result.data, "base64"));
+console.log(`\n${results.filter(Boolean).length} / ${results.length} phone checks passed`);
+ws.close(); process.exit(results.every(Boolean) ? 0 : 1);

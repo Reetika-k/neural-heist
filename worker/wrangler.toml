@@ -1,0 +1,12 @@
+name = "neural-heist-llm"
+main = "llm-proxy.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Set to your Cloudflare Pages URL, e.g. "https://neural-heist.pages.dev"
+ALLOWED_ORIGIN = ""
+GEMINI_MODEL = "gemini-2.0-flash"
+
+# Secrets (never in this file):
+#   npx wrangler secret put GEMINI_API_KEY
+#   npx wrangler secret put GROQ_API_KEY      (optional backup)

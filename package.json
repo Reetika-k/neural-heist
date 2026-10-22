@@ -1,0 +1,23 @@
+{
+  "name": "neural-heist",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser stealth-action game where you train your own AI teammates (IIT Patna capstone, Project 2)",
+  "type": "module",
+  "scripts": {
+    "start": "node tools/start.mjs",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test tests/*.test.mjs",
+    "dev:llm": "node tools/llm-dev-proxy.mjs",
+    "test:e2e": "node tests/e2e-browser.mjs",
+    "test:phone": "node tests/phone-check.mjs",
+    "test:tap": "mkdir -p tests/results && node --test --test-reporter=tap --test-reporter-destination=tests/results/unit-latest.tap tests/*.test.mjs",
+    "dashboard": "node scripts/build-dashboard.mjs"
+  },
+  "dependencies": {
+    "three": "^0.186.1",
+    "vite": "^8.3.4"
+  }
+}
