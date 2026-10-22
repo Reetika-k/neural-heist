@@ -9,6 +9,8 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | Browser test, production build (`vite preview` of `dist/`) | **66 / 66 pass** |
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
 | Phone check, 390 × 844 | **6 / 6 pass** |
+| Browser test against the live site (https://reetika-k.github.io/neural-heist/) | **66 / 66 pass** (2026-10-22, offline assistant mode) |
+| Phone check against the live site | **6 / 6 pass** |
 
 ## README scenarios (section 7)
 
