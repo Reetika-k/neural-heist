@@ -3,7 +3,9 @@
 A browser stealth-action game where you train your own AI teammates, then use them in missions.
 Built for the IIT Patna capstone, Project 2: *Build and Host a Video Game*, using vibe coding with an AI coding assistant.
 
-> **Status:** complete and tested locally (Stage 1: three missions). Deployment is prepared ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)) and waits for your Cloudflare/GitHub accounts.
+> **Play online:** https://reetika-k.github.io/neural-heist/ · **Project dashboard:** https://reetika-k.github.io/neural-heist/dashboard.html · **Repository:** https://github.com/Reetika-k/neural-heist
+>
+> **Status:** complete (Stage 1: three missions). Every push to `main` is tested and published to GitHub Pages by `.github/workflows/deploy-pages.yml`. Mission 3's assistant runs in offline mode online until the LLM Worker is deployed ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
 
 ## Play it
 

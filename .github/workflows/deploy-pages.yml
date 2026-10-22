@@ -1,0 +1,48 @@
+# Build the game and publish it on GitHub Pages: https://reetika-k.github.io/neural-heist/
+# Runs on every push to main (and by hand from the Actions tab). The unit tests must pass first.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      # VITE_LLM_URL is optional: set it as a repository variable once the Cloudflare Worker is deployed.
+      # Without it the hacking assistant uses its offline mode (shows the best-matching emails).
+      - run: npm run build
+        env:
+          VITE_LLM_URL: ${{ vars.VITE_LLM_URL }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
