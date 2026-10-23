@@ -5,7 +5,7 @@ Built for the IIT Patna capstone, Project 2: *Build and Host a Video Game*, usin
 
 > **Play online:** https://reetika-k.github.io/neural-heist/ · **Project dashboard:** https://reetika-k.github.io/neural-heist/dashboard.html · **Repository:** https://github.com/Reetika-k/neural-heist
 >
-> **Status:** complete (Stage 1: three missions). Every push to `main` is tested and published to GitHub Pages by `.github/workflows/deploy-pages.yml`. Mission 3's assistant runs in offline mode online until the LLM Worker is deployed ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
+> **Status:** complete (Stage 1: three missions). Every push to `main` is tested and published to GitHub Pages by `.github/workflows/deploy-pages.yml`. Online, Mission 3's assistant reasons offline over the emails your index retrieved until the LLM Worker is deployed ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)); good retrieval finds the password, weak retrieval answers UNKNOWN and says which clue is missing.
 
 ## Play it
 
@@ -15,7 +15,7 @@ npm install
 npm start                        # (same as npm run dev) http://localhost:5173
 ```
 
-With a local LLM for Mission 3 (optional; otherwise the assistant shows its best-matching emails):
+With a local LLM for Mission 3 (optional; otherwise the assistant reasons offline over the retrieved emails):
 
 ```bash
 ollama pull qwen2:7b
@@ -49,7 +49,7 @@ You are a hacker in a neon Indian city run by a corrupt tech company. Each missi
 ## Tests
 
 ```bash
-npm test                 # 53 unit tests (Node, no browser)
+npm test                 # 56 unit tests (Node, no browser)
 # browser tests: start the dev server, then Chrome with
 #   --headless=new --remote-debugging-port=9337 --remote-allow-origins=*
 npm run test:e2e         # 66 checks: every screen, all three missions, Brain panel, export, settings

@@ -2,7 +2,7 @@
 
 **Live:** https://reetika-k.github.io/neural-heist/ (GitHub Pages, published by `.github/workflows/deploy-pages.yml` on every push to `main`: `npm ci` → `npm test` → `npm run build` → deploy `dist/`).
 
-Two pieces: the static game (GitHub Pages, or Cloudflare Pages as an alternative) and the LLM proxy (a Cloudflare Worker holding the Gemini key). The game works without the Worker: Mission 3's assistant then uses its offline fallback and shows the best-matching emails.
+Two pieces: the static game (GitHub Pages, or Cloudflare Pages as an alternative) and the LLM proxy (a Cloudflare Worker holding the Gemini key). The game works without the Worker: Mission 3's assistant then reasons offline over the retrieved emails (`src/teammates/reasoner.js`) and answers in the same format.
 
 Verified locally: `npm run build` produces `dist/` (relative asset paths, `data/emails.json` included) and the full browser test passes 66/66 against `vite preview` of that build (2026-10-22).
 
@@ -43,7 +43,7 @@ VITE_LLM_URL=http://localhost:8787/ask npm run dev
 ## 5. After deploying
 
 - Open the public URL in Chrome, Edge and Firefox, and on a phone (menus are tested at 390 px width; gameplay needs a keyboard).
-- Play Mission 3 and confirm the terminal says "answered by gemini-…" (or "offline fallback" if the Worker is not set up).
+- Play Mission 3 and confirm the terminal says "answered by gemini-…" (or "offline reasoning" if the Worker is not set up).
 - Put the URL in the README and in section 15 of `docs/CAPSTONE_DOCUMENTATION.md`.
 
 ## Project dashboard

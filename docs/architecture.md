@@ -25,7 +25,7 @@ Browser game · Vite + Three.js  (src/main.js: screens, game loop with fixed 0.0
   └── Hacking assistant ──POST /ask──▶ Cloudflare Worker (worker/llm-proxy.js) ──▶ Gemini API (Groq backup)
                          │                (origin allow-list, 20 req/h/IP, server-side prompt, key secret)
                          ├── dev: tools/llm-dev-proxy.mjs ──▶ Ollama (qwen2:7b)
-                         └── fallback: show the best-matching emails if no LLM answers
+                         └── no LLM answer: offline reasoning over the same retrieved emails (src/teammates/reasoner.js)
 ```
 
 Design rules: game logic and ML are pure modules with no Three.js or DOM, so they run in Node tests; views only draw; every random process is seedable; every AI decision that matters (grading, door unlock, alarm) is made in code, and the LLM only proposes an answer the player must type.

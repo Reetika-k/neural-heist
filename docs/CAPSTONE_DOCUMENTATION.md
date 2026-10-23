@@ -39,7 +39,7 @@ The proposed solution is Neural Heist. Before each mission the player trains one
 |---|---|
 | Feel what labels and data quantity do | Mission 1 Lab: label 30 snapshots, train k-NN, see training vs held-back test accuracy and an overfitting warning; the drone then uses that exact model |
 | Feel what rewards do | Mission 2 Lab: three reward sliders and an episode count; Q-learning trains live with a reward curve and policy arrows; the robot dog follows that exact policy |
-| Feel why retrieval matters for LLMs | Mission 3 Lab: chunk size and k; two-hop retrieval with similarity scores; the assistant's LLM answers from that context (or a fallback shows the emails) |
+| Feel why retrieval matters for LLMs | Mission 3 Lab: chunk size and k; two-hop retrieval with similarity scores; the assistant's LLM answers from that context (without a model, an offline reasoner uses the same context) |
 | Real game | Stealth missions with drive, exit, timer, alarm, lives-equivalent (caught), 3 stars, debrief, best scores, restart, sound, settings |
 | Transparency | AI Brain panel with live values and JSON/CSV export |
 
@@ -65,7 +65,7 @@ Player → Browser game (Vite + Three.js)
            ├── Lab: classifier.js · qlearning.js · rag.js (train in the browser)
            ├── Mission: movement · guards (FSM + A* + vision) · mission rules · teammates use the trained models
            ├── AI Brain panel: live values + export
-           └── Assistant → Cloudflare Worker → Gemini (Groq backup)   [dev: Ollama proxy; fallback: best-matching emails]
+           └── Assistant → Cloudflare Worker → Gemini (Groq backup)   [dev: Ollama proxy; no model: offline reasoning over the retrieved emails]
 ```
 
 ## 8. Tools and technologies
@@ -89,7 +89,7 @@ Player → Browser game (Vite + Three.js)
 
 - Local: `npm install && npm run dev` → http://localhost:5173 (with LLM: `npm run dev:llm` and `VITE_LLM_URL=http://localhost:8787/ask npm run dev`).
 - Public URL: https://reetika-k.github.io/neural-heist/ (project dashboard: https://reetika-k.github.io/neural-heist/dashboard.html).
-- Online, Mission 3's assistant runs in its offline mode (best-matching emails) until the LLM Worker and its free Gemini key are set up; locally it is tested with a real model (Ollama).
+- Online, Mission 3's assistant reasons offline over the retrieved emails until the LLM Worker and its free Gemini key are set up: with full recall it answers KESTREL37 and shows how it combined the three emails; with weak retrieval it answers UNKNOWN and names the missing clue. Locally the LLM path is tested with a real model (Ollama).
 - Screenshots in `docs/screenshots/`: start (01), Lab (08), drone marks and tags (09), Q-learning Lab (10), dog crossing (11), RAG Lab (12), terminal with LLM answer (13-terminal-llm), Heist Complete (14), AI Brain panel (15), one per mission after the visual pass (16–18), phone-size Lab (19), debrief (06).
 
 ## 10. Prompts used
@@ -98,13 +98,13 @@ Player → Browser game (Vite + Three.js)
 
 ## 11. Testing report
 
-`docs/test-report.md`: all 12 README scenarios plus 19 more, with expected and actual results. 53 unit tests; 66 browser checks passing on the dev server, on the production build and on the live GitHub Pages site (64 with the LLM path enabled, before the last two were added); 6 phone-size checks. Key measured results: classifier 90% held-back accuracy with 30 correct labels (88% on 400 unseen images) vs about 60% with 4 labels; Q-learning finds the 28-step shortest safe path on 20/20 seeds with sensible rewards and walks into a laser on 20/20 seeds with a positive laser reward; retrieval recall 3/3 at the default settings vs 1/3 with one-sentence chunks or single-hop; local LLM answers KESTREL37 with full recall and hallucinates ROBOTX37 with recall 2/3.
+`docs/test-report.md`: all 12 README scenarios plus 19 more, with expected and actual results. 56 unit tests; 66 browser checks passing on the dev server, on the production build and on the live GitHub Pages site (64 with the LLM path enabled, before the last two were added); 6 phone-size checks. Key measured results: classifier 90% held-back accuracy with 30 correct labels (88% on 400 unseen images) vs about 60% with 4 labels; Q-learning finds the 28-step shortest safe path on 20/20 seeds with sensible rewards and walks into a laser on 20/20 seeds with a positive laser reward; retrieval recall 3/3 at the default settings vs 1/3 with one-sentence chunks or single-hop; local LLM answers KESTREL37 with full recall and hallucinates ROBOTX37 with recall 2/3.
 
 All of these measurements are collected in `reports/dashboard.html`, which `npm run dashboard` rebuilds from the game's own code with fixed seeds. `docs/REQUIREMENT_MAPPING.md` maps every PDF requirement to its implementation and test.
 
 ## 12. Challenges and solutions
 
-`docs/challenges.md` lists 20 problems and fixes. The most instructive: the retrieval bug where a sentence splitter broke at "Mr." and separated the key clue from its subject (found by measuring recall and then reading the chunks); bloom turning vision cones into grey slabs; the k-NN confidence always reading 100%; and the slow-motion bug where a frame-time cap meant to prevent wall tunnelling made the game crawl on slow machines, fixed with fixed-size substeps.
+`docs/challenges.md` lists 21 problems and fixes. The most instructive: the retrieval bug where a sentence splitter broke at "Mr." and separated the key clue from its subject (found by measuring recall and then reading the chunks); bloom turning vision cones into grey slabs; the k-NN confidence always reading 100%; and the slow-motion bug where a frame-time cap meant to prevent wall tunnelling made the game crawl on slow machines, fixed with fixed-size substeps.
 
 ## 13. Final outcome
 

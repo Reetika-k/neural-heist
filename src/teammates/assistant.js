@@ -1,6 +1,8 @@
 // The hacking assistant (Mission 3): retrieve with the player's index, then ask an LLM through our
-// proxy. If the LLM is not configured or fails, fall back to showing the best-matching emails.
+// proxy. If the LLM is not configured or fails, it reasons offline over the same retrieved emails
+// (src/teammates/reasoner.js) and answers in the same format.
 import { multiHop, buildPrompt, recall, RELEVANT } from "../lab/rag.js";
+import { reasonOffline } from "./reasoner.js";
 
 /**
  * @returns {Promise<{ question, hop1, hop2, context, prompt, answer, source: "llm"|"fallback", error?, latencyMs, tokens?, recall }>}
@@ -10,12 +12,15 @@ export async function askAssistant(index, question, { k = 3, llmUrl = "", timeou
   const { hop1, hop2, context } = multiHop(index, question, k);
   const prompt = buildPrompt(question, context);
   const base = { question, hop1, hop2, context, prompt, recall: recall(context, RELEVANT) };
-  const fallback = (error) => ({
-    ...base, source: "fallback", error, latencyMs: Date.now() - t0,
-    answer: context.length
-      ? `I could not reach the language model${error ? ` (${error})` : ""}. Best-matching emails:\n${context.slice(0, 3).map((r, i) => `${i + 1}. "${r.chunk.subject}": ${r.chunk.text}`).join("\n")}`
-      : "I found no emails that match the question.",
-  });
+  // RETIRED 2026-10-23: without a model the assistant only listed the best-matching emails ("I could not reach
+  // the language model…"), so on the public site every player had to solve the puzzle from a raw dump.
+  // Replaced by offline reasoning over the same retrieved emails.
+  // const fallback = (error) => ({ ...base, source: "fallback", error, latencyMs: Date.now() - t0,
+  //   answer: context.length ? `I could not reach the language model… Best-matching emails: …` : "I found no emails that match the question." });
+  const fallback = (error) => {
+    const r = context.length ? reasonOffline(context) : { answer: "PASSWORD: UNKNOWN\nWHY: I found no emails that match the question.", steps: [], missing: [] };
+    return { ...base, source: "fallback", error, latencyMs: Date.now() - t0, answer: r.answer, steps: r.steps, missing: r.missing };
+  };
   if (!llmUrl) return fallback("no LLM configured");
   try {
     const ctrl = new AbortController();
