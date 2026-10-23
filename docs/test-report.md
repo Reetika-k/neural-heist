@@ -8,7 +8,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | Browser test, dev server | **72 / 72 pass** (2026-10-23) |
 | Browser test, production build (`vite preview` of `dist/`) | **66 / 66 pass** |
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
-| Phone check, 390 × 844 | **9 / 9 pass** (menus, Labs and touch gameplay) |
+| Phone check, 390 × 844 | **11 / 11 pass** (menus, Labs, touch gameplay, drag anywhere) |
 | Browser test against the live site (https://reetika-k.github.io/neural-heist/) | **66 / 66 pass** (2026-10-22, offline assistant mode) |
 | Phone check against the live site | **6 / 6 pass** |
 
@@ -55,6 +55,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 32 | Press M (also Shift+M, Caps Lock M) during play and on Settings | Sound toggles, clearly shown; checkbox agrees and persists | Reproduced on the live site: every form of M toggles; checkbox follows and persists after reopening and reload; audio output 0 while muted (unit test); new on-screen "Sound off / Sound on" message and red-glowing 🔊 while muted | Pass after fix (feedback) |
 | 33 | Playtest with 1–3 people: "how do I play?" | Players know what to do without reading a manual | New three-step How to play; first-play guide per mission (paused game, Enter/Next, Skip, ? replays it); objective arrow points to drive / console / terminal / exit in every mission; HUD shows the right mission while the guide is open | Pass after fix |
 | 34 | Playtest on a phone | The game is playable with touch | Joystick (screen-relative), SNEAK and USE buttons, wider camera when upright, compact HUD; dragging up moves the player up the screen (dx −0.69, dz −0.92); no horizontal scrolling | Pass after fix |
+| 35 | Phone: drag anywhere on the screen to move | The joystick follows the finger; the player moves the way the finger slides | Joystick centres under the touch, sliding left moves the player left on screen (dx −1.21, dz +0.91), it returns to its corner on release; mouse drags on desktop are ignored | Pass |
 
 ## Failures found during development and what changed
 See `docs/challenges.md`: 23 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.

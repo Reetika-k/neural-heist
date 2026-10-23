@@ -48,6 +48,20 @@ await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
 // pushing up on screen moves away from the camera: world direction about (-0.6, -0.8)
 const moved = { dx: p1.x - p0.x, dz: p1.z - p0.z };
 check("dragging the joystick up moves the player up the screen", moved.dz < -0.5 && moved.dx <= 0.1, `dx ${moved.dx.toFixed(2)}, dz ${moved.dz.toFixed(2)}`);
+// drag anywhere: start in the middle of the game view and slide left; the joystick follows the finger
+await js(`window.__heist.state.pos = { x: 11.5, z: 8.5 }`); await sleep(400); // open floor, away from walls
+const q0 = await js(`({ ...window.__heist.state.pos })`);
+await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 195, y: 420 }] });
+await send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 135, y: 420 }] });
+await sleep(150);
+const floating = await js(`document.querySelector("#joy").classList.contains("floating") && Math.abs(document.querySelector("#joy").getBoundingClientRect().left + 66 - 195) < 3`);
+for (let i = 0; i < 60; i++) { const p = await js(`({ ...window.__heist.state.pos })`); if (Math.hypot(p.x - q0.x, p.z - q0.z) > 0.8) break; await sleep(100); }
+const q1 = await js(`({ ...window.__heist.state.pos })`);
+await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await sleep(150);
+// sliding left on screen = world direction (-0.8, +0.6)
+const dq = { dx: q1.x - q0.x, dz: q1.z - q0.z };
+check("drag anywhere: the joystick jumps under the finger and sliding left moves the player left on screen", floating && dq.dx < -0.5 && dq.dz > 0, `dx ${dq.dx.toFixed(2)}, dz ${dq.dz.toFixed(2)}`);
+check("after the finger lifts, the joystick returns to its corner", await js(`!document.querySelector("#joy").classList.contains("floating")`));
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${results.filter(Boolean).length} / ${results.length} phone checks passed`);
 ws.close(); process.exit(results.every(Boolean) ? 0 : 1);

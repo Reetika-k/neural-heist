@@ -490,7 +490,7 @@ function nearVaultWall() {
 const K = (keys, touch) => (IS_TOUCH ? touch : keys);
 const GUIDE = {
   1: [
-    () => `<b>Move</b> with ${K("the <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> arrow keys (or WASD)", "the <b>joystick</b> at the bottom left")}. ${K("Hold <kbd>Shift</kbd>", "Tap <b>SNEAK</b>")} to move quietly.`,
+    () => `<b>Move</b> with ${K("the <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> arrow keys (or WASD)", "a finger: <b>drag anywhere</b> on the screen (or use the joystick at the bottom left)")}. ${K("Hold <kbd>Shift</kbd>", "Tap <b>SNEAK</b>")} to move quietly.`,
     () => `<b>Guards</b> see inside their cones. <span class="g-white">White</span> = calm, <span class="g-yellow">yellow</span> = noticing you, <span class="g-red">red</span> = chasing. Walls hide you. If a guard touches you, you are caught.`,
     () => `<b>Your drone</b> is the AI you just trained. It scans everyone nearby: guards it recognises get a tag and a visible cone. Train it badly and some guards stay invisible.`,
     () => `<b>Goal:</b> follow the <b class="green">green arrow</b> to the <b class="gold">data drive</b>, then to the <b class="green">exit</b>. ${K("Press <kbd>?</kbd>", "Tap <b>?</b>")} any time to see this again.`,
@@ -533,22 +533,43 @@ $("#guide-next").addEventListener("click", guideNext);
 $("#guide-skip").addEventListener("click", () => closeGuide());
 $("#btn-help").addEventListener("click", () => { if (state.screen === "playing") openGuide(state.config.id, true); });
 
-// ---------- touch controls: joystick, SNEAK, USE ----------
+// ---------- touch controls: joystick (fixed or drag anywhere), SNEAK, USE ----------
+// RETIRED 2026-10-23: the joystick only worked inside its circle at the bottom left. Players asked to steer by
+// dragging anywhere on the screen, so a drag on the game view now moves the joystick under the finger
+// ("floating joystick") and it returns to its corner when released. Same movement maths as before.
 (() => {
-  const joy = $("#joy"), knob = $("#joy-knob");
-  let pid = null;
+  const joy = $("#joy"), knob = $("#joy-knob"), scene = $("#scene");
+  let pid = null, origin = null; // origin: { x, y, R } in screen pixels
   const moveTo = (e) => {
-    const r = joy.getBoundingClientRect(), R = r.width / 2;
-    let vx = (e.clientX - (r.left + R)) / R, vy = (e.clientY - (r.top + R)) / R;
+    const { x, y, R } = origin;
+    const vx = (e.clientX - x) / R, vy = (e.clientY - y) / R;
     const len = Math.hypot(vx, vy), mag = Math.min(1, len);
     knob.style.transform = `translate(${(len ? vx / len : 0) * mag * R * 0.55}px, ${(len ? vy / len : 0) * mag * R * 0.55}px)`;
     if (mag < 0.2) { touchMove.mag = 0; return; } // dead zone
     Object.assign(touchMove, { active: true, sx: vx / len, sy: -vy / len, mag });
   };
-  const end = () => { pid = null; Object.assign(touchMove, { active: false, mag: 0 }); knob.style.transform = ""; };
-  joy.addEventListener("pointerdown", (e) => { e.preventDefault(); pid = e.pointerId; joy.setPointerCapture(pid); touchMove.active = true; moveTo(e); });
-  joy.addEventListener("pointermove", (e) => { if (e.pointerId === pid) moveTo(e); });
-  joy.addEventListener("pointerup", end); joy.addEventListener("pointercancel", end); joy.addEventListener("lostpointercapture", end);
+  const begin = (e, el, floating) => {
+    if (state.screen !== "playing" || guide.open || pid !== null) return;
+    e.preventDefault();
+    pid = e.pointerId; el.setPointerCapture(pid); touchMove.active = true;
+    const r = joy.getBoundingClientRect(), R = r.width / 2;
+    if (floating) { // centre the joystick under the finger
+      joy.classList.add("floating");
+      joy.style.left = `${e.clientX - R}px`; joy.style.top = `${e.clientY - R}px`;
+      origin = { x: e.clientX, y: e.clientY, R };
+    } else origin = { x: r.left + R, y: r.top + R, R };
+    moveTo(e);
+  };
+  const end = (e) => {
+    if (e && e.pointerId !== pid) return;
+    pid = null; origin = null; Object.assign(touchMove, { active: false, mag: 0 });
+    knob.style.transform = ""; joy.classList.remove("floating"); joy.style.left = ""; joy.style.top = "";
+  };
+  for (const [el, floating] of [[joy, false], [scene, true]]) {
+    el.addEventListener("pointerdown", (e) => { if (floating && e.pointerType === "mouse") return; begin(e, el, floating); });
+    el.addEventListener("pointermove", (e) => { if (e.pointerId === pid && origin) moveTo(e); });
+    el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end); el.addEventListener("lostpointercapture", end);
+  }
   $("#t-use").addEventListener("click", () => { if (state.screen === "playing" && !guide.open) interact(); });
   $("#t-sneak").addEventListener("click", () => { sneakToggle = !sneakToggle; $("#t-sneak").setAttribute("aria-pressed", String(sneakToggle)); });
 })();
