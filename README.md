@@ -31,7 +31,7 @@ You are a hacker in a neon Indian city run by a corrupt tech company. Each missi
 |---|---|---|---|
 | 1. Rooftop | Label 30 CCTV snapshots, train, check held-back accuracy | Drone scans everyone; guards it identifies show their vision cones, missed guards stay invisible | Image classification (k-NN), overfitting |
 | 2. Laser Vault | Set the rewards and the episode count, watch Q-learning train; pick a new random vault or the classic one, and add bonus batteries, blinking lasers or slippery puddles; see what it learned and where it explored; beat your training-challenge record | Robot dog crosses the vault with the learned policy; a bad policy trips a laser | Reinforcement learning (Q-learning) |
-| 3. Executive Floor | Chunk 40 leaked emails, build the index, test two-hop search | Hacking assistant retrieves emails and asks an LLM for the vault password | Embeddings, retrieval, RAG, LLM |
+| 3. Executive Floor | Chunk 40 leaked emails, build the index and test it: see which clue emails it finds (3 of 3?) and the password the assistant would work out; you never type the password in the Lab | Hacking assistant retrieves emails and asks an LLM for the vault password | Embeddings, retrieval, RAG, LLM |
 
 **Win:** take the data drive to the exit. **Lose:** caught by a guard, the 25 s alarm runs out, the dog trips a laser or gets lost. **Score:** finish + stealth + time under par + your AI's accuracy; up to 3 stars.
 
@@ -52,10 +52,10 @@ The first time you play each mission, a short guide explains what to do (the gam
 ## Tests
 
 ```bash
-npm test                 # 70 unit tests (Node, no browser)
+npm test                 # 71 unit tests (Node, no browser)
 # browser tests: start the dev server, then Chrome with
 #   --headless=new --remote-debugging-port=9337 --remote-allow-origins=*
-npm run test:e2e         # 79 checks: every screen, all three missions, Brain panel, export, settings
+npm run test:e2e         # 80 checks: every screen, all three missions, Brain panel, export, settings
 npm run test:phone       # 6 checks at 390 px width
 ```
 

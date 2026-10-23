@@ -217,7 +217,7 @@ async function openTerminal() {
   $("#term-status").textContent = a.source === "llm" ? `Assistant: answered by ${a.model ?? "LLM"} in ${(a.latencyMs / 1000).toFixed(1)} s${a.tokens ? ` · ${a.tokens} tokens` : ""}`
     : a.error === "no LLM configured" ? "Assistant: offline reasoning over the retrieved emails (no language model connected)"
     : `Assistant: language model unavailable (${a.error}) · offline reasoning over the retrieved emails`;
-  $("#term-hits").innerHTML = renderHits(a.hop1, "Hop 1 · question") + renderHits(a.hop2, "Hop 2 · following the lead");
+  $("#term-hits").innerHTML = renderHits(a.hop1, "Hop 1 · question", { markClues: true }) + renderHits(a.hop2, "Hop 2 · following the lead", { markClues: true });
   $("#term-prompt").textContent = a.prompt;
   $("#term-answer").textContent = a.source === "llm" || !a.steps?.length ? a.answer : `${a.answer}\n\nHow I worked it out:\n${a.steps.map((s) => `• ${s}`).join("\n")}`;
   panel.dataset.state = "ready";

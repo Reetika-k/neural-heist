@@ -216,6 +216,7 @@ try {
   await js(`document.querySelector("#rag-build").click()`); await sleep(100);
   await js(`document.querySelector("#rag-search").click()`); await sleep(200);
   const hits = await js(`[...document.querySelectorAll("#rag-results .hit-head span")].map(s => s.textContent)`);
+  check("RAG Lab explains itself: no password typed here; clues found 3 of 3; the assistant would answer KESTREL37", await js(`/You don't type the password here/.test(document.querySelector(".lab-sub").textContent) && /Clues found: 3 of 3/.test(document.querySelector("#rag-summary").textContent) && /KESTREL37/.test(document.querySelector("#rag-summary").textContent) && document.querySelectorAll("#rag-results .clue-badge").length === 3`));
   check("search shows two hops with similarity scores; the rotation email ranks first", hits[0] === "Vault access rotation" && hits.length >= 4, hits.slice(0, 6).join(" | "));
   await shot("12-raglab.png");
   await js(`document.querySelector("#rag-go").click()`); await sleep(300);
