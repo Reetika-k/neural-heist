@@ -310,3 +310,17 @@ body:not([data-screen="playing"]) .btn-mute { top: 12px; bottom: auto; right: 12
 #q-verdict p { margin: 4px 0; } #q-verdict .q-v-head { font-weight: 700; }
 #q-verdict[data-kind="good"] { border-color: rgba(61,255,154,.5); background: rgba(61,255,154,.08); color: #b6ffd6; }
 .q-verdict { margin-top: 12px; max-width: 420px; font-size: 14px; line-height: 1.5; }
+
+/* ---------- Mission 2 Lab: vaults, extras, views, challenge (2026-10-23) ---------- */
+.q-vault { width: min(420px, 100%); display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--dim); }
+.q-vault b { color: var(--ink); }
+.q-vault-btns { display: flex; gap: 6px; }
+.sw-blink { background: #ff8c3c; } .sw-wet { background: #3f8cff; border-radius: 50%; } .sw-bat { background: #b6ff4d; }
+.q-legend { flex-wrap: wrap; justify-content: center; row-gap: 4px; }
+.q-views { flex-wrap: wrap; justify-content: center; }
+.q-view-note { margin: 0; max-width: 420px; text-align: center; }
+.q-options { border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 8px 12px 10px; display: grid; gap: 8px; }
+.q-options legend { font-size: 12px; color: var(--cyan); padding: 0 4px; }
+.q-check { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.q-check input { width: 16px; height: 16px; accent-color: var(--cyan); }
+.q-challenge { margin: 0; max-width: 420px; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,210,61,.45); background: rgba(255,210,61,.07); color: #ffe08a; font-size: 13.5px; line-height: 1.45; }

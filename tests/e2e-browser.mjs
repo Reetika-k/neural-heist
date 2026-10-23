@@ -153,7 +153,11 @@ try {
   await js(`window.__heist.openBriefing(1)`); await sleep(200);
   check("Mission 2 briefing: LASER VAULT", await js(`${S}.screen === "briefing" && document.querySelector("#brief-title").textContent === "LASER VAULT"`));
   await js(`document.querySelector("#btn-brief-lab").click()`); await sleep(300);
-  check("Q-learning Lab: grid, three reward sliders, chart", await js(`${S}.screen === "lab" && !!document.querySelector("#q-grid") && document.querySelectorAll(".slider input").length === 4 && !!document.querySelector("#q-chart")`));
+  check("Q-learning Lab: grid, three reward sliders, chart", await js(`${S}.screen === "lab" && !!document.querySelector("#q-grid") && document.querySelectorAll(".slider input").length >= 4 && !!document.querySelector("#q-chart")`));
+  // a first visit gets a fresh random vault; the checks below use the Classic vault, whose numbers are known (28 steps)
+  check("first visit to the Lab: a fresh random vault with its shortest route shown", await js(`/^Vault #\\d+$/.test(document.querySelector("#q-vault-label").textContent) && Number(document.querySelector("#q-shortest").textContent) >= 22`), await js(`document.querySelector("#q-vault-label").textContent`));
+  await js(`${S}.lab.setVault("classic")`);
+  check("Classic button: the original vault, shortest route 28", await js(`document.querySelector("#q-vault-label").textContent === "Classic vault" && document.querySelector("#q-shortest").textContent === "28"`));
   await js(`document.querySelector("#q-train").click()`); await waitFor(`Number(document.querySelector("#q-ep").textContent) > 0 && Number(document.querySelector("#q-eps").textContent) < 1`, 10000);
   const live = await js(`({ ep: Number(document.querySelector("#q-ep").textContent), eps: Number(document.querySelector("#q-eps").textContent) })`);
   check("Train runs Q-learning live (episodes rise, epsilon falls)", live.ep > 0 && live.eps < 1, JSON.stringify(live));
@@ -164,6 +168,14 @@ try {
   const badV = await js(`${S}.lab.trainNow(1).outcome`);
   check("laser reward +5 → learned path hits a laser (verdict shown)", badV === "laser" && /laser/.test(await js(`document.querySelector("#q-verdict").textContent`)));
   check("the Lab explains why: the laser hint warns, the verdict gives a reason and a fix", await js(`/prize/.test(document.querySelector("#h-laser").textContent) && /Why:.*rewarded lasers/.test(document.querySelector("#q-verdict").textContent) && /Try:/.test(document.querySelector("#q-verdict").textContent)`));
+  await js(`${S}.lab.setOptions({ batteries: true }); ${S}.lab.setRewards({ goal: 10, laser: -10, step: -0.1, battery: 1 })`);
+  const bat = await js(`(() => { const g = ${S}.lab.trainNow(1); return { steps: g.path.length - 1, batteries: g.batteries, verdict: document.querySelector("#q-verdict").textContent, challenge: document.querySelector("#q-challenge").textContent }; })()`);
+  check("batteries worth +1: the dog grabs both (38 steps) and the Lab explains the detour; the training challenge records the run", bat.steps === 38 && bat.batteries === 2 && /grabs 2 batteries/.test(bat.verdict) && /found a route after/.test(bat.challenge), JSON.stringify({ steps: bat.steps, batteries: bat.batteries }));
+  await js(`document.querySelector('[data-view="value"]').click()`); await sleep(100);
+  check("views: 'What it learned' and 'Where it explored' explain themselves", await js(`/expects from each square/.test(document.querySelector("#q-view-note").textContent)`) && await js(`(() => { document.querySelector('[data-view="visits"]').click(); return /practising/.test(document.querySelector("#q-view-note").textContent); })()`));
+  await js(`document.querySelector('[data-view="arrows"]').click(); document.querySelector("#q-new").click()`); await sleep(200);
+  check("New vault after training: the old dog's route is replayed and the Lab says it must retrain", await js(`/This dog learned Classic vault/.test(document.querySelector("#q-verdict").textContent) && document.querySelector("#q-go").disabled`));
+  await js(`${S}.lab.setVault("classic"); ${S}.lab.setOptions({ batteries: false })`);
   await js(`document.querySelector('[data-preset="lazy"]').click()`); await sleep(100);
   check("ready-made setting 'Lazy dog' sets the step reward to 0 and warns about it", await js(`document.querySelector("#r-step").value === "0" && /no reason to hurry/.test(document.querySelector("#h-step").textContent) && /Lazy dog/.test(document.querySelector("#q-preset-note").textContent)`));
   await js(`${S}.lab.setRewards({ goal: 10, laser: 5, step: -0.1 }); ${S}.lab.trainNow(1)`); // back to the laser-rewarded dog for the next steps

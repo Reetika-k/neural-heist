@@ -1,9 +1,13 @@
 import * as THREE from "three";
-import { VAULT, LASERS } from "../lab/qlearning.js";
-import { vaultToWorld } from "../teammates/dog.js";
+import { CLASSIC, BLINK } from "../lab/qlearning.js";
+import { vaultToWorld, DOG } from "../teammates/dog.js";
 
-/** Mission 2's vault: metal floor, pulsing laser beams, the drive on a pedestal, the console, and the dog. */
-export function createVaultView(parent, origin, consoleCell) {
+/**
+ * Mission 2's vault: metal floor, pulsing laser beams, the drive on a pedestal, the console, and the dog.
+ * 2026-10-23: drawn from the environment the dog trained on (random layouts, blinking lasers, batteries, puddles).
+ */
+export function createVaultView(parent, origin, consoleCell, env = CLASSIC) {
+  const VAULT = env, LASERS = new Set([...env.lasers].filter((k) => !env.blink.has(k))), BLINKING = [...env.blink];
   const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a2148, metalness: 0.6, roughness: 0.35 });
   const tile = new THREE.InstancedMesh(new THREE.BoxGeometry(0.96, 0.04, 0.96), floorMat, VAULT.size * VAULT.size);
   const m = new THREE.Matrix4();
@@ -16,6 +20,18 @@ export function createVaultView(parent, origin, consoleCell) {
   const glows = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.5, 0.9), glowMat, LASERS.size);
   [...LASERS].forEach((k, i) => { const [x, z] = k.split(",").map(Number); const w = vaultToWorld({ x, z }, origin); lasers.setMatrixAt(i, m.makeTranslation(w.x, 0.35, w.z)); glows.setMatrixAt(i, m.makeTranslation(w.x, 0.25, w.z)); });
   parent.add(lasers, glows);
+  // blinking lasers: orange, switched on and off with the same timing the dog learned (one phase per dog step)
+  const blinkMat = new THREE.MeshBasicMaterial({ color: 0xff8c3c }), blinkGlowMat = new THREE.MeshBasicMaterial({ color: 0xff8c3c, transparent: true, opacity: 0.2, depthWrite: false });
+  const blinkBeams = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.04, 0.04), blinkMat, Math.max(1, BLINKING.length));
+  const blinkGlows = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 0.5, 0.9), blinkGlowMat, Math.max(1, BLINKING.length));
+  BLINKING.forEach((k, i) => { const [x, z] = k.split(",").map(Number); const w = vaultToWorld({ x, z }, origin); blinkBeams.setMatrixAt(i, m.makeTranslation(w.x, 0.35, w.z)); blinkGlows.setMatrixAt(i, m.makeTranslation(w.x, 0.25, w.z)); });
+  blinkBeams.count = blinkGlows.count = BLINKING.length;
+  parent.add(blinkBeams, blinkGlows);
+  // puddles: flat blue patches
+  const wetMat = new THREE.MeshBasicMaterial({ color: 0x3f8cff, transparent: true, opacity: 0.45, depthWrite: false });
+  for (const k of env.wet) { const [x, z] = k.split(",").map(Number); const w = vaultToWorld({ x, z }, origin); const p = new THREE.Mesh(new THREE.CircleGeometry(0.38, 20), wetMat); p.rotation.x = -Math.PI / 2; p.position.set(w.x, 0.05, w.z); p.scale.set(1, 0.7, 1); parent.add(p); }
+  // batteries: glowing green cells that vanish when the dog picks them up
+  const batteryMeshes = env.batteries.map((b) => { const w = vaultToWorld(b, origin); const g = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.36, 0.22), new THREE.MeshStandardMaterial({ color: 0xb6ff4d, emissive: 0x7cff2d, emissiveIntensity: 1.2 })); g.position.set(w.x, 0.4, w.z); parent.add(g); return { cell: b, mesh: g }; });
 
   const goal = vaultToWorld(VAULT.goal, origin);
   const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.26), new THREE.MeshStandardMaterial({ color: 0xffd23d, emissive: 0xffa800, emissiveIntensity: 1.4 }));
@@ -65,6 +81,12 @@ export function createVaultView(parent, origin, consoleCell) {
 
   return {
     update(dogState, mission, nearConsole, t) {
+      // blink phase: the dog's own step while it crosses (as in training), otherwise a steady clock
+      const phase = dogState?.status === "crossing" || dogState?.status === "goal" || dogState?.status === "laser" ? dogState.step : Math.floor(t * DOG.cellsPerSecond);
+      const blinkOn = ((phase % BLINK.period) + BLINK.period) % BLINK.period < BLINK.on;
+      blinkBeams.visible = blinkOn; blinkGlowMat.opacity = blinkOn ? 0.2 : 0.04; blinkGlows.visible = true;
+      if (dogState) for (const b of batteryMeshes) b.mesh.visible = !dogState.plan.path.slice(0, dogState.step + 1).some((p) => p.x === b.cell.x && p.z === b.cell.z);
+      for (const b of batteryMeshes) b.mesh.rotation.y = t * 2;
       laserMat.color.setHSL(0.97, 1, 0.5 + 0.1 * Math.sin(t * 8));
       glowMat.opacity = 0.12 + 0.08 * Math.sin(t * 6);
       gem.visible = gemLight.visible = !mission.hasDrive && dogState?.status !== "goal";
