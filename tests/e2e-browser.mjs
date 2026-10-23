@@ -134,7 +134,7 @@ try {
   await js(`${S}.pos = { x: 18.5, z: 11.5 }`); await waitFor(`${S}.mission.hasDrive`, 8000);
   check("walking onto the drive picks it up; objective changes", await js(`${S}.mission.hasDrive && document.querySelector("#hud-objective").textContent === "Reach the exit"`));
   await js(`${S}.pos = { x: 1.5, z: 11.5 }`); await waitFor(`${S}.screen === "debrief"`, 8000);
-  const deb = await js(`({ screen: ${S}.screen, stars: document.querySelectorAll("#deb-stars .star.on").length, score: Number(document.querySelector("#deb-score").textContent), ai: document.querySelector("#deb-ai").textContent, best: localStorage.getItem("neural-heist.best.m1") })`);
+  const deb = await js(`({ screen: ${S}.screen, stars: document.querySelectorAll("#deb-stars .star.on").length, score: Number(document.querySelector("#deb-score").textContent), ai: document.querySelector("#deb-ai").textContent, best: localStorage.getItem("neural-heist.v2.best.m1") })`);
   check("exit with the drive → debrief with stars, score and drone accuracy", deb.screen === "debrief" && deb.stars >= 2 && /\d+%/.test(deb.ai), JSON.stringify(deb));
   check("best score saved in localStorage", Number(deb.best) === deb.score);
   await shot("06-debrief.png");
@@ -274,8 +274,23 @@ try {
   await js(`document.querySelector("#guide-skip").click()`); await sleep(100);
   check("objective arrow points to the data drive in Mission 1", await waitFor(`document.querySelector("#nav-text").textContent === "DATA DRIVE" || document.querySelector("#nav-arrow").classList.contains("hidden")`, 5000), await js(`document.querySelector("#nav-text").textContent`));
 
-  await press("Escape", "Escape"); await js(`document.querySelector("#btn-menu")?.click()`); await sleep(200);
-  check("Main menu returns to the start screen", await js(`${S}.screen === "start"`));
+  // RETIRED 2026-10-24: Esc used to quit to the menu; it now pauses.
+  // await press("Escape", "Escape"); await js(`document.querySelector("#btn-menu")?.click()`); await sleep(200);
+  // check("Main menu returns to the start screen", await js(`${S}.screen === "start"`));
+  await press("Escape", "Escape"); await sleep(200);
+  const pp0 = await js(`({ ...${S}.pos, t: ${S}.mission.time })`);
+  await key("keyDown", "ArrowRight", "ArrowRight"); await sleep(1000); await key("keyUp", "ArrowRight", "ArrowRight");
+  const pp1 = await js(`({ ...${S}.pos, t: ${S}.mission.time })`);
+  check("Esc pauses the mission: menu shown, player and clock frozen", await js(`${S}.screen === "paused"`) && pp0.x === pp1.x && pp0.t === pp1.t);
+  await press("Escape", "Escape"); await sleep(200);
+  check("Esc again resumes", await js(`${S}.screen === "playing"`));
+  await js(`document.querySelector("#btn-pause").click()`); await sleep(150);
+  check("the pause button opens the same menu", await js(`${S}.screen === "paused"`));
+  await js(`document.querySelector("#btn-pause-lab").click()`); await sleep(300);
+  check("Pause → Retrain in the Lab opens this mission's Lab", await js(`${S}.screen === "lab"`));
+  await js(`window.__heist.restart()`); await waitFor(`${S}.screen === "playing"`); await press("Escape", "Escape"); await sleep(150);
+  await js(`document.querySelector("#btn-pause-quit").click()`); await sleep(200);
+  check("Pause → Quit returns to the start screen", await js(`${S}.screen === "start"`));
 } catch (e) { check("flow completed without exception", false, e.message); }
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${results.filter(Boolean).length} / ${results.length} checks passed`);

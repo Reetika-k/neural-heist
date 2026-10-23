@@ -36,3 +36,13 @@ export function droneAccuracy(d) {
 }
 
 export const isRevealed = (d, id) => d.detections.get(id)?.label === "guard";
+
+/**
+ * The drone's mission score (2026-10-24): accuracy of the trained model on every character in the mission, whoever the
+ * drone happened to scan. droneAccuracy (above) counted only scanned characters, so a quick run that scanned one person
+ * scored 0 % or 100 % by luck. Ground truth (kind) is used only for scoring.
+ */
+export function modelAccuracy(model, characters) {
+  if (!model || !characters.length) return 0;
+  return characters.filter((c) => predict(model, c.snapshot).label === c.kind).length / characters.length;
+}

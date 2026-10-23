@@ -15,6 +15,8 @@ await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, devi
 await send("Emulation.setTouchEmulationEnabled", { enabled: true });
 await send("Page.reload"); await sleep(1500);
 for (let i = 0; i < 50 && !(await js("!!window.__heist")); i++) await sleep(100);
+// a first-time player (no saved bests), so Start opens the Mission 1 briefing, not mission select
+await js(`Object.keys(localStorage).filter(k => k.includes(".best.") || k.includes(".stars.")).forEach(k => localStorage.removeItem(k))`);
 const fits = `document.documentElement.scrollWidth <= innerWidth + 1`;
 // RETIRED 2026-10-23: only checked the width, so a button cut off below the screen (How to play's "Got it") still passed.
 // const visible = (sel) => `(() => { const r = document.querySelector("${sel}").getBoundingClientRect(); return r.width > 40 && r.left >= 0 && r.right <= innerWidth + 1; })()`;
@@ -73,6 +75,16 @@ check("E on a phone: SEND DOG appears only next to the console", hiddenAway && l
 const b = await js(`(() => { const r = document.querySelector("#t-use").getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
 await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: b.x, y: b.y }] }); await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await sleep(400);
 check("tapping SEND DOG sends the dog, and the button goes away", await js(`window.__heist.state.dog.status !== "idle" && document.querySelector("#t-use").classList.contains("hidden")`), await js(`window.__heist.state.dog.status`));
+// ---------- pause and mission select on a phone (2026-10-24) ----------
+check("pause button (❚❚) can be reached with a finger while playing", await js(visible("#btn-pause")));
+await js(`document.querySelector("#btn-pause").click()`); await sleep(200);
+check("pause menu fits the phone; Resume reachable", await js(`window.__heist.state.screen === "paused"`) && await js(fits) && await js(visible("#btn-resume")));
+fs.writeFileSync("docs/screenshots/29-phone-pause.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
+await js(`document.querySelector("#btn-pause-quit").click(); localStorage.setItem("neural-heist.v2.best.m1", "1830"); localStorage.setItem("neural-heist.v2.stars.m1", "3"); document.querySelector("#btn-start").click()`); await sleep(300);
+let msOk = false; // retried: the screen fades in, and a tap test during the fade can hit the screen behind
+for (let i = 0; i < 20 && !msOk; i++) { msOk = await js(`window.__heist.state.screen === "missions"`) && await js(fits) && await js(visible("#mission-list [data-mission='2']")); if (!msOk) await sleep(100); }
+check("mission select fits the phone; Mission 3 Play reachable", msOk);
+fs.writeFileSync("docs/screenshots/28-mission-select.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${results.filter(Boolean).length} / ${results.length} phone checks passed`);
 ws.close(); process.exit(results.every(Boolean) ? 0 : 1);

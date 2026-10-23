@@ -17,7 +17,7 @@ const press = async (k, code) => { await send("Input.dispatchKeyEvent", { type: 
 const rows = []; const check = (n, ok, d = "") => { rows.push(ok); console.log(`${ok ? "PASS" : "FAIL"}  ${n}${d ? " — " + d : ""}`); };
 const S = "window.__heist.state";
 const park = (x, z) => js(`${S}.guards.forEach(g => { g.patrol = [{ x: ${x}, z: ${z} }]; g.pos = { x: ${x + 0.5}, z: ${z + 0.5} }; g.path = []; g.state = "patrol"; g.suspicion = 0; g.sees = false; })`);
-const PAR = { 1: 45, 2: 70, 3: 75 };
+const PAR = { 1: 35, 2: 45, 3: 50 }; // 2026-10-24: tighter pars; time bonus 10/s capped at 300
 
 /** Reach the exit with the drive at a chosen mission time; returns the debrief as shown, plus the inputs used. */
 async function finish(mission, { time, chased = false, exit }) {
@@ -29,7 +29,7 @@ async function finish(mission, { time, chased = false, exit }) {
     best: Number(document.querySelector("#deb-best").textContent), newBest: !document.querySelector("#deb-newbest").classList.contains("hidden") }; })()`);
 }
 function expected(mission, d) {
-  const timePts = Math.max(0, Math.round((PAR[mission] - d.t) * 20)), aiPts = Math.round(Math.max(0, Math.min(1, d.ai)) * 500);
+  const timePts = Math.min(300, Math.max(0, Math.round((PAR[mission] - d.t) * 10))), aiPts = Math.round(Math.max(0, Math.min(1, d.ai)) * 500);
   return { score: 1000 + (d.spotted ? 0 : 500) + timePts + aiPts, breakdown: `1000 finish + ${d.spotted ? 0 : 500} stealth + ${timePts} time + ${aiPts} AI`, stars: [true, !d.spotted, d.t <= PAR[mission]] };
 }
 const verify = (name, mission, d, prevBest) => {
@@ -60,7 +60,7 @@ try {
 
   await startM1(true); await grab1();
   let d = await finish(1, { time: 20, exit: m1Exit });
-  best[1] = verify("M1 trained drone, stealthy, 25 s under par", 1, d, best[1]);
+  best[1] = verify("M1 trained drone, stealthy, 15 s under par", 1, d, best[1]);
   check("M1 a perfectly trained drone identifies every Rooftop character (100 %, full AI points)", Math.abs(d.ai - 1) < 1e-9, `${Math.round(d.ai * 100)}%`);
 
   await js(`document.querySelector("#btn-retry").click()`); await waitFor(`${S}.screen === "playing"`); await park(17, 1); await grab1();
@@ -68,14 +68,15 @@ try {
   best[1] = verify("M1 replay chased and over par (worse)", 1, d, best[1]);
 
   await startM1(false); await js(`${S}.pos = { x: ${m1Drive.x}, z: ${m1Drive.z} }`); await waitFor(`${S}.mission.hasDrive`);
-  d = await finish(1, { time: 30, exit: m1Exit });
-  best[1] = verify("M1 without a model (AI scores 0)", 1, d, best[1]);
+  d = await finish(1, { time: 3, exit: m1Exit });
+  best[1] = verify("M1 without a model, rushed (AI scores 0)", 1, d, best[1]);
+  check("M1 rushed: time bonus capped at 300 (cannot outweigh the AI points)", /\+ 300 time \+/.test(d.breakdown), d.breakdown);
   check("M1 without a model: AI 0 points", d.ai === 0 && /\+ 0 AI$/.test(d.breakdown), d.breakdown);
 
   // a lost mission never scores and never lowers the best
   await js(`document.querySelector("#btn-retry").click()`); await waitFor(`${S}.screen === "playing"`); await park(17, 1);
   await js(`${S}.mission.alarm = 0.05`); await waitFor(`${S}.screen === "caught"`, 10000);
-  check("M1 lost to the alarm: LOCKDOWN, best unchanged", await js(`document.querySelector("#caught-title").textContent === "LOCKDOWN"`) && Number(await js(`localStorage.getItem("neural-heist.best.m1")`)) === best[1]);
+  check("M1 lost to the alarm: LOCKDOWN, best unchanged", await js(`document.querySelector("#caught-title").textContent === "LOCKDOWN"`) && Number(await js(`localStorage.getItem("neural-heist.v2.best.m1")`)) === best[1]);
 
   // ---------- Mission 2: robot dog ----------
   const startM2 = async (opts, rewards) => {
@@ -99,7 +100,7 @@ try {
 
   await startM2({ batteries: false, blinking: false, slip: 0 }, { goal: 10, laser: 5, step: -0.1 });
   await waitFor(`${S}.screen === "caught"`, 30000);
-  check("M2 laser-rewarded dog: LASER TRIPPED, no score, best unchanged", await js(`document.querySelector("#caught-title").textContent === "LASER TRIPPED"`) && Number(await js(`localStorage.getItem("neural-heist.best.m2")`)) === best[2]);
+  check("M2 laser-rewarded dog: LASER TRIPPED, no score, best unchanged", await js(`document.querySelector("#caught-title").textContent === "LASER TRIPPED"`) && Number(await js(`localStorage.getItem("neural-heist.v2.best.m2")`)) === best[2]);
 
   // ---------- Mission 3: hacking assistant ----------
   const startM3 = async (chunk, k) => {
@@ -108,17 +109,19 @@ try {
     await waitFor(`${S}.screen === "playing"`); await park(20, 1);
     await js(`${S}.pos = { x: 8.5, z: 8.5 }`); await sleep(300); await press("e", "KeyE");
     await waitFor(`document.querySelector("#terminal").dataset.state === "ready"`, 60000);
+    const relab = await js(`!document.querySelector("#term-relab").classList.contains("hidden")`);
     await js(`(() => { const i = document.querySelector("#term-input"); i.value = "KESTREL37"; document.querySelector("#term-form").requestSubmit(); })()`);
     await waitFor(`${S}.screen === "playing" && ${S}.doorOpen`, 10000);
     await js(`${S}.pos = { x: 19.5, z: 8.5 }`); await waitFor(`${S}.mission.hasDrive`);
+    return relab;
   };
   const m3Exit = { x: 1.5, z: 12.5 };
-  await startM3(2, 3);
+  check("M3 good index: no 'back to the Lab' button at the terminal", (await startM3(2, 3)) === false);
   d = await finish(3, { time: 30, exit: m3Exit });
   best[3] = verify("M3 good index (3 of 3 clues)", 3, d, best[3]);
   check("M3 AI points = retrieval recall 100 %", Math.abs(d.ai - 1) < 1e-9);
 
-  await startM3(2, 1);
+  check("M3 weak index: the terminal offers 'Improve the search index (back to the Lab)'", (await startM3(2, 1)) === true);
   d = await finish(3, { time: 30, exit: m3Exit });
   best[3] = verify("M3 weak index (k = 1, 2 of 3 clues)", 3, d, best[3]);
   check("M3 weak index: AI points from recall 67 % (333)", /\+ 333 AI$/.test(d.breakdown), d.breakdown);
@@ -129,7 +132,13 @@ try {
   const listed = await js(`[...document.querySelectorAll("#complete-list b")].map(b => Number(b.textContent))`);
   check("Heist Complete lists each mission's best and the total is their sum", JSON.stringify(listed) === JSON.stringify([best[1], best[2], best[3]]) && total === best[1] + best[2] + best[3], `${listed.join(" + ")} = ${total}`);
   await send("Page.reload"); await sleep(1500); await waitFor("!!window.__heist", 30000);
-  check("best scores survive a page reload", await js(`[1, 2, 3].map(i => Number(localStorage.getItem("neural-heist.best.m" + i)))`).then((b) => JSON.stringify(b) === JSON.stringify([best[1], best[2], best[3]])));
+  check("best scores survive a page reload", await js(`[1, 2, 3].map(i => Number(localStorage.getItem("neural-heist.v2.best.m" + i)))`).then((b) => JSON.stringify(b) === JSON.stringify([best[1], best[2], best[3]])));
+  // mission select (2026-10-24): returning players get the list, every mission open, with best and stars
+  await js(`document.querySelector("#btn-start").click()`); await waitFor(`${S}.screen === "missions"`);
+  const cards = await js(`[...document.querySelectorAll("#mission-list .mission-item")].map(li => ({ done: li.classList.contains("done"), stats: li.querySelector(".mi-stats").textContent, play: !!li.querySelector("[data-mission]") }))`);
+  check("Start opens mission select for a returning player: 3 missions, all playable, each with its best and stars", cards.length === 3 && cards.every((c, i) => c.done && c.play && c.stats.startsWith(`Best ${best[i + 1]}`) && /★/.test(c.stats)), cards.map((c) => c.stats).join(" | "));
+  await js(`document.querySelector('#mission-list [data-mission="2"]').click()`); await sleep(200);
+  check("mission select opens Mission 3 directly", await js(`${S}.screen === "briefing" && ${S}.config.id === 3`));
 } catch (e) { check("scenario run completed without exception", false, e.message); }
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${rows.filter(Boolean).length} / ${rows.length} score checks passed`);

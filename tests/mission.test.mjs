@@ -56,6 +56,9 @@ test("scoring: three stars for a clean, fast run; fewer otherwise; zero for a lo
   const clean = { outcome: "win", spotted: false, time: 30, parTime: 45 };
   assert.deepEqual(scoreMission(clean).stars, [true, true, true]);
   assert.equal(scoreMission(clean).score, P.finish + P.stealth + 15 * P.perSecondUnderPar);
+  const rushed = { outcome: "win", spotted: false, time: 1, parTime: 75 };
+  assert.equal(scoreMission(rushed).breakdown.time, P.timeCap, "time bonus is capped");
+  assert.ok(P.timeCap < P.ai, "speed can never outweigh a perfectly trained AI");
   assert.equal(scoreMission(clean, 0.8).breakdown.ai, Math.round(0.8 * P.ai), "AI accuracy adds points");
   assert.equal(scoreMission(clean, 7).breakdown.ai, P.ai, "AI score is clamped to 0..1");
   const spottedSlow = { outcome: "win", spotted: true, time: 80, parTime: 45 };

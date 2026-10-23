@@ -85,3 +85,16 @@ test("civilians wander along their route with A*", () => {
   assert.ok(Math.hypot(c.pos.x - start.x, c.pos.z - start.z) > 1, "moved");
   assert.equal(map.isBlocked(Math.floor(c.pos.x), Math.floor(c.pos.z)), false);
 });
+
+// 2026-10-24: the drone's mission score no longer depends on who it happened to scan
+import { modelAccuracy } from "../src/teammates/drone.js";
+test("drone mission score: the trained model on every Rooftop character; perfect labels give 100 %", () => {
+  const { train } = labDataset();
+  const perfect = fit(createClassifier(3), train.map((s) => ({ snapshot: s, label: s.kind })));
+  const kinds = ["guard", "guard", "civilian", "civilian", "civilian"];
+  const rooftop = kinds.map((kind, i) => ({ kind, snapshot: makeSnapshot(kind, 9130 + i) }));
+  assert.equal(modelAccuracy(perfect, rooftop), 1);
+  assert.equal(modelAccuracy(null, rooftop), 0, "no model, no points");
+  const weak = fit(createClassifier(3), train.slice(0, 4).map((s) => ({ snapshot: s, label: s.kind })));
+  assert.ok(modelAccuracy(weak, rooftop) < 1, "weak training loses points");
+});

@@ -45,19 +45,19 @@ You are a hacker in a neon Indian city run by a corrupt tech company. Each missi
 | Mission guide again | ? | ? button |
 | AI Brain panel | Tab (or 🧠) | 🧠 |
 | Mute | M (or 🔊) | 🔊 |
-| Menu / restart | Esc / Enter | – |
+| Pause / restart | Esc (pause menu) / Enter | ❚❚ button |
 
 The first time you play each mission, a short guide explains what to do (the game is paused while it is open), and a green arrow at the screen edge always points to the next objective: data drive, console, terminal or exit.
 
 ## Tests
 
 ```bash
-npm test                 # 71 unit tests (Node, no browser)
+npm test                 # 72 unit tests (Node, no browser)
 # browser tests: start the dev server, then Chrome with
 #   --headless=new --remote-debugging-port=9337 --remote-allow-origins=*
-npm run test:e2e         # 80 checks: every screen, all three missions, Brain panel, export, settings
-npm run test:scores      # 32 score checks: every debrief, stars, best scores and the Heist Complete total
-npm run test:phone       # 6 checks at 390 px width
+npm run test:e2e         # 84 checks: every screen, pause menu, all three missions, Brain panel, export, settings
+npm run test:scores      # 37 score checks: every debrief, stars, best scores, mission select and the Heist Complete total
+npm run test:phone       # 15 checks at 390 px width
 ```
 
 Results: [docs/test-report.md](docs/test-report.md). All 12 README scenarios pass.
