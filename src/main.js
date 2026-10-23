@@ -416,7 +416,9 @@ function showComplete() {
 function updateHud() {
   const m = state.mission, cfg = state.config;
   $("#hud-mission").innerHTML = `<b>MISSION ${cfg.id}</b> · ${cfg.name}`;
-  $("#hud-objective").textContent = m.hasDrive ? cfg.objective.exit : state.dog?.status === "crossing" ? cfg.objective.working : state.doorOpen ? cfg.objective.unlocked : cfg.objective.find;
+  const objectiveText = m.hasDrive ? cfg.objective.exit : state.dog?.status === "crossing" ? cfg.objective.working : state.doorOpen ? cfg.objective.unlocked : cfg.objective.find;
+  // phones have no E key: name the button that appears instead
+  $("#hud-objective").textContent = IS_TOUCH ? objectiveText.replace(" (E)", "").replace("press E", "tap SEND DOG") : objectiveText;
   $("#hud-objective").classList.toggle("got", m.hasDrive);
   $("#hud-time").textContent = fmtTime(m.time);
   $("#hud-time").classList.toggle("over", m.time > m.parTime);
@@ -463,7 +465,10 @@ function objectiveTarget() {
 }
 function updateNavArrow() {
   const obj = objectiveTarget(), target = obj?.cell;
-  $("#t-use").classList.toggle("ready", !$("#hud-hint").classList.contains("hidden"));
+  // Phones: the E key becomes a button that appears only next to something usable, named after the action.
+  const act = IS_TOUCH ? currentAction() : null, useBtn = $("#t-use");
+  useBtn.classList.toggle("hidden", !act);
+  if (act && useBtn.textContent !== act) useBtn.textContent = act;
   if (!target) { navArrow.classList.add("hidden"); return; }
   if (navArrow.dataset.kind !== obj.kind) navArrow.dataset.kind = obj.kind;
   if ($("#nav-text").textContent !== obj.label) $("#nav-text").textContent = obj.label;
@@ -490,18 +495,19 @@ function nearVaultWall() {
 const K = (keys, touch) => (IS_TOUCH ? touch : keys);
 const GUIDE = {
   1: [
-    () => `<b>Move</b> with ${K("the <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> arrow keys (or WASD)", "a finger: <b>drag anywhere</b> on the screen (or use the joystick at the bottom left)")}. ${K("Hold <kbd>Shift</kbd>", "Tap <b>SNEAK</b>")} to move quietly.`,
+    () => K(`<b>Move</b> with the <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> arrow keys (or WASD). Hold <kbd>Shift</kbd> to move quietly.`,
+            `<b>Move</b> by <b>dragging anywhere</b> on the screen, in the direction you want to go. A <b>short drag</b> sneaks quietly, a long drag walks (or tap <b>SNEAK</b>).`),
     () => `<b>Guards</b> see inside their cones. <span class="g-white">White</span> = calm, <span class="g-yellow">yellow</span> = noticing you, <span class="g-red">red</span> = chasing. Walls hide you. If a guard touches you, you are caught.`,
     () => `<b>Your drone</b> is the AI you just trained. It scans everyone nearby: guards it recognises get a tag and a visible cone. Train it badly and some guards stay invisible.`,
     () => `<b>Goal:</b> follow the <b class="green">green arrow</b> to the <b class="gold">data drive</b>, then to the <b class="green">exit</b>. ${K("Press <kbd>?</kbd>", "Tap <b>?</b>")} any time to see this again.`,
   ],
   2: [
     () => `This vault is full of <b class="red">lasers</b>. You cannot go in: your <b>robot dog</b> crosses it, following the path it learned in the Lab.`,
-    () => `Follow the <b class="green">arrow</b> to the glowing <b>console</b> and ${K("press <kbd>E</kbd>", "tap <b>USE</b>")} to send the dog.`,
+    () => `Follow the <b class="green">arrow</b> to the glowing <b>console</b> and ${K("press <kbd>E</kbd>", "tap the <b>SEND DOG</b> button that appears there")} to send the dog.`,
     () => `If the dog touches a laser, the alarm starts: go back to the Lab and fix its rewards. When it brings the <b class="gold">drive</b>, run to the <b class="green">exit</b>.`,
   ],
   3: [
-    () => `The <b class="gold">drive</b> is locked in the CEO's room. Follow the <b class="green">arrow</b> to the <b>terminal</b> and ${K("press <kbd>E</kbd>", "tap <b>USE</b>")}.`,
+    () => `The <b class="gold">drive</b> is locked in the CEO's room. Follow the <b class="green">arrow</b> to the <b>terminal</b> and ${K("press <kbd>E</kbd>", "tap the <b>HACK TERMINAL</b> button that appears there")}.`,
     () => `Your <b>hacking assistant</b> searches the leaked emails with the index you built, and works out the password. Type it in. <b class="red">3 wrong passwords</b> start the alarm.`,
     () => `Then grab the <b class="gold">drive</b> and reach the <b class="green">exit</b>.`,
   ],
@@ -533,44 +539,83 @@ $("#guide-next").addEventListener("click", guideNext);
 $("#guide-skip").addEventListener("click", () => closeGuide());
 $("#btn-help").addEventListener("click", () => { if (state.screen === "playing") openGuide(state.config.id, true); });
 
-// ---------- touch controls: joystick (fixed or drag anywhere), SNEAK, USE ----------
-// RETIRED 2026-10-23: the joystick only worked inside its circle at the bottom left. Players asked to steer by
-// dragging anywhere on the screen, so a drag on the game view now moves the joystick under the finger
-// ("floating joystick") and it returns to its corner when released. Same movement maths as before.
+// RETIRED 2026-10-23 (user request): the fixed joystick plus drag-anywhere version, replaced by drag-only movement below.
+// // ---------- touch controls: joystick (fixed or drag anywhere), SNEAK, USE ----------
+// // RETIRED 2026-10-23: the joystick only worked inside its circle at the bottom left. Players asked to steer by
+// // dragging anywhere on the screen, so a drag on the game view now moves the joystick under the finger
+// // ("floating joystick") and it returns to its corner when released. Same movement maths as before.
+// (() => {
+//   const joy = $("#joy"), knob = $("#joy-knob"), scene = $("#scene");
+//   let pid = null, origin = null; // origin: { x, y, R } in screen pixels
+//   const moveTo = (e) => {
+//     const { x, y, R } = origin;
+//     const vx = (e.clientX - x) / R, vy = (e.clientY - y) / R;
+//     const len = Math.hypot(vx, vy), mag = Math.min(1, len);
+//     knob.style.transform = `translate(${(len ? vx / len : 0) * mag * R * 0.55}px, ${(len ? vy / len : 0) * mag * R * 0.55}px)`;
+//     if (mag < 0.2) { touchMove.mag = 0; return; } // dead zone
+//     Object.assign(touchMove, { active: true, sx: vx / len, sy: -vy / len, mag });
+//   };
+//   const begin = (e, el, floating) => {
+//     if (state.screen !== "playing" || guide.open || pid !== null) return;
+//     e.preventDefault();
+//     pid = e.pointerId; el.setPointerCapture(pid); touchMove.active = true;
+//     const r = joy.getBoundingClientRect(), R = r.width / 2;
+//     if (floating) { // centre the joystick under the finger
+//       joy.classList.add("floating");
+//       joy.style.left = `${e.clientX - R}px`; joy.style.top = `${e.clientY - R}px`;
+//       origin = { x: e.clientX, y: e.clientY, R };
+//     } else origin = { x: r.left + R, y: r.top + R, R };
+//     moveTo(e);
+//   };
+//   const end = (e) => {
+//     if (e && e.pointerId !== pid) return;
+//     pid = null; origin = null; Object.assign(touchMove, { active: false, mag: 0 });
+//     knob.style.transform = ""; joy.classList.remove("floating"); joy.style.left = ""; joy.style.top = "";
+//   };
+//   for (const [el, floating] of [[joy, false], [scene, true]]) {
+//     el.addEventListener("pointerdown", (e) => { if (floating && e.pointerType === "mouse") return; begin(e, el, floating); });
+//     el.addEventListener("pointermove", (e) => { if (e.pointerId === pid && origin) moveTo(e); });
+//     el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end); el.addEventListener("lostpointercapture", end);
+//   }
+//   $("#t-use").addEventListener("click", () => { if (state.screen === "playing" && !guide.open) interact(); });
+//   $("#t-sneak").addEventListener("click", () => { sneakToggle = !sneakToggle; $("#t-sneak").setAttribute("aria-pressed", String(sneakToggle)); });
+// })();
+
+// ---------- touch controls: drag anywhere to move, SNEAK, context action (the E key) ----------
+/** What E would do right now, as a button label for phones; null when there is nothing to use. */
+function currentAction() {
+  if (state.screen !== "playing" || guide.open || !state.config) return null;
+  if (state.dog && state.dog.status === "idle" && near(state.map.console)) return "SEND DOG";
+  if (state.config.teammate === "assistant" && !state.doorOpen && near(state.map.terminal)) return "HACK TERMINAL";
+  return null;
+}
 (() => {
-  const joy = $("#joy"), knob = $("#joy-knob"), scene = $("#scene");
-  let pid = null, origin = null; // origin: { x, y, R } in screen pixels
+  const scene = $("#scene"), ind = $("#drag-ind"), dot = $("#drag-dot");
+  const R = 60; // drag radius in pixels for full walking speed
+  let pid = null, origin = null;
   const moveTo = (e) => {
-    const { x, y, R } = origin;
-    const vx = (e.clientX - x) / R, vy = (e.clientY - y) / R;
+    const vx = (e.clientX - origin.x) / R, vy = (e.clientY - origin.y) / R;
     const len = Math.hypot(vx, vy), mag = Math.min(1, len);
-    knob.style.transform = `translate(${(len ? vx / len : 0) * mag * R * 0.55}px, ${(len ? vy / len : 0) * mag * R * 0.55}px)`;
-    if (mag < 0.2) { touchMove.mag = 0; return; } // dead zone
+    dot.style.transform = `translate(${(len ? vx / len : 0) * mag * R * 0.7}px, ${(len ? vy / len : 0) * mag * R * 0.7}px)`;
+    if (mag < 0.2) { touchMove.mag = 0; return; } // dead zone: a tap does not move
     Object.assign(touchMove, { active: true, sx: vx / len, sy: -vy / len, mag });
-  };
-  const begin = (e, el, floating) => {
-    if (state.screen !== "playing" || guide.open || pid !== null) return;
-    e.preventDefault();
-    pid = e.pointerId; el.setPointerCapture(pid); touchMove.active = true;
-    const r = joy.getBoundingClientRect(), R = r.width / 2;
-    if (floating) { // centre the joystick under the finger
-      joy.classList.add("floating");
-      joy.style.left = `${e.clientX - R}px`; joy.style.top = `${e.clientY - R}px`;
-      origin = { x: e.clientX, y: e.clientY, R };
-    } else origin = { x: r.left + R, y: r.top + R, R };
-    moveTo(e);
   };
   const end = (e) => {
     if (e && e.pointerId !== pid) return;
     pid = null; origin = null; Object.assign(touchMove, { active: false, mag: 0 });
-    knob.style.transform = ""; joy.classList.remove("floating"); joy.style.left = ""; joy.style.top = "";
+    dot.style.transform = ""; ind.classList.add("hidden");
   };
-  for (const [el, floating] of [[joy, false], [scene, true]]) {
-    el.addEventListener("pointerdown", (e) => { if (floating && e.pointerType === "mouse") return; begin(e, el, floating); });
-    el.addEventListener("pointermove", (e) => { if (e.pointerId === pid && origin) moveTo(e); });
-    el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end); el.addEventListener("lostpointercapture", end);
-  }
-  $("#t-use").addEventListener("click", () => { if (state.screen === "playing" && !guide.open) interact(); });
+  scene.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" || state.screen !== "playing" || guide.open || pid !== null) return;
+    e.preventDefault();
+    pid = e.pointerId; scene.setPointerCapture(pid); touchMove.active = true;
+    origin = { x: e.clientX, y: e.clientY };
+    ind.style.left = `${e.clientX}px`; ind.style.top = `${e.clientY}px`; ind.classList.remove("hidden");
+    moveTo(e);
+  });
+  scene.addEventListener("pointermove", (e) => { if (e.pointerId === pid && origin) moveTo(e); });
+  for (const ev of ["pointerup", "pointercancel", "lostpointercapture"]) scene.addEventListener(ev, end);
+  $("#t-use").addEventListener("click", () => { if (currentAction()) interact(); });
   $("#t-sneak").addEventListener("click", () => { sneakToggle = !sneakToggle; $("#t-sneak").setAttribute("aria-pressed", String(sneakToggle)); });
 })();
 

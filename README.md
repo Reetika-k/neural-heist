@@ -39,9 +39,9 @@ You are a hacker in a neon Indian city run by a corrupt tech company. Each missi
 
 | Action | Keyboard | Phone / tablet |
 |---|---|---|
-| Move | Arrow keys (WASD also works) | Drag anywhere on the screen (the joystick follows your finger), or the joystick at the bottom left |
-| Sneak | Shift | SNEAK button (or a gentle joystick push) |
-| Use console / terminal | E | USE button (lights up when you can use something) |
+| Move | Arrow keys (WASD also works) | Drag anywhere on the screen, toward where you want to go |
+| Sneak | Shift | A short drag, or the SNEAK button |
+| Use console / terminal | E | A button appears next to it: SEND DOG (Mission 2) or HACK TERMINAL (Mission 3) |
 | Mission guide again | ? | ? button |
 | AI Brain panel | Tab (or 🧠) | 🧠 |
 | Mute | M (or 🔊) | 🔊 |

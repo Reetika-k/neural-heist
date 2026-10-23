@@ -21,12 +21,20 @@
     <div class="guide-btns"><button id="guide-skip" class="btn-link" type="button">Skip guide</button><button id="guide-next" class="btn-primary guide-next" type="button">Next</button></div>
   </div>
   <button id="btn-help" class="btn-help hidden" type="button" aria-label="Show the mission guide again" title="Help (?)">?</button>
+  <!-- RETIRED 2026-10-23: the on-screen joystick and the always-visible USE button. The user asked to drop the
+       joystick and move by dragging anywhere; USE (the E key) became a button that appears only next to something usable.
   <div id="touch" class="touch-ui-controls hidden" aria-hidden="false">
     <div id="joy" class="joy" aria-label="Joystick: drag to move"><div class="joy-knob" id="joy-knob"></div></div>
     <div class="touch-btns">
       <button id="t-sneak" class="t-btn" type="button" aria-pressed="false">SNEAK</button>
       <button id="t-use" class="t-btn t-use" type="button">USE</button>
     </div>
+  </div>
+  -->
+  <div id="touch" class="touch-ui-controls hidden">
+    <div id="drag-ind" class="drag-ind hidden" aria-hidden="true"><div class="drag-dot" id="drag-dot"></div></div>
+    <button id="t-sneak" class="t-btn t-sneak" type="button" aria-pressed="false">SNEAK</button>
+    <button id="t-use" class="t-action hidden" type="button">USE</button>
   </div>
 
   <div id="hud" class="hud hidden" aria-live="polite">
@@ -121,9 +129,9 @@
       </ol>
       <table class="howto-table">
         <tr><th></th><th>Keyboard</th><th>Phone</th></tr>
-        <tr><td>Move</td><td><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>Drag anywhere on the screen (or the joystick)</td></tr>
-        <tr><td>Sneak (quieter)</td><td>hold <kbd>Shift</kbd></td><td>SNEAK button</td></tr>
-        <tr><td>Use console / terminal</td><td><kbd>E</kbd></td><td>USE button</td></tr>
+        <tr><td>Move</td><td><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>Drag anywhere on the screen</td></tr>
+        <tr><td>Sneak (quieter)</td><td>hold <kbd>Shift</kbd></td><td>Short drag, or SNEAK</td></tr>
+        <tr><td>Use console / terminal</td><td><kbd>E</kbd></td><td>Button appears when you stand next to it</td></tr>
         <tr><td>Help · AI Brain · Sound</td><td><kbd>?</kbd> · <kbd>Tab</kbd> · <kbd>M</kbd></td><td>? · 🧠 · 🔊</td></tr>
       </table>
       <ul class="howto-list">
