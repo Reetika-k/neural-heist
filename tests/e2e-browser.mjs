@@ -163,6 +163,10 @@ try {
   await js(`${S}.lab.setRewards({ goal: 10, laser: 5, step: -0.1 })`);
   const badV = await js(`${S}.lab.trainNow(1).outcome`);
   check("laser reward +5 → learned path hits a laser (verdict shown)", badV === "laser" && /laser/.test(await js(`document.querySelector("#q-verdict").textContent`)));
+  check("the Lab explains why: the laser hint warns, the verdict gives a reason and a fix", await js(`/prize/.test(document.querySelector("#h-laser").textContent) && /Why:.*rewarded lasers/.test(document.querySelector("#q-verdict").textContent) && /Try:/.test(document.querySelector("#q-verdict").textContent)`));
+  await js(`document.querySelector('[data-preset="lazy"]').click()`); await sleep(100);
+  check("ready-made setting 'Lazy dog' sets the step reward to 0 and warns about it", await js(`document.querySelector("#r-step").value === "0" && /no reason to hurry/.test(document.querySelector("#h-step").textContent) && /Lazy dog/.test(document.querySelector("#q-preset-note").textContent)`));
+  await js(`${S}.lab.setRewards({ goal: 10, laser: 5, step: -0.1 }); ${S}.lab.trainNow(1)`); // back to the laser-rewarded dog for the next steps
   await js(`document.querySelector("#q-go").click()`); await sleep(300);
   await js(parkAt(21, 14));
   check("Mission 2 start: an arrow at the screen edge points to the off-screen console", await waitFor(`!document.querySelector("#nav-arrow").classList.contains("hidden")`, 8000));

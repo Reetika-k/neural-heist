@@ -1,5 +1,6 @@
 // Mission 2 Lab: design rewards, watch tabular Q-learning train live, inspect the learned policy.
 import { createAgent, trainEpisodes, greedyPath, policy, movingAverage, VAULT, LASERS, ACTIONS, DEFAULT_REWARDS, HYPER } from "../lab/qlearning.js";
+import { sliderHint, explainOutcome, PRESETS } from "../lab/reward-advice.js";
 
 const ARROWS = ["↑", "↓", "←", "→"];
 
@@ -14,17 +15,23 @@ export function mountQLab(root, { onDone, onBack, prev = null }) {
         <div class="q-main">
           <canvas id="q-grid" width="420" height="420" aria-label="Vault grid"></canvas>
           <div class="q-legend"><span class="sw sw-start"></span>start <span class="sw sw-goal"></span>drive <span class="sw sw-laser"></span>laser <span class="sw sw-path"></span>learned path</div>
+          <div id="q-verdict" class="lab-warn q-verdict hidden" aria-live="polite"></div>
         </div>
         <aside class="lab-side">
-          <label class="slider">Reward for reaching the drive <b id="v-goal"></b><input type="range" id="r-goal" min="0" max="20" step="1"></label>
-          <label class="slider">Reward for touching a laser <b id="v-laser"></b><input type="range" id="r-laser" min="-20" max="10" step="1"></label>
-          <label class="slider">Reward for each step <b id="v-step"></b><input type="range" id="r-step" min="-2" max="0" step="0.1"></label>
-          <label class="slider">Training episodes <b id="v-eps"></b><input type="range" id="r-eps" min="100" max="3000" step="100"></label>
+          <details class="q-how"><summary>How do rewards work?</summary>
+            <p>The dog does not know the vault. It tries moves at random thousands of times. After every move it gets the points you set below, and it slowly learns which move in each square earns the most points <b>in total</b>. A run ends when it reaches the drive, touches a laser, or takes too long.</p>
+            <p><b>Positive</b> = "do more of this". <b>Negative</b> = "avoid this". <b>Zero</b> = "I don't care". The dog does exactly what the points reward, not what you meant.</p>
+          </details>
+          <div class="q-presets" role="group" aria-label="Ready-made settings">${PRESETS.map((p) => `<button type="button" class="q-preset" data-preset="${p.id}" title="${p.note}">${p.label}</button>`).join("")}</div>
+          <p class="q-preset-note fine" id="q-preset-note">Try a ready-made setting, or move the sliders yourself.</p>
+          <label class="slider">Reward for reaching the drive <b id="v-goal"></b><input type="range" id="r-goal" min="0" max="20" step="1"><span class="q-hint" id="h-goal"></span></label>
+          <label class="slider">Reward for touching a laser <b id="v-laser"></b><input type="range" id="r-laser" min="-20" max="10" step="1"><span class="q-hint" id="h-laser"></span></label>
+          <label class="slider">Reward for each step <b id="v-step"></b><input type="range" id="r-step" min="-2" max="0" step="0.1"><span class="q-hint" id="h-step"></span></label>
+          <label class="slider">Training episodes (practice runs) <b id="v-eps"></b><input type="range" id="r-eps" min="100" max="3000" step="100"><span class="q-hint" id="h-eps"></span></label>
           <button class="btn-primary" id="q-train">Train</button>
           <dl class="metric-row q-metrics"><div><dt>Episode</dt><dd id="q-ep">0</dd></div><div><dt>Epsilon <span class="nocaps">ε</span></dt><dd id="q-eps">1.00</dd></div></dl>
           <canvas id="q-chart" width="300" height="110" aria-label="Reward per episode"></canvas>
           <p class="fine">Reward per episode (25-episode moving average). α = ${HYPER.alpha}, γ = ${HYPER.gamma}, ε decays ${HYPER.epsilonStart} → ${HYPER.epsilonEnd}.</p>
-          <div id="q-verdict" class="lab-warn hidden"></div>
           <button class="btn-primary btn-go" id="q-go" disabled>Start mission</button>
           <button class="btn-link" id="q-back">Back to briefing</button>
         </aside>
@@ -38,7 +45,11 @@ export function mountQLab(root, { onDone, onBack, prev = null }) {
 
   const bind = (id, key, fmt) => {
     const el = $(`#r-${id}`); el.value = key === "eps" ? episodes : rewards[key];
-    const show = () => ($(`#v-${id}`).textContent = fmt(Number(el.value)));
+    const show = () => {
+      $(`#v-${id}`).textContent = fmt(Number(el.value));
+      const h = sliderHint(key === "eps" ? "episodes" : key, Number(el.value)), hint = $(`#h-${id}`);
+      hint.textContent = (h.kind === "good" ? "✓ " : "⚠ ") + h.text; hint.dataset.kind = h.kind;
+    };
     el.addEventListener("input", () => { if (key === "eps") episodes = Number(el.value); else rewards[key] = Number(el.value); show(); agent = null; $("#q-go").disabled = true; $("#q-verdict").classList.add("hidden"); draw(); });
     show();
   };
@@ -81,13 +92,11 @@ export function mountQLab(root, { onDone, onBack, prev = null }) {
     const g = greedyPath(agent);
     lastPath = g.path;
     const v = $("#q-verdict"); v.classList.remove("hidden");
-    const msgs = {
-      goal: [`Learned path reaches the drive in ${g.path.length - 1} steps without touching a laser.`, "good"],
-      laser: ["Learned path runs into a laser. Check the laser reward: is touching one actually punished?", "bad"],
-      loop: ["The dog goes in circles and never reaches the drive. Try a step penalty or more episodes.", "bad"],
-    };
-    v.textContent = (g.outcome === "goal" ? "✓ " : "⚠ ") + msgs[g.outcome][0];
-    v.dataset.kind = msgs[g.outcome][1];
+    // RETIRED 2026-10-23: one-line verdicts ("Check the laser reward…") did not say why; players found the Lab confusing.
+    // const msgs = { goal: [...], laser: ["Learned path runs into a laser. Check the laser reward: …"], loop: [...] };
+    const x = explainOutcome(g.outcome, rewards, episodes, g.path.length - 1);
+    v.innerHTML = `<p class="q-v-head">${g.outcome === "goal" ? "✓" : "⚠"} ${x.headline}</p><p><b>Why:</b> ${x.why}</p>${x.fix ? `<p><b>Try:</b> ${x.fix}</p>` : ""}`;
+    v.dataset.kind = g.outcome === "goal" ? "good" : "bad";
     $("#q-go").disabled = false;
     draw();
     return g;
@@ -119,6 +128,13 @@ export function mountQLab(root, { onDone, onBack, prev = null }) {
   const setRewards = (r) => { Object.assign(rewards, r); ["goal", "laser", "step"].forEach((k) => { $(`#r-${k}`).value = rewards[k]; $(`#r-${k}`).dispatchEvent(new Event("input")); }); };
 
   $("#q-train").addEventListener("click", train);
+  root.querySelectorAll(".q-preset").forEach((b) => b.addEventListener("click", () => {
+    const p = PRESETS.find((x) => x.id === b.dataset.preset);
+    episodes = p.episodes; $("#r-eps").value = p.episodes; $("#r-eps").dispatchEvent(new Event("input"));
+    setRewards({ goal: p.goal, laser: p.laser, step: p.step });
+    root.querySelectorAll(".q-preset").forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+    $("#q-preset-note").textContent = `${p.label}: ${p.note} Press Train.`;
+  }));
   $("#q-go").addEventListener("click", () => onDone({ agent, report: { rewards: { ...rewards }, episodes, outcome: greedyPath(agent).outcome, pathLength: greedyPath(agent).path.length - 1 } }));
   $("#q-back").addEventListener("click", onBack);
   if (agent) verdict(); else draw();

@@ -98,13 +98,13 @@ Player → Browser game (Vite + Three.js)
 
 ## 11. Testing report
 
-`docs/test-report.md`: all 12 README scenarios plus 19 more, with expected and actual results. 58 unit tests; 66 browser checks passing on the dev server, on the production build and on the live GitHub Pages site (64 with the LLM path enabled, before the last two were added); 6 phone-size checks. Key measured results: classifier 90% held-back accuracy with 30 correct labels (88% on 400 unseen images) vs about 60% with 4 labels; Q-learning finds the 28-step shortest safe path on 20/20 seeds with sensible rewards and walks into a laser on 20/20 seeds with a positive laser reward; retrieval recall 3/3 at the default settings vs 1/3 with one-sentence chunks or single-hop; local LLM answers KESTREL37 with full recall and hallucinates ROBOTX37 with recall 2/3.
+`docs/test-report.md`: all 12 README scenarios plus 19 more, with expected and actual results. 61 unit tests; 66 browser checks passing on the dev server, on the production build and on the live GitHub Pages site (64 with the LLM path enabled, before the last two were added); 6 phone-size checks. Key measured results: classifier 90% held-back accuracy with 30 correct labels (88% on 400 unseen images) vs about 60% with 4 labels; Q-learning finds the 28-step shortest safe path on 20/20 seeds with sensible rewards and walks into a laser on 20/20 seeds with a positive laser reward; retrieval recall 3/3 at the default settings vs 1/3 with one-sentence chunks or single-hop; local LLM answers KESTREL37 with full recall and hallucinates ROBOTX37 with recall 2/3.
 
 All of these measurements are collected in `reports/dashboard.html`, which `npm run dashboard` rebuilds from the game's own code with fixed seeds. `docs/REQUIREMENT_MAPPING.md` maps every PDF requirement to its implementation and test.
 
 ## 12. Challenges and solutions
 
-`docs/challenges.md` lists 25 problems and fixes. The most instructive: the retrieval bug where a sentence splitter broke at "Mr." and separated the key clue from its subject (found by measuring recall and then reading the chunks); bloom turning vision cones into grey slabs; the k-NN confidence always reading 100%; and the slow-motion bug where a frame-time cap meant to prevent wall tunnelling made the game crawl on slow machines, fixed with fixed-size substeps.
+`docs/challenges.md` lists 26 problems and fixes. The most instructive: the retrieval bug where a sentence splitter broke at "Mr." and separated the key clue from its subject (found by measuring recall and then reading the chunks); bloom turning vision cones into grey slabs; the k-NN confidence always reading 100%; and the slow-motion bug where a frame-time cap meant to prevent wall tunnelling made the game crawl on slow machines, fixed with fixed-size substeps.
 
 ## 13. Final outcome
 
