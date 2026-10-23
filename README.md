@@ -52,10 +52,10 @@ The first time you play each mission, a short guide explains what to do (the gam
 ## Tests
 
 ```bash
-npm test                 # 58 unit tests (Node, no browser)
+npm test                 # 61 unit tests (Node, no browser)
 # browser tests: start the dev server, then Chrome with
 #   --headless=new --remote-debugging-port=9337 --remote-allow-origins=*
-npm run test:e2e         # 72 checks: every screen, all three missions, Brain panel, export, settings
+npm run test:e2e         # 74 checks: every screen, all three missions, Brain panel, export, settings
 npm run test:phone       # 6 checks at 390 px width
 ```
 

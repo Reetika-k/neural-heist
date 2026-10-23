@@ -296,3 +296,17 @@ body.touch-ui .howto-table tr > :nth-child(2) { display: none; }
 @media (max-width: 560px) { body:not(.touch-ui) .howto-table tr > :nth-child(3) { display: none; } }
 /* the 🔊 button sat over menu text on phones; on menu pages it moves to the top-right corner */
 body:not([data-screen="playing"]) .btn-mute { top: 12px; bottom: auto; right: 12px; }
+
+/* ---------- Mission 2 Lab: explained rewards (2026-10-23) ---------- */
+.q-how { border: 1px solid rgba(41,230,255,.25); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; color: var(--dim); }
+.q-how summary { cursor: pointer; color: var(--cyan); font-weight: 600; }
+.q-how p { margin: 8px 0 0; line-height: 1.5; }
+.q-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.q-preset { padding: 6px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.05); color: var(--ink); font: 600 12px/1.2 Inter, sans-serif; cursor: pointer; }
+.q-preset[aria-pressed="true"] { border-color: var(--cyan); background: rgba(41,230,255,.18); }
+.q-preset-note { margin: 0; }
+.q-hint { display: block; margin-top: 4px; font-size: 12.5px; line-height: 1.4; font-weight: 400; }
+.q-hint[data-kind="good"] { color: #8fe9b8; } .q-hint[data-kind="warn"] { color: #ffe08a; } .q-hint[data-kind="bad"] { color: #ff9db0; }
+#q-verdict p { margin: 4px 0; } #q-verdict .q-v-head { font-weight: 700; }
+#q-verdict[data-kind="good"] { border-color: rgba(61,255,154,.5); background: rgba(61,255,154,.08); color: #b6ffd6; }
+.q-verdict { margin-top: 12px; max-width: 420px; font-size: 14px; line-height: 1.5; }
