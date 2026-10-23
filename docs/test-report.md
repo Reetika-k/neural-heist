@@ -9,6 +9,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | Browser test, production build (`vite preview` of `dist/`) | **66 / 66 pass** |
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
 | Phone check, 390 × 844 | **12 / 12 pass** (menus, Labs, drag-to-move gameplay, context action button) |
+| Score scenarios (`npm run test:scores`): every debrief, stars, bests and the total checked against the rules | **32 / 32 pass** |
 | Browser test against the live site (https://reetika-k.github.io/neural-heist/) | **66 / 66 pass** (2026-10-22, offline assistant mode) |
 | Phone check against the live site | **6 / 6 pass** |
 
@@ -20,7 +21,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 2 | Walk into a guard's vision cone | Suspicion meter fills, then CAUGHT | G1 Suspicious with suspicion 0.18 after 0.4 s; standing still → Chase → CAUGHT | Pass |
 | 3 | Hide behind a wall | Guard cannot see the player | Unit test: guard facing a player behind a wall never sees or catches them; cone polygon clipped at walls | Pass |
 | 4 | Label only 4 images and train | Overfitting warning, drone misses guards | Warning "Only 4 labelled images… may overfit"; 4-label models average ~60% on unseen images vs 88% with 30 labels (unit test) | Pass |
-| 5 | Label 30 images correctly and train | Test accuracy above 85%, drone marks all guards | Test accuracy 90% on the 10 held-back images; drone marked 2/2 guards (and one civilian false positive, shown honestly) | Pass |
+| 5 | Label 30 images correctly and train | Test accuracy above 85%, drone marks all guards | Test accuracy 90% on the 10 held-back images; drone marked 2/2 guards (and one civilian false positive, shown honestly; since 2026-10-23 the Rooftop characters are fair: perfect labels identify all 5) | Pass |
 | 6 | Set a positive reward for touching lasers | Robot dog learns a bad path, alarm triggers | Laser +5 → learned path hits a laser (20/20 seeds); in the mission the dog trips it, the alarm starts, "LASER TRIPPED" | Pass |
 | 7 | Train Q-learning with sensible rewards | Robot dog crosses safely | +10/−10/−0.1 → shortest safe path (28 steps) on 20/20 seeds; in the mission the dog delivers the drive, AI score 100% | Pass |
 | 8 | Ask the assistant with the LLM offline | Assistant still helps from the retrieved emails | Since 2026-10-23: "offline reasoning over the retrieved emails" → "PASSWORD: KESTREL37" with the three emails it combined and its steps; with k = 1 it answers UNKNOWN and names the missing clue; also unit-tested for refused connection and HTTP 502. (Before: it only listed the best-matching emails.) | Pass |
@@ -62,6 +63,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 39 | Mission 2 Lab: "it always says 28 steps" | Results change with the player's choices | New vault (random, 22–34 steps, shortest learned 10/10); batteries (+0.2: 28 steps, skipped; +1: 38 steps, both taken); puddles 20 % (safe 32-step route, 100 % vs 78 % for a dry-floor dog); blinking (19 with timing; dogs slip through in ~22); training challenge (~1,165 runs with recommended rewards); value and exploration maps; old dog replayed on a new vault; classic results unchanged | Pass |
 | 40 | Mission 3 Lab: "where do I type the password?" | The Lab makes clear the assistant finds it | "You don't type the password here"; 3 steps; the box is "the assistant's question"; building runs the test; Clues found 3 of 3 with badges; hop-2 words shown; preview answer KESTREL37 (UNKNOWN with the missing clue named at k ≤ 2 or chunk size 1); all 24 settings unit-tested | Pass after fix |
 | 41 | Mission 3: is the terminal marked like the Mission 2 console? | Same beacon for every objective | Terminal (purple "TERMINAL · E"), data drive (gold, Missions 1 and 3), exit (green, once you hold the drive), console (green); each shows only while it is the next objective; verified in screenshots of Missions 1 and 3 | Pass after fix |
+| 42 | Finish the heist with different play styles: is the score right? | Scores follow the rules; bests and total consistent | 32 checks over good, weak and failed runs in all missions. Found: a perfectly trained drone could only reach 60 % in Mission 1 (two look-alike civilians); fixed with fairer character photos (now 100 %) | Pass after fix |
 
 ## Failures found during development and what changed
-See `docs/challenges.md`: 29 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.
+See `docs/challenges.md`: 30 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.
