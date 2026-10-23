@@ -1,12 +1,13 @@
 import * as THREE from "three";
 import { CLASSIC, BLINK } from "../lab/qlearning.js";
 import { vaultToWorld, DOG } from "../teammates/dog.js";
+import { createBeacon } from "./beacon.js";
 
 /**
  * Mission 2's vault: metal floor, pulsing laser beams, the drive on a pedestal, the console, and the dog.
  * 2026-10-23: drawn from the environment the dog trained on (random layouts, blinking lasers, batteries, puddles).
  */
-export function createVaultView(parent, origin, consoleCell, env = CLASSIC) {
+export function createVaultView(parent, origin, consoleCell, env = CLASSIC, { touch = false } = {}) {
   const VAULT = env, LASERS = new Set([...env.lasers].filter((k) => !env.blink.has(k))), BLINKING = [...env.blink];
   const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a2148, metalness: 0.6, roughness: 0.35 });
   const tile = new THREE.InstancedMesh(new THREE.BoxGeometry(0.96, 0.04, 0.96), floorMat, VAULT.size * VAULT.size);
@@ -49,22 +50,8 @@ export function createVaultView(parent, origin, consoleCell, env = CLASSIC) {
   parent.add(con);
 
   // Beacon: players could not find the console (a dark desk) and tried to walk into the vault instead.
-  // A pulsing light column, a floor ring and a floating "CONSOLE · E" label mark it until the dog is sent.
-  const beacon = new THREE.Group();
-  const beamMat = new THREE.MeshBasicMaterial({ color: 0x3dff9a, transparent: true, opacity: 0.22, depthWrite: false, toneMapped: false });
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.42, 4, 20, 1, true), beamMat); beam.position.y = 2;
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0x3dff9a, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, toneMapped: false });
-  const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.68, 40), ringMat); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03;
-  const tag = document.createElement("canvas"); tag.width = 512; tag.height = 128;
-  const g = tag.getContext("2d");
-  g.fillStyle = "rgba(4,18,26,.85)"; g.strokeStyle = "#3dff9a"; g.lineWidth = 6;
-  g.beginPath(); g.roundRect(6, 6, 500, 116, 28); g.fill(); g.stroke();
-  g.fillStyle = "#3dff9a"; g.font = "800 58px Orbitron, Inter, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("CONSOLE · E", 256, 68);
-  const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(tag), depthTest: false, transparent: true, toneMapped: false }));
-  label.scale.set(2.4, 0.6, 1); label.position.y = 2.2; label.renderOrder = 10;
-  beacon.add(beam, ring, label);
-  beacon.position.copy(con.position);
-  parent.add(beacon);
+  // (The inline beacon made for this moved to world/beacon.js on 2026-10-23 so every objective can use it.)
+  const beacon = createBeacon(parent, { color: 0x3dff9a, text: touch ? "CONSOLE" : "CONSOLE · E", position: { x: con.position.x, z: con.position.z } });
 
   // robot dog: low-poly quadruped with cyan eyes
   const dog = new THREE.Group();
@@ -92,10 +79,7 @@ export function createVaultView(parent, origin, consoleCell, env = CLASSIC) {
       gem.visible = gemLight.visible = !mission.hasDrive && dogState?.status !== "goal";
       gem.rotation.y = t * 1.6;
       screenMat.color.set(nearConsole ? 0x3dff9a : dogState?.status === "crossing" ? 0xffd23d : 0x29e6ff);
-      beacon.visible = !!dogState && dogState.status === "idle" && !mission.outcome;
-      const pulse = 0.5 + 0.5 * Math.sin(t * 3);
-      beamMat.opacity = 0.14 + 0.14 * pulse; ringMat.opacity = 0.5 + 0.4 * pulse;
-      ring.scale.setScalar(1 + 0.12 * pulse); label.position.y = 2.2 + 0.08 * Math.sin(t * 2);
+      beacon.update(!!dogState && dogState.status === "idle" && !mission.outcome, t);
       if (!dogState) { dog.visible = false; return; }
       dog.visible = dogState.status !== "laser";
       dog.position.set(dogState.pos.x, 0, dogState.pos.z);
