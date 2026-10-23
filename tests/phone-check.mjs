@@ -28,40 +28,48 @@ await js(`document.querySelector("#btn-brief-lab").click()`); await sleep(300);
 check("Lab: snapshot grid and Train button usable on a phone", await js(fits) && await js(visible("#lab-train")) && await js(`document.querySelectorAll(".snap-card").length === 30`));
 const fs = await import("node:fs");
 const r = await send("Page.captureScreenshot", { format: "png" }); fs.writeFileSync("docs/screenshots/19-phone-lab.png", Buffer.from(r.result.data, "base64"));
-// ---------- playing on a phone (added after playtesting: "it is not mobile friendly") ----------
+// ---------- playing on a phone (playtesting: "not mobile friendly"; then: no joystick, drag anywhere) ----------
 await js(`localStorage.removeItem("neural-heist.guide"); document.querySelector("#lab-skip").click()`);
 for (let i = 0; i < 80 && (await js(`window.__heist.state.screen`)) !== "playing"; i++) await sleep(100);
 await sleep(800);
-check("phone gameplay: joystick, SNEAK and USE shown; nothing overflows", await js(fits) && await js(visible("#joy")) && await js(visible("#t-use")) && await js(visible("#t-sneak")));
-check("first-play guide speaks touch: joystick and SNEAK", await js(`!document.querySelector("#guide").classList.contains("hidden") && /joystick/.test(document.querySelector("#guide-text").textContent)`));
+check("phone gameplay: no joystick, SNEAK shown, action button hidden away from the console; nothing overflows", await js(fits) && !(await js(`!!document.querySelector("#joy")`)) && await js(visible("#t-sneak")) && await js(`document.querySelector("#t-use").classList.contains("hidden")`));
+check("first-play guide explains moving by dragging", await js(`!document.querySelector("#guide").classList.contains("hidden") && /dragging anywhere/.test(document.querySelector("#guide-text").textContent)`));
 const g = await send("Page.captureScreenshot", { format: "png" }); fs.writeFileSync("docs/screenshots/21-phone-guide.png", Buffer.from(g.result.data, "base64"));
 for (let i = 0; i < 4; i++) { await js(`document.querySelector("#guide-next").click()`); await sleep(120); }
-await js(`window.__heist.state.guards.forEach(g => { g.patrol = [{ x: 17, z: 1 }]; g.pos = { x: 17.5, z: 1.5 }; g.path = []; g.state = "patrol"; g.suspicion = 0; }); window.__heist.state.pos = { x: 5.5, z: 6.5 }`); await sleep(500);
-const p0 = await js(`({ ...window.__heist.state.pos })`);
-const j = await js(`(() => { const r = document.querySelector("#joy").getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
-await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: j.x, y: j.y }] });
-await send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: j.x, y: j.y - 60 }] });
-for (let i = 0; i < 60; i++) { const p = await js(`({ ...window.__heist.state.pos })`); if (Math.hypot(p.x - p0.x, p.z - p0.z) > 0.8) break; await sleep(100); }
-const p1 = await js(`({ ...window.__heist.state.pos })`);
+const parkGuards = `window.__heist.state.guards.forEach(g => { g.patrol = [{ x: 17, z: 1 }]; g.pos = { x: 17.5, z: 1.5 }; g.path = []; g.state = "patrol"; g.suspicion = 0; })`;
+const drag = async (x0, y0, x1, y1) => {
+  const p0 = await js(`({ ...window.__heist.state.pos })`);
+  await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: x0, y: y0 }] });
+  await send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x1, y: y1 }] });
+  await sleep(150);
+  const ind = await js(`(() => { const el = document.querySelector("#drag-ind"); const r = el.getBoundingClientRect(); return !el.classList.contains("hidden") && Math.abs(r.left + r.width / 2 - ${x0}) < 3 && Math.abs(r.top + r.height / 2 - ${y0}) < 3; })()`);
+  for (let i = 0; i < 60; i++) { const p = await js(`({ ...window.__heist.state.pos })`); if (Math.hypot(p.x - p0.x, p.z - p0.z) > 0.8) break; await sleep(100); }
+  const p1 = await js(`({ ...window.__heist.state.pos })`);
+  await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await sleep(150);
+  return { ind, dx: p1.x - p0.x, dz: p1.z - p0.z };
+};
+// drag up from the middle of the screen: away from the camera, world direction about (-0.6, -0.8)
+await js(parkGuards); await js(`window.__heist.state.pos = { x: 11.5, z: 8.5 }`); await sleep(400);
+const up = await drag(195, 450, 195, 390);
 const g2 = await send("Page.captureScreenshot", { format: "png" }); fs.writeFileSync("docs/screenshots/22-phone-play.png", Buffer.from(g2.result.data, "base64"));
-await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-// pushing up on screen moves away from the camera: world direction about (-0.6, -0.8)
-const moved = { dx: p1.x - p0.x, dz: p1.z - p0.z };
-check("dragging the joystick up moves the player up the screen", moved.dz < -0.5 && moved.dx <= 0.1, `dx ${moved.dx.toFixed(2)}, dz ${moved.dz.toFixed(2)}`);
-// drag anywhere: start in the middle of the game view and slide left; the joystick follows the finger
-await js(`window.__heist.state.pos = { x: 11.5, z: 8.5 }`); await sleep(400); // open floor, away from walls
-const q0 = await js(`({ ...window.__heist.state.pos })`);
-await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 195, y: 420 }] });
-await send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 135, y: 420 }] });
-await sleep(150);
-const floating = await js(`document.querySelector("#joy").classList.contains("floating") && Math.abs(document.querySelector("#joy").getBoundingClientRect().left + 66 - 195) < 3`);
-for (let i = 0; i < 60; i++) { const p = await js(`({ ...window.__heist.state.pos })`); if (Math.hypot(p.x - q0.x, p.z - q0.z) > 0.8) break; await sleep(100); }
-const q1 = await js(`({ ...window.__heist.state.pos })`);
-await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await sleep(150);
-// sliding left on screen = world direction (-0.8, +0.6)
-const dq = { dx: q1.x - q0.x, dz: q1.z - q0.z };
-check("drag anywhere: the joystick jumps under the finger and sliding left moves the player left on screen", floating && dq.dx < -0.5 && dq.dz > 0, `dx ${dq.dx.toFixed(2)}, dz ${dq.dz.toFixed(2)}`);
-check("after the finger lifts, the joystick returns to its corner", await js(`!document.querySelector("#joy").classList.contains("floating")`));
+check("drag up anywhere: a ring appears under the finger and the player moves up the screen", up.ind && up.dz < -0.5 && up.dx <= 0.1, `dx ${up.dx.toFixed(2)}, dz ${up.dz.toFixed(2)}`);
+await js(`window.__heist.state.pos = { x: 11.5, z: 8.5 }`); await sleep(400);
+const left = await drag(250, 600, 190, 600);
+check("drag left anywhere: the player moves left on screen; the ring disappears on release", left.dx < -0.5 && left.dz > 0 && await js(`document.querySelector("#drag-ind").classList.contains("hidden")`), `dx ${left.dx.toFixed(2)}, dz ${left.dz.toFixed(2)}`);
+// the E key on a phone: a named button appears only next to the console
+await js(`window.__heist.openBriefing(1)`); await sleep(200);
+await js(`document.querySelector("#btn-brief-lab").click()`); for (let i = 0; i < 50 && !(await js(`!!document.querySelector("#q-go")`)); i++) await sleep(100);
+await js(`window.__heist.state.lab.trainNow(1); document.querySelector("#q-go").click()`); await sleep(800);
+for (let i = 0; i < 4; i++) { await js(`document.querySelector("#guide-next")?.click()`); await sleep(120); }
+await js(parkGuards.replace("x: 17, z: 1", "x: 21, z: 14").replace("x: 17.5, z: 1.5", "x: 21.5, z: 14.5"));
+const hiddenAway = await js(`document.querySelector("#t-use").classList.contains("hidden")`);
+await js(`window.__heist.state.pos = { x: 10.5, z: 7.5 }`);
+for (let i = 0; i < 40 && (await js(`document.querySelector("#t-use").classList.contains("hidden")`)); i++) await sleep(100);
+const label = await js(`document.querySelector("#t-use").textContent`);
+check("E on a phone: SEND DOG appears only next to the console", hiddenAway && label === "SEND DOG" && await js(visible("#t-use")), `label "${label}"`);
+const b = await js(`(() => { const r = document.querySelector("#t-use").getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: b.x, y: b.y }] }); await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await sleep(400);
+check("tapping SEND DOG sends the dog, and the button goes away", await js(`window.__heist.state.dog.status !== "idle" && document.querySelector("#t-use").classList.contains("hidden")`), await js(`window.__heist.state.dog.status`));
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${results.filter(Boolean).length} / ${results.length} phone checks passed`);
 ws.close(); process.exit(results.every(Boolean) ? 0 : 1);

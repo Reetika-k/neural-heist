@@ -8,7 +8,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | Browser test, dev server | **72 / 72 pass** (2026-10-23) |
 | Browser test, production build (`vite preview` of `dist/`) | **66 / 66 pass** |
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
-| Phone check, 390 × 844 | **11 / 11 pass** (menus, Labs, touch gameplay, drag anywhere) |
+| Phone check, 390 × 844 | **12 / 12 pass** (menus, Labs, drag-to-move gameplay, context action button) |
 | Browser test against the live site (https://reetika-k.github.io/neural-heist/) | **66 / 66 pass** (2026-10-22, offline assistant mode) |
 | Phone check against the live site | **6 / 6 pass** |
 
@@ -56,6 +56,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 33 | Playtest with 1–3 people: "how do I play?" | Players know what to do without reading a manual | New three-step How to play; first-play guide per mission (paused game, Enter/Next, Skip, ? replays it); objective arrow points to drive / console / terminal / exit in every mission; HUD shows the right mission while the guide is open | Pass after fix |
 | 34 | Playtest on a phone | The game is playable with touch | Joystick (screen-relative), SNEAK and USE buttons, wider camera when upright, compact HUD; dragging up moves the player up the screen (dx −0.69, dz −0.92); no horizontal scrolling | Pass after fix |
 | 35 | Phone: drag anywhere on the screen to move | The joystick follows the finger; the player moves the way the finger slides | Joystick centres under the touch, sliding left moves the player left on screen (dx −1.21, dz +0.91), it returns to its corner on release; mouse drags on desktop are ignored | Pass |
+| 36 | Phone: no joystick; drag to move; E becomes a context button | Movement by dragging only; "use" only where it applies | Joystick removed; a faint ring shows the drag; a short drag sneaks; SEND DOG appears only beside the Mission 2 console and HACK TERMINAL beside the Mission 3 terminal, each tap works and the button disappears after use or when walking away; objective text drops "E" on phones | Pass |
 
 ## Failures found during development and what changed
-See `docs/challenges.md`: 23 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.
+See `docs/challenges.md`: 24 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.

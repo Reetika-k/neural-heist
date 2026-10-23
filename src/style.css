@@ -255,15 +255,15 @@ kbd { display: inline-block; min-width: 20px; padding: 0 5px; margin: 0 1px; bor
 
 /* ---------- touch controls (phones and tablets) ---------- */
 .touch-ui-controls { position: fixed; inset: auto 0 0 0; height: 0; z-index: 5; pointer-events: none; }
-.joy { position: fixed; left: 20px; bottom: calc(24px + env(safe-area-inset-bottom)); width: 132px; height: 132px; border-radius: 50%; background: radial-gradient(circle, rgba(41,230,255,.10), rgba(8,12,34,.55)); border: 2px solid rgba(41,230,255,.45); touch-action: none; pointer-events: auto; display: grid; place-items: center; }
-.joy.floating { bottom: auto; opacity: .9; }
-.joy-knob { width: 56px; height: 56px; border-radius: 50%; background: rgba(41,230,255,.85); box-shadow: 0 0 18px rgba(41,230,255,.6); pointer-events: none; transition: transform .05s; }
-.touch-btns { position: fixed; right: 84px; bottom: calc(22px + env(safe-area-inset-bottom)); display: flex; gap: 10px; pointer-events: auto; }
+/* retired 2026-10-23 (joystick removed): .joy { position: fixed; left: 20px; bottom: calc(24px + env(safe-area-inset-bottom)); width: 132px; height: 132px; border-radius: 50%; background: radial-gradient(circle, rgba(41,230,255,.10), rgba(8,12,34,.55)); border: 2px solid rgba(41,230,255,.45); touch-action: none; pointer-events: auto; display: grid; place-items: center; } */
+/* retired 2026-10-23 (joystick removed): .joy.floating { bottom: auto; opacity: .9; } */
+/* retired 2026-10-23 (joystick removed): .joy-knob { width: 56px; height: 56px; border-radius: 50%; background: rgba(41,230,255,.85); box-shadow: 0 0 18px rgba(41,230,255,.6); pointer-events: none; transition: transform .05s; } */
+/* retired 2026-10-23 (joystick removed): .touch-btns { position: fixed; right: 84px; bottom: calc(22px + env(safe-area-inset-bottom)); display: flex; gap: 10px; pointer-events: auto; } */
 .t-btn { width: 70px; height: 70px; border-radius: 50%; border: 2px solid rgba(178,107,255,.7); background: rgba(8,12,34,.75); color: #d9b8ff; font: 800 12px/1 Orbitron, sans-serif; letter-spacing: .06em; touch-action: manipulation; }
 .t-btn[aria-pressed="true"] { background: rgba(178,107,255,.55); color: #fff; }
 .t-use { border-color: rgba(61,255,154,.6); color: #9dffcc; }
 .t-use.ready { background: rgba(61,255,154,.85); color: #04121a; box-shadow: 0 0 20px rgba(61,255,154,.7); }
-body.touch-ui .guide { bottom: calc(180px + env(safe-area-inset-bottom)); }
+body.touch-ui .guide { bottom: calc(110px + env(safe-area-inset-bottom)); }
 body.touch-ui .hud-keys, body.touch-ui .hud-sneak { display: none; }
 body.touch-ui #scene { touch-action: none; }
 @media (max-width: 700px) {
@@ -271,3 +271,11 @@ body.touch-ui #scene { touch-action: none; }
   .hud-chip { padding: 4px 9px; font-size: 11.5px; }
   #hud-mission { display: none; }
 }
+
+/* ---------- drag-to-move feedback and the context action button (phones) ---------- */
+.drag-ind { position: fixed; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; border: 2px solid rgba(41,230,255,.35); background: radial-gradient(circle, rgba(41,230,255,.10), transparent 70%); pointer-events: none; display: grid; place-items: center; z-index: 5; }
+.drag-dot { width: 40px; height: 40px; border-radius: 50%; background: rgba(41,230,255,.6); box-shadow: 0 0 14px rgba(41,230,255,.5); }
+.t-sneak { position: fixed; left: 16px; bottom: calc(20px + env(safe-area-inset-bottom)); width: 64px; height: 64px; pointer-events: auto; }
+.t-action { position: fixed; left: 50%; bottom: calc(26px + env(safe-area-inset-bottom)); transform: translateX(-50%); pointer-events: auto; padding: 16px 30px; border-radius: 999px; border: 0; background: #3dff9a; color: #04121a; font: 800 16px/1 Orbitron, sans-serif; letter-spacing: .08em; white-space: nowrap; box-shadow: 0 0 26px rgba(61,255,154,.75); animation: action-pulse 1s infinite alternate; touch-action: manipulation; }
+@keyframes action-pulse { from { box-shadow: 0 0 10px rgba(61,255,154,.45); } to { box-shadow: 0 0 30px rgba(61,255,154,.95); } }
+body.touch-ui .hud-hint { display: none; } /* the action button replaces "Press E" on phones */
