@@ -4,7 +4,7 @@ import { MISSION_1, MISSION_1_GUARDS, MISSION_1_CIVILIANS, MISSION_2, MISSION_2_
 export const MISSIONS = [
   {
     id: 1, key: "rooftop", name: "Rooftop", rows: MISSION_1, guards: MISSION_1_GUARDS, civilians: MISSION_1_CIVILIANS,
-    rules: { parTime: 45, alarmTime: 25 },
+    rules: { parTime: 35, alarmTime: 25 }, // was 45 (fastest run 13 s, careful sneaking 28 s)
     lab: "classifier", teammate: "drone",
     concept: "Image classification",
     briefing: "VeloraTech's rooftop relay holds a data drive with the city's stolen water-meter records. Security mixes guards with night-shift staff, and in the dark you cannot tell them apart. Train your drone to recognise guards from camera snapshots. The drone reveals the vision cones of everyone it identifies as a guard. A guard it misses stays invisible.",
@@ -13,7 +13,7 @@ export const MISSIONS = [
   },
   {
     id: 2, key: "vault", name: "Laser Vault", rows: MISSION_2, guards: MISSION_2_GUARDS, civilians: [],
-    rules: { parTime: 70, alarmTime: 25 },
+    rules: { parTime: 45, alarmTime: 25 }, // was 70 (fastest 26 s incl. the dog, careful 36 s)
     lab: "qlearning", teammate: "dog", vaultOrigin: { x: 13, z: 3 },
     concept: "Reinforcement learning",
     briefing: "The second drive sits inside VeloraTech's laser vault. No human fits through the vent, but your robot dog does. Design its rewards and train it with Q-learning. In the mission, reach the console beside the vault and press E: the dog crosses the lasers by following exactly the policy it learned. If it touches a laser, the alarm goes off.",
@@ -25,7 +25,7 @@ export const MISSIONS = [
   },
   {
     id: 3, key: "executive", name: "Executive Floor", rows: MISSION_3, guards: MISSION_3_GUARDS, civilians: [],
-    rules: { parTime: 75, alarmTime: 25 },
+    rules: { parTime: 50, alarmTime: 25 }, // was 75 (fastest 24 s incl. the terminal, careful 38 s)
     lab: "rag", teammate: "assistant", password: "KESTREL37",
     concept: "Retrieval-augmented generation",
     briefing: "The last drive is locked in the CEO's room on the executive floor. We leaked 40 internal emails; somewhere in them is the new vault password, but nobody wrote it down in one place. Build a search index for your hacking assistant. At the terminal (E), it retrieves the most relevant emails and asks a language model to work out the password. Three wrong passwords set off the alarm.",

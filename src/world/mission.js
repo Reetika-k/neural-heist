@@ -9,7 +9,10 @@ export const MISSION_RULES = {
   exitRadius: 0.75,
   parTime: 45,
   alarmTime: 25,
-  points: { finish: 1000, stealth: 500, perSecondUnderPar: 20, ai: 500 },
+  // 2026-10-24: was 20 points per second under par with no cap. Pars were 2–3× the fastest run, so rushing could earn
+  // ~1,000 points, twice a perfectly trained AI (500). Now 10 per second, capped at 300: stealth and AI decide the score.
+  // points: { finish: 1000, stealth: 500, perSecondUnderPar: 20, ai: 500 },
+  points: { finish: 1000, stealth: 500, perSecondUnderPar: 10, timeCap: 300, ai: 500 },
 };
 
 const centre = (c) => ({ x: c.x + 0.5, z: c.z + 0.5 });
@@ -67,7 +70,7 @@ export function scoreMission(m, aiScore = 0) {
   const breakdown = {
     finish: P.finish,
     stealth: m.spotted ? 0 : P.stealth,
-    time: Math.max(0, Math.round((par - m.time) * P.perSecondUnderPar)),
+    time: Math.min(P.timeCap, Math.max(0, Math.round((par - m.time) * P.perSecondUnderPar))),
     ai: Math.round(Math.max(0, Math.min(1, aiScore)) * P.ai),
   };
   return {

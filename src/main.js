@@ -15,7 +15,7 @@ import { inputVector, step, KEY_TO_DIR, WALK_SPEED, SNEAK_SPEED } from "./player
 import { createGuard, updateGuard } from "./guards/guard.js";
 import { createGuardView } from "./guards/render.js";
 import { makeSnapshot } from "./lab/snapshots.js";
-import { createDrone, updateDrone, droneAccuracy, isRevealed, DRONE } from "./teammates/drone.js";
+import { createDrone, updateDrone, droneAccuracy, isRevealed, DRONE, modelAccuracy } from "./teammates/drone.js";
 import { createCivilianView, createDroneView, createDetectionTag } from "./teammates/views.js";
 import { mountClassifierLab } from "./screens/lab-classifier.js";
 import { mountQLab } from "./screens/lab-qlearning.js";
@@ -41,7 +41,11 @@ const store = {
   get: (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode: keep playing */ } },
 };
-const bestKey = (id) => `neural-heist.best.m${id}`;
+// 2026-10-24: scores use new rules (time bonus capped), so bests start again under new keys; old v1 bests were inflated.
+// const bestKey = (id) => `neural-heist.best.m${id}`;
+const bestKey = (id) => `neural-heist.v2.best.m${id}`;
+const starsKey = (id) => `neural-heist.v2.stars.m${id}`;
+const getStars = (id) => Number(store.get(starsKey(id), 0)) || 0;
 const getBest = (id) => Number(store.get(bestKey(id), 0)) || 0;
 
 const settings = loadSettings();
@@ -165,7 +169,10 @@ addEventListener("keydown", (e) => {
   if (e.key === "Shift") shiftHeld = true;
   if (e.key === "Tab" && ["playing", "caught", "debrief"].includes(state.screen)) { e.preventDefault(); brain.toggle(); }
   if ((e.key === "m" || e.key === "M") && !e.repeat) { e.preventDefault(); toggleMute(); }
-  if (e.key === "Escape" && state.screen === "playing") show("start");
+  // RETIRED 2026-10-24: Esc quit the mission straight to the main menu, losing the run without asking.
+  // if (e.key === "Escape" && state.screen === "playing") show("start");
+  if (state.screen === "paused" && (e.key === "Escape" || e.key === "Enter")) { e.preventDefault(); resume(); return; }
+  if (e.key === "Escape" && state.screen === "playing") { pause(); return; }
   else if (e.key === "Escape" && state.screen === "terminal") show("playing");
   if (e.key === "Enter" && state.screen === "caught") restart();
   if ((e.key === "e" || e.key === "E") && state.screen === "playing") interact();
@@ -202,7 +209,8 @@ async function openTerminal() {
   showAttempts();
   $("#term-input").value = ""; $("#term-msg").textContent = locked() ? "TERMINAL LOCKED · ALARM ACTIVE" : "";
   panel.dataset.state = "loading";
-  if (!state.models.rag) { $("#term-answer").textContent = "No index: I cannot search the leaked emails."; panel.dataset.state = "ready"; $("#term-input").focus(); return; }
+  $("#term-relab").classList.add("hidden");
+  if (!state.models.rag) { $("#term-answer").textContent = "No index: I cannot search the leaked emails."; panel.dataset.state = "ready"; $("#term-relab").classList.remove("hidden"); $("#term-input").focus(); return; }
   // RETIRED 2026-10-22: pressing E again while the model was still answering sent a second LLM request, and an
   // answer arriving after a restart was stored in the new run. Replaced by the shared request below.
   // if (!state.assist) {
@@ -227,6 +235,8 @@ async function openTerminal() {
   $("#term-prompt").textContent = a.prompt;
   $("#term-answer").textContent = a.source === "llm" || !a.steps?.length ? a.answer : `${a.answer}\n\nHow I worked it out:\n${a.steps.map((s) => `• ${s}`).join("\n")}`;
   panel.dataset.state = "ready";
+  // a weak index left the assistant without the password: offer a way back to the Lab instead of leaving the player stuck
+  $("#term-relab").classList.toggle("hidden", !!extractPassword(a.answer) && a.recall >= 1);
   if (!locked()) $("#term-input").focus();
 }
 function submitPassword() {
@@ -254,18 +264,19 @@ $("#term-form").addEventListener("submit", (e) => { e.preventDefault(); submitPa
 $("#term-close").addEventListener("click", () => show("playing"));
 
 // ---------- screens ----------
-const SCREENS = ["start", "briefing", "lab", "caught", "debrief", "complete", "terminal", "settings", "howto"];
+const SCREENS = ["start", "briefing", "lab", "caught", "debrief", "complete", "terminal", "settings", "howto", "missions", "paused"];
 function show(name) {
   state.screen = name;
   document.body.dataset.screen = name; // lets CSS place the 🔊 button per screen
   for (const s of SCREENS) $(`#screen-${s}`).classList.toggle("hidden", name !== s);
-  const inMission = ["playing", "caught", "debrief", "terminal"].includes(name);
+  const inMission = ["playing", "caught", "debrief", "terminal", "paused"].includes(name);
   $("#hud").classList.toggle("hidden", !inMission);
   $("#overlay").classList.toggle("hidden", !inMission);
   $("#btn-brain").classList.toggle("hidden", !inMission);
   if (!inMission && brain.open) brain.toggle(false);
   if (state.level) state.level.root.visible = name !== "lab";
   $("#btn-help").classList.toggle("hidden", name !== "playing");
+  $("#btn-pause").classList.toggle("hidden", name !== "playing");
   $("#touch").classList.toggle("hidden", !(IS_TOUCH && name === "playing"));
   if (name !== "playing") { closeGuide(false); touchMove.active = false; }
 }
@@ -304,7 +315,24 @@ async function openLab() {
 function startMission() { resetMission(); show("playing"); openGuide(state.config.id); }
 function restart() { resetMission(); show("playing"); }
 
-$("#btn-start").addEventListener("click", () => { sound.unlock(); sound.startMusic(); openBriefing(0); });
+// RETIRED 2026-10-24: Start always opened Mission 1, so returning players replayed everything to reach Mission 3.
+// $("#btn-start").addEventListener("click", () => { sound.unlock(); sound.startMusic(); openBriefing(0); });
+$("#btn-start").addEventListener("click", () => { sound.unlock(); sound.startMusic(); if (MISSIONS.some((m) => getBest(m.id) > 0)) showMissions(); else openBriefing(0); });
+$("#btn-missions").addEventListener("click", () => { sound.unlock(); sound.startMusic(); showMissions(); });
+/** Mission select: every mission is open (evaluators can jump straight to any); progress shows what is done and next. */
+function showMissions() {
+  const next = MISSIONS.findIndex((m) => getBest(m.id) === 0);
+  $("#mission-list").innerHTML = MISSIONS.map((m, i) => {
+    const best = getBest(m.id), stars = getStars(m.id);
+    return `<li class="mission-item${best ? " done" : ""}${i === next ? " next" : ""}">
+      <span class="mi-num">${m.id}</span>
+      <div class="mi-body"><b>${m.name}</b><span class="mi-ai">${m.concept} · ${{ drone: "drone", dog: "robot dog", assistant: "hacking assistant" }[m.teammate]}</span>
+        <span class="mi-stats">${best ? `Best ${best} · ${"★".repeat(stars)}${"☆".repeat(3 - stars)}` : i === next ? "Next up" : "Not played yet"}</span></div>
+      <button class="btn-primary mi-play" data-mission="${i}">${best ? "Replay" : "Play"}</button></li>`;
+  }).join("");
+  $("#mission-list").querySelectorAll("[data-mission]").forEach((b) => b.addEventListener("click", () => openBriefing(Number(b.dataset.mission))));
+  show("missions");
+}
 
 // ---------- settings, how to play, mute ----------
 function applySettings() {
@@ -358,13 +386,25 @@ $("#btn-retry").addEventListener("click", restart);
 $("#btn-relab").addEventListener("click", openLab);
 $("#btn-next").addEventListener("click", () => { if (state.missionIndex + 1 < MISSIONS.length) openBriefing(state.missionIndex + 1); else showComplete(); });
 $("#btn-menu").addEventListener("click", () => show("start"));
+// ---------- pause (2026-10-24) ----------
+function pause() { if (state.screen !== "playing") return; dirs.clear(); sound.siren(false); $("#pause-eyebrow").textContent = `Mission ${state.config.id} · ${state.config.name} · paused`; show("paused"); }
+function resume() { if (state.screen === "paused") show("playing"); }
+$("#btn-pause").addEventListener("click", pause);
+$("#btn-resume").addEventListener("click", resume);
+$("#btn-pause-restart").addEventListener("click", restart);
+$("#btn-pause-lab").addEventListener("click", openLab);
+$("#btn-pause-quit").addEventListener("click", () => show("start"));
+document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); }); // switching tabs pauses
+$("#term-relab").addEventListener("click", openLab);
 $("#btn-complete-menu").addEventListener("click", () => show("start"));
 
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 /** How well the trained teammate did in this mission (0..1); feeds the score. */
 function aiScore() {
-  if (state.config.teammate === "drone") return droneAccuracy(state.drone);
+  // RETIRED 2026-10-24: depended on who the drone happened to scan (one scan = 0 % or 100 %).
+  // if (state.config.teammate === "drone") return droneAccuracy(state.drone);
+  if (state.config.teammate === "drone") return modelAccuracy(state.models.classifier, [...state.guards, ...state.civilians]);
   if (state.config.teammate === "dog") return dogScore(state.dog);
   if (state.config.teammate === "assistant") return state.assist?.recall ?? 0;
   return 0;
@@ -393,6 +433,8 @@ function endMission(outcome) {
   const prev = getBest(cfg.id);
   const isBest = r.score > prev;
   if (isBest) store.set(bestKey(cfg.id), r.score);
+  const starCount = r.stars.filter(Boolean).length;
+  if (starCount > getStars(cfg.id)) store.set(starsKey(cfg.id), starCount);
   state.result = { ...r, time: m.time, isBest, ai };
   sound.siren(false); sound.play("win");
   log("mission_won", { score: r.score, stars: r.stars.filter(Boolean).length, ai: Number(ai.toFixed(3)), time: Number(m.time.toFixed(1)) });
@@ -641,7 +683,7 @@ show("start");
 // Fixed-size simulation steps: each step is at most 0.05 s (no tunnelling through walls), but a slow
 // frame runs several steps, so the game stays real-time at low frame rates instead of slowing down.
 const MAX_STEP = 0.05, MAX_FRAME = 0.25;
-const OPAQUE_SCREENS = new Set(["start", "settings", "howto", "briefing", "lab"]);
+const OPAQUE_SCREENS = new Set(["start", "settings", "howto", "briefing", "lab", "missions"]);
 function frame(now) {
   const frameDt = Math.min((now - last) / 1000, MAX_FRAME); last = now; t += frameDt;
   const steps = Math.max(1, Math.ceil(frameDt / MAX_STEP));

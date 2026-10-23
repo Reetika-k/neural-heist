@@ -4,12 +4,12 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 
 | Suite | Result |
 |---|---|
-| Unit tests (`npm test`) | **71 / 71 pass** |
-| Browser test, dev server | **80 / 80 pass** (2026-10-23) |
+| Unit tests (`npm test`) | **72 / 72 pass** (2026-10-24) |
+| Browser test, dev server | **84 / 84 pass** (2026-10-24) |
 | Browser test, production build (`vite preview` of `dist/`) | **66 / 66 pass** |
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
-| Phone check, 390 × 844 | **12 / 12 pass** (menus, Labs, drag-to-move gameplay, context action button) |
-| Score scenarios (`npm run test:scores`): every debrief, stars, bests and the total checked against the rules | **32 / 32 pass** |
+| Phone check, 390 × 844 | **15 / 15 pass** (2026-10-24: menus, Labs, drag-to-move gameplay, context action button, pause button, mission select) |
+| Score scenarios (`npm run test:scores`): every debrief, stars, bests, mission select and the total checked against the rules | **37 / 37 pass** (2026-10-24, new rules) |
 | Browser test against the live site (https://reetika-k.github.io/neural-heist/) | **66 / 66 pass** (2026-10-22, offline assistant mode) |
 | Phone check against the live site | **6 / 6 pass** |
 
@@ -64,6 +64,8 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 40 | Mission 3 Lab: "where do I type the password?" | The Lab makes clear the assistant finds it | "You don't type the password here"; 3 steps; the box is "the assistant's question"; building runs the test; Clues found 3 of 3 with badges; hop-2 words shown; preview answer KESTREL37 (UNKNOWN with the missing clue named at k ≤ 2 or chunk size 1); all 24 settings unit-tested | Pass after fix |
 | 41 | Mission 3: is the terminal marked like the Mission 2 console? | Same beacon for every objective | Terminal (purple "TERMINAL · E"), data drive (gold, Missions 1 and 3), exit (green, once you hold the drive), console (green); each shows only while it is the next objective; verified in screenshots of Missions 1 and 3 | Pass after fix |
 | 42 | Finish the heist with different play styles: is the score right? | Scores follow the rules; bests and total consistent | 32 checks over good, weak and failed runs in all missions. Found: a perfectly trained drone could only reach 60 % in Mission 1 (two look-alike civilians); fixed with fairer character photos (now 100 %) | Pass after fix |
+| 43 | Can rushing beat good AI? Are bests fair? (review of Missions 1–3) | Speed is a bonus, the AI decides the score | Before: 20 points per second under pars 2–3× the fastest run, uncapped: a rushed run with weak AI outscored a careful one. Now pars 35/45/50 s, 10 points per second, capped at 300 (< 500 AI points); a rushed Mission 1 run gets exactly +300. The drone is now scored on every Rooftop character, not only those you scanned. Bests restart under the new rules (new storage keys) | Pass after fix |
+| 44 | Returning player wants Mission 3; Esc during a mission | Jump to any mission; Esc must not throw the run away | Start opens a mission select (every mission open, best score and stars each; first-time players still go straight to Mission 1). Esc and the ❚❚ button pause: player and clock frozen; Resume, Restart, Retrain in the Lab, Quit; switching tabs pauses too. The Mission 3 terminal offers "Improve the search index (back to the Lab)" when a clue is missing (shown with k = 1, hidden with a full index) | Pass |
 
 ## Failures found during development and what changed
-See `docs/challenges.md`: 30 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.
+See `docs/challenges.md`: 31 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.

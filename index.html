@@ -21,6 +21,7 @@
     <div class="guide-btns"><button id="guide-skip" class="btn-link" type="button">Skip guide</button><button id="guide-next" class="btn-primary guide-next" type="button">Next</button></div>
   </div>
   <button id="btn-help" class="btn-help hidden" type="button" aria-label="Show the mission guide again" title="Help (?)">?</button>
+  <button id="btn-pause" class="btn-help btn-pause hidden" type="button" aria-label="Pause" title="Pause (Esc)">❚❚</button>
   <!-- RETIRED 2026-10-23: the on-screen joystick and the always-visible USE button. The user asked to drop the
        joystick and move by dragging anywhere; USE (the E key) became a button that appears only next to something usable.
   <div id="touch" class="touch-ui-controls hidden" aria-hidden="false">
@@ -47,7 +48,7 @@
     <span class="hud-chip hud-sneak" id="hud-sneak">Sneaking</span>
     <span class="hud-chip hud-hint hidden" id="hud-hint">Press <kbd>E</kbd></span>
     <span class="hud-chip hud-tip hidden" id="hud-tip"></span>
-    <span class="hud-chip hud-keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> move · <kbd>Shift</kbd> sneak · <kbd>E</kbd> use · <kbd>Tab</kbd> AI brain · <kbd>Esc</kbd> menu</span>
+    <span class="hud-chip hud-keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> move · <kbd>Shift</kbd> sneak · <kbd>E</kbd> use · <kbd>Tab</kbd> AI brain · <kbd>Esc</kbd> pause</span>
   </div>
 
   <button id="btn-mute" class="btn-mute" aria-label="Mute" title="Mute (M)">🔊</button>
@@ -69,7 +70,7 @@
         </ol>
       </div>
       <button id="btn-start" class="btn-primary">Start</button>
-      <div class="start-links"><button id="btn-howto" class="btn-ghost">How to play</button><button id="btn-settings" class="btn-ghost">Settings</button></div>
+      <div class="start-links"><button id="btn-missions" class="btn-ghost">Missions</button><button id="btn-howto" class="btn-ghost">How to play</button><button id="btn-settings" class="btn-ghost">Settings</button></div>
       <p class="fine">3 missions · each one needs an AI skill you train yourself</p>
     </div>
   </section>
@@ -106,7 +107,7 @@
         <tr><td><kbd>E</kbd></td><td>Use the vault console (Mission 2) or the terminal (Mission 3)</td></tr>
         <tr><td><kbd>Tab</kbd> or 🧠</td><td>AI Brain panel: every AI's live numbers, and export</td></tr>
         <tr><td><kbd>M</kbd> or 🔊</td><td>Mute</td></tr>
-        <tr><td><kbd>Esc</kbd></td><td>Menu · <kbd>Enter</kbd> restart after failing</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Pause (resume, restart, retrain in the Lab or quit) · <kbd>Enter</kbd> restart after failing</td></tr>
       </table>
       <ul class="howto-list">
         <li><b>Guards</b> have vision cones. White → yellow → red as they grow suspicious. A full meter means a chase; contact means caught. Walls block sight.</li>
@@ -166,12 +167,35 @@
           <h3>Assistant's answer</h3><pre id="term-answer" class="term-answer"></pre>
           <details><summary>Behind the scenes: the prompt a language model receives</summary><pre id="term-prompt" class="term-prompt"></pre></details>
           <form id="term-form" class="term-form"><label for="term-input">Vault password</label><div><input id="term-input" autocomplete="off" spellcheck="false"><button class="btn-primary" type="submit">Enter</button></div></form>
-          <p class="term-msg" id="term-msg"></p><p class="fine" id="term-attempts">3 attempts left</p>
+          <p class="term-msg" id="term-msg"></p><button type="button" id="term-relab" class="btn-ghost term-relab hidden">Improve the search index (back to the Lab)</button><p class="fine" id="term-attempts">3 attempts left</p>
         </div>
       </div>
     </div>
   </section>
 
+  <section id="screen-missions" class="screen hidden">
+    <div class="start-card missions-card">
+      <p class="eyebrow">Choose a mission</p>
+      <h1 class="title brief-title">MISSIONS</h1>
+      <p class="brief-text">Each mission needs one AI skill. Play them in order, or jump to any mission.</p>
+      <ol class="mission-list" id="mission-list"></ol>
+      <button class="btn-link" data-back="start">Back to the main menu</button>
+    </div>
+  </section>
+  <section id="screen-paused" class="screen screen-paused hidden">
+    <div class="start-card caught-card">
+      <p class="eyebrow" id="pause-eyebrow">Mission paused</p>
+      <h1 class="title caught-title">PAUSED</h1>
+      <p class="tagline">The guards are frozen and the clock is stopped.</p>
+      <div class="pause-actions">
+        <button id="btn-resume" class="btn-primary">Resume</button>
+        <button id="btn-pause-restart" class="btn-ghost">Restart mission</button>
+        <button id="btn-pause-lab" class="btn-ghost">Retrain in the Lab</button>
+        <button id="btn-pause-quit" class="btn-ghost">Quit to main menu</button>
+      </div>
+      <p class="fine pause-keys"><kbd>Esc</kbd> or <kbd>Enter</kbd> to resume</p>
+    </div>
+  </section>
   <section id="screen-caught" class="screen screen-caught hidden">
     <div class="start-card caught-card">
       <p class="eyebrow">Security alert · mission failed</p>
