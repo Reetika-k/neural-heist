@@ -4,12 +4,12 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 
 | Suite | Result |
 |---|---|
-| Unit tests (`npm test`) | **72 / 72 pass** (2026-10-24) |
-| Browser test, dev server | **84 / 84 pass** (2026-10-24) |
+| Unit tests (`npm test`) | **77 / 77 pass** (2026-10-24) |
+| Browser test, dev server | **88 / 88 pass** (2026-10-24) |
 | Browser test, production build (`vite preview` of `dist/`) | **66 / 66 pass** |
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
 | Phone check, 390 × 844 | **15 / 15 pass** (2026-10-24: menus, Labs, drag-to-move gameplay, context action button, pause button, mission select) |
-| Score scenarios (`npm run test:scores`): every debrief, stars, bests, mission select and the total checked against the rules | **37 / 37 pass** (2026-10-24, new rules) |
+| Score scenarios (`npm run test:scores`): every debrief, stars, bests, mission select and the total checked against the rules | **38 / 38 pass** (2026-10-24, new rules) |
 | Browser test against the live site (https://reetika-k.github.io/neural-heist/) | **66 / 66 pass** (2026-10-22, offline assistant mode) |
 | Phone check against the live site | **6 / 6 pass** |
 
@@ -66,6 +66,10 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 42 | Finish the heist with different play styles: is the score right? | Scores follow the rules; bests and total consistent | 32 checks over good, weak and failed runs in all missions. Found: a perfectly trained drone could only reach 60 % in Mission 1 (two look-alike civilians); fixed with fairer character photos (now 100 %) | Pass after fix |
 | 43 | Can rushing beat good AI? Are bests fair? (review of Missions 1–3) | Speed is a bonus, the AI decides the score | Before: 20 points per second under pars 2–3× the fastest run, uncapped: a rushed run with weak AI outscored a careful one. Now pars 35/45/50 s, 10 points per second, capped at 300 (< 500 AI points); a rushed Mission 1 run gets exactly +300. The drone is now scored on every Rooftop character, not only those you scanned. Bests restart under the new rules (new storage keys) | Pass after fix |
 | 44 | Returning player wants Mission 3; Esc during a mission | Jump to any mission; Esc must not throw the run away | Start opens a mission select (every mission open, best score and stars each; first-time players still go straight to Mission 1). Esc and the ❚❚ button pause: player and clock frozen; Resume, Restart, Retrain in the Lab, Quit; switching tabs pauses too. The Mission 3 terminal offers "Improve the search index (back to the Lab)" when a clue is missing (shown with k = 1, hidden with a full index) | Pass |
+| 45 | Mission 1 Lab: does it teach precision vs recall? | Threshold slider and a table of right and wrong calls | 40 held-back photos (was 10, so each moved accuracy by 10 points). 30 correct labels: 50 % sure → 20 spotted, 0 missed, 4 false alarms; 30 % → more false alarms; 70 % → 2 guards missed. On 400 unseen: recall 100/100/94.5 %, precision 75/84/90 % at 30/50/70 % | Pass |
+| 46 | Mission 1: does a false alarm cost anything in play? | A wrongly flagged civilian draws a guard | At 30 % sure the well-trained drone flags one Rooftop civilian; the nearest patrolling guard leaves its route to check (A* to the spot, looks around, returns) and the HUD says why. At 50 % with 30 correct labels: no false alarms on the Rooftop | Pass |
+| 47 | Mission 3 Lab: what does the second hop add? | One-hop vs two-hop switch | One hop finds only the rule email (1 of 3 clues) at all 24 chunk/k settings and the assistant cannot answer; two hops reach 3 of 3 and KESTREL37 from chunk 2, k 3. The Lab says "Switch on the second hop"; the mission uses the setting | Pass |
+| 48 | Mission 2: is the player passive while the dog crosses? | The player must hide | Measured: guard G2's loop passes the console; standing there for the 12 s crossing gets you caught for all 30 arrival times; two cells west is safe for all 30. The review's "add a patrol" was unnecessary; the game now says so: "A guard patrols past this console · step away and hide while the dog crosses", objective "Dog crossing · hide from the patrol" | Pass after fix |
 
 ## Failures found during development and what changed
-See `docs/challenges.md`: 31 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.
+See `docs/challenges.md`: 32 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.

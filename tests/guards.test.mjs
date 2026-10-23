@@ -131,3 +131,31 @@ test("difficulty tuning: longer range sees further; hard fills faster and moves 
   for (let i = 0; i < 6; i++) { updateGuard(n, { map, player: { x: 15.5, z: 1.5 }, dt: 0.05 }); updateGuard(h, { map, player: { x: 15.5, z: 1.5 }, dt: 0.05, tuning: { range: 10, fillMul: 1.3 } }); }
   assert.ok(h.suspicion > n.suspicion * 1.2, `${h.suspicion} vs ${n.suspicion}`);
 });
+
+// ---------- 2026-10-24: false alarms and Mission 2's console patrol ----------
+import { investigate } from "../src/guards/guard.js";
+import { MISSION_2, MISSION_2_GUARDS } from "../src/world/map.js";
+
+test("investigate: a patrolling guard walks over to check a spot, looks around, then patrols again", () => {
+  const g = createGuard("G1", MISSION_1_GUARDS[0].patrol);
+  const spot = { x: 13.5, z: 6.5 };
+  assert.ok(investigate(g, map, spot)); assert.equal(g.state, "search");
+  let reached = false;
+  for (let t = 0; t < 30 && g.state !== "patrol"; t += 0.05) { updateGuard(g, { map, player: { x: -50, z: -50 }, dt: 0.05 }); if (Math.hypot(g.pos.x - spot.x, g.pos.z - spot.z) < 0.6) reached = true; }
+  assert.ok(reached, "reached the spot"); assert.equal(g.state, "patrol", "went back to patrol");
+  const chasing = { ...createGuard("G2", MISSION_1_GUARDS[1].patrol), state: "chase" };
+  assert.equal(investigate(chasing, map, spot), false, "only a patrolling guard is distracted");
+});
+
+test("Mission 2: standing at the console while the dog crosses gets you caught; hiding beside it is safe", () => {
+  const m2 = parseMap(MISSION_2);
+  const run = (spot, arrive) => {
+    const gs = MISSION_2_GUARDS.map((g) => createGuard(g.id, g.patrol));
+    for (let t = 0; t < arrive; t += 0.05) for (const g of gs) updateGuard(g, { map: m2, player: { x: -50, z: -50 }, dt: 0.05 });
+    for (let t = 0; t < 12; t += 0.05) for (const g of gs) { const r = updateGuard(g, { map: m2, player: spot, sneaking: true, dt: 0.05 }); if (r.caught || g.state === "chase") return false; }
+    return true;
+  };
+  const arrivals = Array.from({ length: 30 }, (_, i) => i);
+  assert.equal(arrivals.filter((a) => run({ x: 10.5, z: 7.5 }, a)).length, 0, "at the console: caught for every arrival time");
+  assert.equal(arrivals.filter((a) => run({ x: 8.5, z: 8.5 }, a)).length, 30, "two steps west: safe for every arrival time");
+});

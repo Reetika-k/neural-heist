@@ -20,7 +20,7 @@ import { astar, bfs } from "../src/guards/astar.js";
 import { GUARD } from "../src/guards/guard.js";
 import { DIFFICULTY } from "../src/settings.js";
 import { makeSnapshot, labDataset } from "../src/lab/snapshots.js";
-import { createClassifier, fit, accuracy } from "../src/lab/classifier.js";
+import { createClassifier, fit, accuracy, confusion } from "../src/lab/classifier.js";
 import { createAgent, trainEpisodes, greedyPath, shortestSafe, movingAverage, DEFAULT_REWARDS, HYPER, makeEnv, CLASSIC, evaluatePolicy, trainWithMilestone } from "../src/lab/qlearning.js";
 import { buildIndex, multiHop, recall, VAULT_QUESTION, RELEVANT } from "../src/lab/rag.js";
 import { mulberry32 } from "../src/lab/rng.js";
@@ -68,6 +68,7 @@ const kValues = [1, 3, 5, 7].map((k) => ({ k, acc: accWith(30, k) }));
 const noise = [0, 3, 6, 9].map((m) => ({ m, acc: accWith(30, 3, m) }));
 const fullModel = fit(createClassifier(3), train.map((s) => ({ snapshot: s, label: s.kind })));
 const labTestAcc = accuracy(fullModel, test);
+const thresholds = [0.3, 0.5, 0.7].map((t) => ({ t, c: confusion(fit(createClassifier(3, t), train.map((s) => ({ snapshot: s, label: s.kind }))), unseen) }));
 
 // ---------- 3. Mission 2: Q-learning ----------
 
@@ -112,6 +113,7 @@ const emails = JSON.parse(read("public/data/emails.json") || "[]");
 const index = buildIndex(emails);
 const trace = multiHop(index, VAULT_QUESTION, 3);
 const recallByK = [1, 2, 3, 4, 5].map((k) => ({ k, r: recall(multiHop(index, VAULT_QUESTION, k).context, RELEVANT) }));
+const recallByHops = [1, 2].map((h) => ({ h, r: recall(multiHop(index, VAULT_QUESTION, 3, { hops: h }).context, RELEVANT) }));
 const recallByChunk = [1, 2, 3, 4].map((c) => ({ c, r: recall(multiHop(buildIndex(emails, { chunkSize: c }), VAULT_QUESTION, 3).context, RELEVANT) }));
 
 // ---------- 5. recorded files ----------
@@ -187,10 +189,12 @@ parts.push(`<h2>2. Guard AI</h2><p>Each guard runs a state machine (Patrol → S
   + `<p><b>Difficulty</b> (Settings, from <code>src/settings.js</code>):</p>` + table(["level", "vision range", "guard speed", "suspicion fill rate"], Object.values(DIFFICULTY).map((d) => [esc(d.label), d.range, `× ${d.speedMul}`, `× ${d.fillMul}`])));
 
 // 3 classifier
-parts.push(`<h2>3. Mission 1 — drone image classifier (k-nearest neighbours)</h2><p>The player labels 32×32 CCTV snapshots as guard or civilian; the drone stores them and classifies new people by their 3 nearest neighbours. Measured on ${UNSEEN} unseen snapshots, averaged over ${trials} random label subsets. With all 30 lab images labelled correctly, the lab's own 10 held-back images score ${pct(labTestAcc)}.</p>`
+parts.push(`<h2>3. Mission 1 — drone image classifier (k-nearest neighbours)</h2><p>The player labels 32×32 CCTV snapshots as guard or civilian; the drone stores them and classifies new people by their 3 nearest neighbours. Measured on ${UNSEEN} unseen snapshots, averaged over ${trials} random label subsets. With all 30 lab images labelled correctly, the lab's own ${test.length} held-back images score ${pct(labTestAcc)}.</p>`
   + `<div class="row"><div>${bars(labelCounts.map((x) => ({ label: `${x.n} labels`, value: x.acc })), { max: 1, fmt: pct, barW: 52 })}<p class="muted">Accuracy by number of labelled images (k = 3).</p></div>`
   + `<div>${bars(kValues.map((x) => ({ label: `k = ${x.k}`, value: x.acc, colour: x.k === 3 ? "#29e6ff" : "#5b6699" })), { max: 1, fmt: pct })}<p class="muted">Accuracy by k, 30 labels. The game uses k = 3: one neighbour can score about the same, but a single mislabelled image then decides every look-alike.</p></div>`
   + `<div>${bars(noise.map((x) => ({ label: `${x.m} wrong`, value: x.acc, colour: "#ff3d9a" })), { max: 1, fmt: pct })}<p class="muted">Accuracy when some of the 30 labels are wrong.</p></div></div>`
+  + `<h3>How sure before calling a guard (the Lab's threshold slider)</h3><p>A guard is called when its share of the neighbours' vote reaches the threshold. Lower: fewer guards missed (dangerous: no cone shown) but more false alarms (a guard comes over to check). Higher: the opposite. 30 correct labels, measured on ${UNSEEN} unseen snapshots.</p>`
+  + table(["threshold", "guards spotted (recall)", "guard calls right (precision)", "guards missed", "false alarms", "accuracy"], thresholds.map((r) => [pct(r.t), pct(r.c.recall), pct(r.c.precision), r.c.fn, r.c.fp, pct((r.c.tp + r.c.tn) / UNSEEN)]))
   + `<p>The lab warns below 10 labels (overfitting) and when only one class is labelled. A known limitation: with k = 3 the vote-share confidence is overconfident (see challenges).</p>`);
 
 // 4 Q-learning
@@ -210,7 +214,7 @@ parts.push(`<h2>4. Mission 2 — robot dog (tabular Q-learning)</h2><p>A 10×10 
 parts.push(`<h2>5. Mission 3 — hacking assistant (two-hop retrieval + language model)</h2><p>${emails.length} fictional emails split into ${index.chunks.length} chunks of 2 sentences, embedded as TF-IDF vectors (${index.vocabulary} words). The password is spread over three emails (${RELEVANT.join(", ")}), and a retired decoy password sits in another. Hop 1 searches with the question; hop 2 searches with the words of the best hop-1 chunk. The retrieved emails go to a language model (Cloudflare Worker, or the offline fallback).</p>`
   + `<p><b>Trace for "${esc(VAULT_QUESTION)}"</b> (k = 3). Hop-2 query: <code>${esc(trace.hop2Query.slice(0, 160))}${trace.hop2Query.length > 160 ? "…" : ""}</code></p>`
   + table(["hop", "chunk", "subject", "similarity", "clue email?"], [...trace.hop1.map((r) => ["1", r]), ...trace.hop2.map((r) => ["2", r])].map(([h, r]) => [h, esc(r.chunk.id), esc(r.chunk.subject), r.score.toFixed(2), RELEVANT.includes(r.chunk.emailId) ? `<span class="ok">yes</span>` : ""]))
-  + `<div class="row"><div>${bars(recallByK.map((x) => ({ label: `k = ${x.k}`, value: x.r })), { max: 1, fmt: pct })}<p class="muted">Recall of the 3 clue emails by k (chunk size 2).</p></div><div>${bars(recallByChunk.map((x) => ({ label: `${x.c} sent.`, value: x.r, colour: "#b26bff" })), { max: 1, fmt: pct })}<p class="muted">Recall by chunk size (k = 3).</p></div></div>`
+  + `<div class="row"><div>${bars(recallByK.map((x) => ({ label: `k = ${x.k}`, value: x.r })), { max: 1, fmt: pct })}<p class="muted">Recall of the 3 clue emails by k (chunk size 2).</p></div><div>${bars(recallByChunk.map((x) => ({ label: `${x.c} sent.`, value: x.r, colour: "#b26bff" })), { max: 1, fmt: pct })}<p class="muted">Recall by chunk size (k = 3).</p></div><div>${bars(recallByHops.map((x) => ({ label: `${x.h} hop${x.h > 1 ? "s" : ""}`, value: x.r, colour: "#3dff9a" })), { max: 1, fmt: pct })}<p class="muted">One hop vs two (chunk 2, k = 3; one hop finds 1 of 3 at every chunk size and k).</p></div></div>`
   + `<p>Recorded with a local model (Ollama): full recall gave the right password, KESTREL37; with k = 1 (recall 67 %) the model invented ROBOTX37. That is why the debrief scores the assistant on retrieval recall.</p>`);
 
 // 6 unit tests

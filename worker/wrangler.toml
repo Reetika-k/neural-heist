@@ -3,8 +3,8 @@ main = "llm-proxy.js"
 compatibility_date = "2026-10-01"
 
 [vars]
-# Set to your Cloudflare Pages URL, e.g. "https://neural-heist.pages.dev"
-ALLOWED_ORIGIN = ""
+# Only the live game may call the Worker (GitHub Pages origin; no path). For Cloudflare Pages use "https://<project>.pages.dev".
+ALLOWED_ORIGIN = "https://reetika-k.github.io"
 GEMINI_MODEL = "gemini-2.0-flash"
 
 # Secrets (never in this file):

@@ -33,6 +33,18 @@ export function createGuard(id, patrolCells) {
   return { id, patrol: patrolCells, patrolIndex: 0, pos: { ...p }, facing: 0, state: "patrol", suspicion: 0, path: [], lastSeen: null, lookTimer: 0, repathTimer: 0, sees: false, expanded: 0 };
 }
 
+/**
+ * Something drew this guard's attention (2026-10-24: the drone's spotlight on a civilian it wrongly flagged).
+ * A patrolling guard walks over to look (search state: A* to the spot, look around, back to patrol).
+ * @returns true if the guard went to check (only a patrolling guard does)
+ */
+export function investigate(g, map, pos) {
+  if (g.state !== "patrol") return false;
+  g.state = "search"; g.lookTimer = 0; g.lastSeen = { ...pos };
+  planTo(g, map, cellOf(pos));
+  return true;
+}
+
 /** Plan an A* route to a cell; the guard then walks cell centre to cell centre. */
 function planTo(g, map, goalCell) {
   const stats = {};

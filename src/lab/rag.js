@@ -69,8 +69,10 @@ export function retrieve(index, query, k = 3, exclude = new Set()) {
  * retired-password decoy), and using every hop-1 chunk lets weak, off-topic matches drown out the lead.
  * Context = hop 1 then hop 2, without duplicates.
  */
-export function multiHop(index, question, k = 3) {
+export function multiHop(index, question, k = 3, { hops = 2 } = {}) {
   const hop1 = retrieve(index, question, k);
+  // one hop (2026-10-24, a Lab switch): the question alone, to show what the second hop adds
+  if (hops < 2) return { hop1, hop2: [], hop2Query: "", context: [...hop1] };
   const asked = new Set(tokenize(question));
   const hop2Query = hop1.slice(0, 1).flatMap((r) => tokenize(r.chunk.text)).filter((w) => !asked.has(w)).join(" ");
   const hop2 = retrieve(index, hop2Query, k, new Set(hop1.map((r) => r.chunk.id)));

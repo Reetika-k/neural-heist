@@ -366,3 +366,16 @@ body:not([data-screen="playing"]) .btn-mute { top: 12px; bottom: auto; right: 12
 .btn-pause { bottom: 190px; font-size: 14px; letter-spacing: -2px; }
 .term-relab { margin-top: 8px; border-color: rgba(255,210,61,.6); color: #ffe08a; }
 @media (hover: none) and (pointer: coarse) { .pause-keys { display: none; } }
+
+/* ---------- Mission 1 Lab: threshold and mistakes table (2026-10-24) ---------- */
+.thr-slider { margin-top: 10px; }
+.conf-table { width: 100%; border-collapse: separate; border-spacing: 4px; font-size: 12px; margin-top: 8px; }
+.conf-table th { color: var(--dim); font-weight: 600; text-align: left; }
+.conf-table tr:first-child th { text-align: center; }
+.conf-table td { text-align: center; border-radius: 8px; padding: 6px 4px; background: rgba(255,255,255,.05); color: var(--dim); }
+.conf-table td b { display: block; font: 800 18px/1.1 Orbitron, sans-serif; color: var(--ink); }
+.conf-table td[data-kind="good"] b { color: #3dff9a; } .conf-table td[data-kind="bad"] b { color: #ff5577; } .conf-table td[data-kind="warn"] b { color: #ffd23d; }
+.conf-note { margin-top: 6px; }
+/* 40 test snapshots: 8 per row */
+.test-grid { grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.test-cell span { font-size: 10px; }

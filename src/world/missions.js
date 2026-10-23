@@ -7,7 +7,7 @@ export const MISSIONS = [
     rules: { parTime: 35, alarmTime: 25 }, // was 45 (fastest run 13 s, careful sneaking 28 s)
     lab: "classifier", teammate: "drone",
     concept: "Image classification",
-    briefing: "VeloraTech's rooftop relay holds a data drive with the city's stolen water-meter records. Security mixes guards with night-shift staff, and in the dark you cannot tell them apart. Train your drone to recognise guards from camera snapshots. The drone reveals the vision cones of everyone it identifies as a guard. A guard it misses stays invisible.",
+    briefing: "VeloraTech's rooftop relay holds a data drive with the city's stolen water-meter records. Security mixes guards with night-shift staff, and in the dark you cannot tell them apart. Train your drone to recognise guards from camera snapshots. The drone reveals the vision cones of everyone it identifies as a guard. A guard it misses stays invisible, and a civilian it wrongly calls a guard draws a real guard over to check.",
     objective: { find: "Find the data drive", exit: "Reach the exit" },
     signs: [[9.5, 2.5, 0xff3d9a, "VELORA"], [6.5, 9.5, 0x29e6ff, "चाय · CHAI"], [13.5, 3.5, 0xb26bff, "24×7"]],
   },
@@ -16,8 +16,8 @@ export const MISSIONS = [
     rules: { parTime: 45, alarmTime: 25 }, // was 70 (fastest 26 s incl. the dog, careful 36 s)
     lab: "qlearning", teammate: "dog", vaultOrigin: { x: 13, z: 3 },
     concept: "Reinforcement learning",
-    briefing: "The second drive sits inside VeloraTech's laser vault. No human fits through the vent, but your robot dog does. Design its rewards and train it with Q-learning. In the mission, reach the console beside the vault and press E: the dog crosses the lasers by following exactly the policy it learned. If it touches a laser, the alarm goes off.",
-    objective: { find: "Go to the glowing console, press E: your dog fetches the drive", working: "Robot dog crossing the vault…", exit: "Reach the exit" },
+    briefing: "The second drive sits inside VeloraTech's laser vault. No human fits through the vent, but your robot dog does. Design its rewards and train it with Q-learning. In the mission, reach the console beside the vault and press E: the dog crosses the lasers by following exactly the policy it learned. If it touches a laser, the alarm goes off. A guard patrols past the console, so hide while the dog works.",
+    objective: { find: "Go to the glowing console, press E: your dog fetches the drive", working: "Dog crossing · hide from the patrol", exit: "Reach the exit" },
     // 2026-10-22: "VAULT" used to sit on a lobby wall at (5.5, 4.5), far from the vault, and led players the wrong way;
     // it now hangs on the vault's own wall beside the console. "NO ENTRY" became "DOG ONLY" to say who may cross.
     // signs: [[5.5, 4.5, 0x29e6ff, "VAULT"], [5.5, 12.5, 0xff3d9a, "पान · PAAN"], [17.5, 13.5, 0xb26bff, "NO ENTRY"]],

@@ -12,7 +12,7 @@ import { createCivilian, updateCivilian } from "./world/civilians.js";
 import { createPlayerMesh } from "./player/player.js";
 import { animatePerson } from "./engine/people.js";
 import { inputVector, step, KEY_TO_DIR, WALK_SPEED, SNEAK_SPEED } from "./player/movement.js";
-import { createGuard, updateGuard } from "./guards/guard.js";
+import { createGuard, updateGuard, investigate } from "./guards/guard.js";
 import { createGuardView } from "./guards/render.js";
 import { makeSnapshot } from "./lab/snapshots.js";
 import { createDrone, updateDrone, droneAccuracy, isRevealed, DRONE, modelAccuracy } from "./teammates/drone.js";
@@ -119,7 +119,7 @@ function resetMission() {
   state.mission = createMission(state.map, cfg.rules);
   state.drone = cfg.teammate === "drone" ? createDrone(state.pos) : null;
   state.dog = cfg.teammate === "dog" ? createDog(state.models.agent, cfg.vaultOrigin) : null;
-  state.failTimer = null; state.failReason = null;
+  state.failTimer = null; state.failReason = null; state.tip = null;
   state.assist = null; assistRequest = null; state.attempts = 0; state.doorOpen = false; state.dogChimed = false;
   sound.siren(false);
   state.caughtBy = null; state.result = null;
@@ -187,7 +187,7 @@ addEventListener("blur", () => { dirs.clear(); shiftHeld = false; touchMove.acti
 /** E: use the console (Mission 2) or the terminal (Mission 3) when standing next to it. */
 const near = (cell, r = 1.3) => cell && Math.hypot(state.pos.x - (cell.x + 0.5), state.pos.z - (cell.z + 0.5)) <= r;
 function interact() {
-  if (state.dog && near(state.map.console) && state.dog.status === "idle") { sound.play("dog"); deployDog(state.dog); log("dog_deployed", { outcome: state.dog.plan.outcome, steps: state.dog.plan.path.length - 1 }); }
+  if (state.dog && near(state.map.console) && state.dog.status === "idle") { sound.play("dog"); deployDog(state.dog); log("dog_deployed", { outcome: state.dog.plan.outcome, steps: state.dog.plan.path.length - 1 }); flashTip("A guard patrols past this console · step away and hide while the dog crosses", 6); }
   if (state.config.teammate === "assistant" && near(state.map.terminal) && !state.doorOpen) openTerminal();
 }
 
@@ -214,11 +214,11 @@ async function openTerminal() {
   // RETIRED 2026-10-22: pressing E again while the model was still answering sent a second LLM request, and an
   // answer arriving after a restart was stored in the new run. Replaced by the shared request below.
   // if (!state.assist) {
-  //   state.assist = await askAssistant(state.models.rag.index, "What is the vault password?", { k: state.models.rag.k, llmUrl: CONFIG.llmUrl, timeoutMs: CONFIG.llmTimeoutMs });
+  //   state.assist = await askAssistant(state.models.rag.index, "What is the vault password?", { k: state.models.rag.k, hops: state.models.rag.hops ?? 2, llmUrl: CONFIG.llmUrl, timeoutMs: CONFIG.llmTimeoutMs });
   //   log("assistant", { ... });
   // }
   if (!state.assist) {
-    const req = (assistRequest ??= askAssistant(state.models.rag.index, "What is the vault password?", { k: state.models.rag.k, llmUrl: CONFIG.llmUrl, timeoutMs: CONFIG.llmTimeoutMs }));
+    const req = (assistRequest ??= askAssistant(state.models.rag.index, "What is the vault password?", { k: state.models.rag.k, hops: state.models.rag.hops ?? 2, llmUrl: CONFIG.llmUrl, timeoutMs: CONFIG.llmTimeoutMs }));
     const answer = await req;
     if (assistRequest !== req) return; // the mission was restarted while the model was answering
     if (!state.assist) {
@@ -231,7 +231,7 @@ async function openTerminal() {
   $("#term-status").textContent = a.source === "llm" ? `Assistant: answered by ${a.model ?? "LLM"} in ${(a.latencyMs / 1000).toFixed(1)} s${a.tokens ? ` · ${a.tokens} tokens` : ""}`
     : a.error === "no LLM configured" ? "Assistant: offline reasoning over the retrieved emails (no language model connected)"
     : `Assistant: language model unavailable (${a.error}) · offline reasoning over the retrieved emails`;
-  $("#term-hits").innerHTML = renderHits(a.hop1, "Hop 1 · question", { markClues: true }) + renderHits(a.hop2, "Hop 2 · following the lead", { markClues: true });
+  $("#term-hits").innerHTML = renderHits(a.hop1, "Hop 1 · question", { markClues: true }) + ((state.models.rag.hops ?? 2) < 2 ? `<p class="fine">One hop only: the second search is switched off in the Lab.</p>` : renderHits(a.hop2, "Hop 2 · following the lead", { markClues: true }));
   $("#term-prompt").textContent = a.prompt;
   $("#term-answer").textContent = a.source === "llm" || !a.steps?.length ? a.answer : `${a.answer}\n\nHow I worked it out:\n${a.steps.map((s) => `• ${s}`).join("\n")}`;
   panel.dataset.state = "ready";
@@ -386,6 +386,8 @@ $("#btn-retry").addEventListener("click", restart);
 $("#btn-relab").addEventListener("click", openLab);
 $("#btn-next").addEventListener("click", () => { if (state.missionIndex + 1 < MISSIONS.length) openBriefing(state.missionIndex + 1); else showComplete(); });
 $("#btn-menu").addEventListener("click", () => show("start"));
+/** A short message on the HUD tip line for `secs` seconds of play. */
+function flashTip(text, secs) { state.tip = { text, left: secs }; }
 // ---------- pause (2026-10-24) ----------
 function pause() { if (state.screen !== "playing") return; dirs.clear(); sound.siren(false); $("#pause-eyebrow").textContent = `Mission ${state.config.id} · ${state.config.name} · paused`; show("paused"); }
 function resume() { if (state.screen === "paused") show("playing"); }
@@ -489,14 +491,18 @@ function updateHud() {
     tm.classList.remove("hidden");
   } else tm.classList.add("hidden");
   if (cfg.teammate === "assistant") {
-    tm.textContent = state.doorOpen ? "Assistant: door open" : state.models.rag ? `Assistant: index ready (k=${state.models.rag.k})` : "Assistant: no index";
+    tm.textContent = state.doorOpen ? "Assistant: door open" : state.models.rag ? `Assistant: index ready (k=${state.models.rag.k}, ${state.models.rag.hops ?? 2} hop${(state.models.rag.hops ?? 2) > 1 ? "s" : ""})` : "Assistant: no index";
     tm.classList.remove("hidden");
   }
   $("#hud-hint").classList.toggle("hidden", !((state.dog && state.dog.status === "idle" && near(state.map.console)) || (cfg.teammate === "assistant" && !state.doorOpen && near(state.map.terminal))));
   // Players walked up to the vault expecting to go in: say who crosses and where to go instead.
   const atVault = state.dog?.status === "idle" && !near(state.map.console) && nearVaultWall();
-  $("#hud-tip").textContent = atVault ? "Only your robot dog can cross the lasers · go to the glowing console" : "";
-  $("#hud-tip").classList.toggle("hidden", !atVault);
+  // RETIRED 2026-10-24: the tip line only knew the vault-wall message; timed tips (flashTip) now take priority.
+  // $("#hud-tip").textContent = atVault ? "Only your robot dog can cross the lasers · go to the glowing console" : "";
+  // $("#hud-tip").classList.toggle("hidden", !atVault);
+  const tip = state.tip?.left > 0 ? state.tip.text : atVault ? "Only your robot dog can cross the lasers · go to the glowing console" : "";
+  $("#hud-tip").textContent = tip;
+  $("#hud-tip").classList.toggle("hidden", !tip);
 }
 // Edge-of-screen arrow towards the Mission 2 console while it is off-screen and the dog is waiting:
 // from the start the console was out of view, and players headed for the visible vault instead.
@@ -556,12 +562,12 @@ const GUIDE = {
     () => K(`<b>Move</b> with the <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> arrow keys (or WASD). Hold <kbd>Shift</kbd> to move quietly.`,
             `<b>Move</b> by <b>dragging anywhere</b> on the screen, in the direction you want to go. A <b>short drag</b> sneaks quietly, a long drag walks (or tap <b>SNEAK</b>).`),
     () => `<b>Guards</b> see inside their cones. <span class="g-white">White</span> = calm, <span class="g-yellow">yellow</span> = noticing you, <span class="g-red">red</span> = chasing. Walls hide you. If a guard touches you, you are caught.`,
-    () => `<b>Your drone</b> is the AI you just trained. It scans everyone nearby: guards it recognises get a tag and a visible cone. Train it badly and some guards stay invisible.`,
+    () => `<b>Your drone</b> is the AI you just trained. It scans everyone nearby: guards it recognises get a tag and a visible cone. Train it badly and some guards stay invisible, and a civilian it wrongly calls a guard draws a real guard over to check.`,
     () => `<b>Goal:</b> follow the <b class="green">green arrow</b> to the <b class="gold">data drive</b>, then to the <b class="green">exit</b>. ${K("Press <kbd>?</kbd>", "Tap <b>?</b>")} any time to see this again.`,
   ],
   2: [
     () => `This vault is full of <b class="red">lasers</b>. You cannot go in: your <b>robot dog</b> crosses it, following the path it learned in the Lab.`,
-    () => `Follow the <b class="green">arrow</b> to the glowing <b>console</b> and ${K("press <kbd>E</kbd>", "tap the <b>SEND DOG</b> button that appears there")} to send the dog.`,
+    () => `Follow the <b class="green">arrow</b> to the glowing <b>console</b> and ${K("press <kbd>E</kbd>", "tap the <b>SEND DOG</b> button that appears there")} to send the dog. <b>A guard patrols past the console</b>: step away and hide while the dog crosses.`,
     () => `If the dog touches a laser, the alarm starts: go back to the Lab and fix its rewards. When it brings the <b class="gold">drive</b>, run to the <b class="green">exit</b>.`,
   ],
   3: [
@@ -718,14 +724,27 @@ function simulate(dt) {
     if (state.drone) {
       const ids = updateDrone(state.drone, { player: state.pos, facing: state.facing, characters: [...state.guards, ...state.civilians], model: state.models.classifier, dt });
       ids.forEach((id) => { const d = state.drone.detections.get(id); log("drone_scan", { id, label: d.label, confidence: Number(d.confidence.toFixed(3)), correct: d.correct }); });
+      // False alarm (2026-10-24): the drone flags a civilian as a guard, its spotlight lands on them and the nearest
+      // patrolling guard walks over to check. Wrong "guard" calls now cost something in play, not only in the score.
+      for (const id of ids) {
+        const d = state.drone.detections.get(id);
+        if (d.label !== "guard" || d.truth !== "civilian") continue;
+        const civ = state.civilians.find((c) => c.id === id);
+        const g = state.guards.filter((x) => x.state === "patrol").sort((a, b) => Math.hypot(a.pos.x - civ.pos.x, a.pos.z - civ.pos.z) - Math.hypot(b.pos.x - civ.pos.x, b.pos.z - civ.pos.z))[0];
+        if (g && investigate(g, state.map, civ.pos)) {
+          log("false_alarm", { civilian: id, guard: g.id }); sound.play("suspicious");
+          flashTip("False alarm: your drone flagged a civilian · a guard is coming to check", 5);
+        }
+      }
     }
     if (state.dog) {
       const out = updateDog(state.dog, dt);
       if (out) log("dog_finished", { outcome: out });
-      if (out === "goal") { state.mission.hasDrive = true; log("pickup", { via: "dog" }); }
+      if (out === "goal") { state.tip = null; state.mission.hasDrive = true; log("pickup", { via: "dog" }); }
       if (out === "laser") { sound.play("zap"); triggerAlarm(state.mission); state.failTimer = 3; state.failReason = "laser"; }
       if (out === "loop") { state.failTimer = 2; state.failReason = "lost"; }
     }
+    if (state.tip) state.tip.left -= dt;
     if (state.failTimer !== null) { state.failTimer -= dt; if (state.failTimer <= 0) { failMission(state.mission, state.failReason); state.failTimer = null; } }
     const ev = updateMission(state.mission, { player: state.pos, guards: state.guards, dt });
     ev.forEach((e) => { log(e); if (e === "pickup") sound.play("pickup"); });

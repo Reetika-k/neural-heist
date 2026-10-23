@@ -29,7 +29,7 @@ export function createBrainPanel(el, { getState, onExport }) {
   }
   function drone(s) {
     const rep = s.labReports[1];
-    const head = rep ? `<dl class="bp-kv"><dt>Model</dt><dd>k-NN, k = ${rep.k ?? 3}</dd><dt>Labelled images</dt><dd>${rep.labelled} (${rep.perClass?.guard ?? 0} guard / ${rep.perClass?.civilian ?? 0} civilian)</dd><dt>Training accuracy</dt><dd>${pct(rep.trainAccuracy)}</dd><dt>Test accuracy (10 held-back)</dt><dd>${pct(rep.testAccuracy)}</dd>${rep.mislabelled ? `<dt>Your labels that were wrong</dt><dd>${rep.mislabelled}</dd>` : ""}</dl>` : "<p class='fine'>Not trained yet (Mission 1 Lab).</p>";
+    const head = rep ? `<dl class="bp-kv"><dt>Model</dt><dd>k-NN, k = ${rep.k ?? 3}</dd><dt>Labelled images</dt><dd>${rep.labelled} (${rep.perClass?.guard ?? 0} guard / ${rep.perClass?.civilian ?? 0} civilian)</dd><dt>Training accuracy</dt><dd>${pct(rep.trainAccuracy)}</dd><dt>Test accuracy (${rep.confusion ? Object.values(rep.confusion).reduce((x, y) => x + y, 0) : 10} held-back)</dt><dd>${pct(rep.testAccuracy)}</dd>${rep.confusion ? `<dt>Calls a guard at</dt><dd>${pct(rep.threshold)} sure</dd><dt>Guards spotted / missed</dt><dd>${rep.confusion.tp} / ${rep.confusion.fn}</dd><dt>False alarms (civilians called guards)</dt><dd>${rep.confusion.fp}</dd>` : ""}${rep.mislabelled ? `<dt>Your labels that were wrong</dt><dd>${rep.mislabelled}</dd>` : ""}</dl>` : "<p class='fine'>Not trained yet (Mission 1 Lab).</p>";
     if (!s.drone) return head + "<p class='fine'>The drone flies in Mission 1.</p>";
     const det = [...s.drone.detections.values()];
     return head + `<p class="bp-note">Scanned ${det.length} characters · accuracy so far ${pct(droneAccuracy(s.drone))}. Confidence = distance-weighted share of the 3 nearest training images.</p>
