@@ -86,7 +86,7 @@ function buildLevel(config) {
   const civViews = (config.civilians ?? []).map((_, i) => createCivilianView(root, overlay, i));
   const tags = new Map();
   const droneView = config.teammate === "drone" ? createDroneView(root, DRONE.scanRadius) : null;
-  const vaultView = config.teammate === "dog" ? createVaultView(root, config.vaultOrigin, map.console) : null;
+  const vaultView = config.teammate === "dog" ? createVaultView(root, config.vaultOrigin, map.console, state.models.agent?.env) : null; // the vault the dog trained on
   const terminalView = config.teammate === "assistant" ? createTerminalView(root, map) : null;
   state.map = map;
   state.level = {

@@ -21,7 +21,7 @@ import { GUARD } from "../src/guards/guard.js";
 import { DIFFICULTY } from "../src/settings.js";
 import { makeSnapshot, labDataset } from "../src/lab/snapshots.js";
 import { createClassifier, fit, accuracy } from "../src/lab/classifier.js";
-import { createAgent, trainEpisodes, greedyPath, shortestSafe, movingAverage, DEFAULT_REWARDS, HYPER } from "../src/lab/qlearning.js";
+import { createAgent, trainEpisodes, greedyPath, shortestSafe, movingAverage, DEFAULT_REWARDS, HYPER, makeEnv, CLASSIC, evaluatePolicy, trainWithMilestone } from "../src/lab/qlearning.js";
 import { buildIndex, multiHop, recall, VAULT_QUESTION, RELEVANT } from "../src/lab/rag.js";
 import { mulberry32 } from "../src/lab/rng.js";
 
@@ -86,6 +86,25 @@ const qRuns = [
   qExperiment("no step penalty", { ...DEFAULT_REWARDS, step: 0 }),
   qExperiment("weak laser penalty −1", { ...DEFAULT_REWARDS, laser: -1 }),
 ];
+// vault extras (2026-10-23): random vaults, batteries, puddles, blinking lasers, training challenge (5 seeds each)
+const X_SEEDS = [1, 2, 3, 4, 5];
+const trainIn = (env, rewards, episodes, seed) => { const a = createAgent({ rewards: { ...DEFAULT_REWARDS, ...rewards }, episodes, seed, env }); trainEpisodes(a, episodes); return a; };
+const extras = (() => {
+  const rv = []; for (let v = 1; v <= 10; v++) { const env = makeEnv({ layout: "random", seed: v }), best = shortestSafe(env), g = greedyPath(trainIn(env, {}, 1500, 1)); rv.push({ v, best, learned: g.outcome === "goal" ? g.path.length - 1 : g.outcome }); }
+  const bat = (battery) => { const runs = X_SEEDS.map((seed) => greedyPath(trainIn(makeEnv({ batteries: true }), { battery }, 2000, seed))); return { steps: mean(runs.map((g) => g.path.length - 1)), batteries: mean(runs.map((g) => g.batteries)) }; };
+  const wet = makeEnv({ slip: 0.2 });
+  const puddleDogs = X_SEEDS.map((seed) => trainIn(wet, {}, 1500, seed));
+  const dryDogs = X_SEEDS.map((seed) => ({ ...trainIn(CLASSIC, {}, 1500, seed), env: wet }));
+  const blink = makeEnv({ blinking: true });
+  const blinkRuns = X_SEEDS.map((seed) => greedyPath(trainIn(blink, {}, 3000, seed)));
+  const challenge = X_SEEDS.map((seed) => trainWithMilestone(createAgent({ episodes: 1500, seed }), 25).firstSolvedAt);
+  return {
+    rv, batSmall: bat(0.2), batWorth: bat(1),
+    puddle: { steps: mean(puddleDogs.map((a) => greedyPath(a).path.length - 1)), success: mean(puddleDogs.map((a, i) => evaluatePolicy(a, 300, i + 1).successRate)), dry: mean(dryDogs.map((a, i) => evaluatePolicy(a, 300, i + 1).successRate)) },
+    blink: { shortest: shortestSafe(blink), reached: blinkRuns.filter((g) => g.outcome === "goal").length, through: blinkRuns.filter((g) => g.outcome === "goal" && g.path.some((p) => blink.blink.has(`${p.x},${p.z}`))).length, steps: mean(blinkRuns.filter((g) => g.outcome === "goal").map((g) => g.path.length - 1)) },
+    challenge: { mean: mean(challenge), min: Math.min(...challenge), max: Math.max(...challenge) },
+  };
+})();
 
 // ---------- 4. Mission 3: RAG ----------
 
@@ -163,7 +182,15 @@ parts.push(`<h2>3. Mission 1 — drone image classifier (k-nearest neighbours)</
 // 4 Q-learning
 parts.push(`<h2>4. Mission 2 — robot dog (tabular Q-learning)</h2><p>A 10×10 laser vault. α = ${HYPER.alpha}, γ = ${HYPER.gamma}, ε from ${HYPER.epsilonStart} to ${HYPER.epsilonEnd}, 1,500 episodes, at most ${HYPER.maxSteps} steps each. The player sets the three rewards; after training the dog follows the greedy policy. Shortest safe path: ${shortest} steps. Each reward design below was trained on ${SEEDS} seeds.</p>`
   + table(["reward design", "goal / laser / step", "reaches goal", "hits a laser", "loops (dog lost)", "mean path (steps)", "shortest path found"], qRuns.map((r) => [esc(r.name), `${r.rewards.goal} / ${r.rewards.laser} / ${r.rewards.step}`, `${r.goal}/${SEEDS}`, r.laser ? `<span class="bad">${r.laser}/${SEEDS}</span>` : `0/${SEEDS}`, r.loop ? `<span class="warn">${r.loop}/${SEEDS}</span>` : `0/${SEEDS}`, r.meanLen ? r.meanLen.toFixed(1) : "—", `${r.optimal}/${SEEDS}`]))
-  + `<div class="row"><div>${line(movingAverage(def.curve, 25))}<p class="muted">Learning curve, sensible rewards, seed 1: episode reward, moving average of 25.</p></div></div>`);
+  + `<div class="row"><div>${line(movingAverage(def.curve, 25))}<p class="muted">Learning curve, sensible rewards, seed 1: episode reward, moving average of 25.</p></div></div>`
+  + `<h3>Vault extras (added after playtesting: "it always says 28 steps")</h3><p>The classic vault above stays the reference: with every extra off, training is identical to before (checked: same learned table on 40 seed/reward combinations). Each extra changes what the dog has to learn; ${X_SEEDS.length} seeds each, recommended rewards unless stated.</p>`
+  + table(["extra", "what changes", "measured"], [
+    ["New random vault", "a fresh layout, always solvable (22–38 steps)", `10 vaults: shortest routes ${extras.rv.map((r) => r.best).join(", ")}; learned route = shortest on ${extras.rv.filter((r) => r.learned === r.best).length}/10`],
+    ["Bonus batteries (classic)", "two optional pickups off the route; worth it once the bonus beats ≈ 3 × the step cost", `bonus +0.2: ${extras.batSmall.steps.toFixed(0)} steps, ${extras.batSmall.batteries.toFixed(1)} batteries · bonus +1: ${extras.batWorth.steps.toFixed(0)} steps, ${extras.batWorth.batteries.toFixed(1)} batteries`],
+    ["Slippery puddles 20 % (classic)", "puddles in the wall gaps; a slide can send the dog into a laser", `puddle-trained dog: ${extras.puddle.steps.toFixed(0)}-step dry route, ${pct(extras.puddle.success)} success · a dry-floor dog on the same puddles: ${pct(extras.puddle.dry)}`],
+    ["Blinking lasers (classic)", "part of a wall is off 3 steps in 6; the dog can wait", `shortest with timing: ${extras.blink.shortest} steps · 3,000 runs: reached ${extras.blink.reached}/5, through the blinking gap ${extras.blink.through}/5, mean ${extras.blink.steps.toFixed(1)} steps`],
+    ["Training challenge", "first practice run after which the route reaches the drive", `recommended rewards: ${extras.challenge.min}–${extras.challenge.max} runs (mean ${extras.challenge.mean.toFixed(0)})`],
+  ]));
 
 // 5 RAG
 parts.push(`<h2>5. Mission 3 — hacking assistant (two-hop retrieval + language model)</h2><p>${emails.length} fictional emails split into ${index.chunks.length} chunks of 2 sentences, embedded as TF-IDF vectors (${index.vocabulary} words). The password is spread over three emails (${RELEVANT.join(", ")}), and a retired decoy password sits in another. Hop 1 searches with the question; hop 2 searches with the words of the best hop-1 chunk. The retrieved emails go to a language model (Cloudflare Worker, or the offline fallback).</p>`
@@ -219,6 +246,7 @@ fs.mkdirSync(p("reports"), { recursive: true });
 fs.writeFileSync(p("reports/dashboard.html"), html);
 console.log(`dashboard: reports/dashboard.html (${(html.length / 1e6).toFixed(2)} MB) · unit ${unit ? `${unit.pass}/${unit.tests}` : "none"} · browser rows ${playRows.length} · challenges ${challenges.length}`);
 console.log("classifier by labels:", labelCounts.map((x) => `${x.n}:${pct(x.acc)}`).join(" "), "| by k:", kValues.map((x) => `${x.k}:${pct(x.acc)}`).join(" "), "| noise:", noise.map((x) => `${x.m}:${pct(x.acc)}`).join(" "), "| lab test:", pct(labTestAcc));
+console.log("extras:", JSON.stringify({ randomShortest: extras.rv.map((r) => `${r.best}/${r.learned}`), batSmall: extras.batSmall, batWorth: extras.batWorth, puddle: extras.puddle, blink: extras.blink, challenge: extras.challenge }));
 console.log("q-learning:", qRuns.map((r) => `${r.name}: goal ${r.goal} laser ${r.laser} loop ${r.loop} optimal ${r.optimal}`).join(" | "), "| shortest", shortest);
 console.log("rag recall by k:", recallByK.map((x) => `${x.k}:${pct(x.r)}`).join(" "), "| by chunk:", recallByChunk.map((x) => `${x.c}:${pct(x.r)}`).join(" "));
 console.log("paths:", paths.map((r) => `${r.mission} ${r.label} A*${r.aExp}/BFS${r.bExp}`).join(" | "));

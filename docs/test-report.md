@@ -4,8 +4,8 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 
 | Suite | Result |
 |---|---|
-| Unit tests (`npm test`) | **61 / 61 pass** |
-| Browser test, dev server | **74 / 74 pass** (2026-10-23) |
+| Unit tests (`npm test`) | **70 / 70 pass** |
+| Browser test, dev server | **79 / 79 pass** (2026-10-23) |
 | Browser test, production build (`vite preview` of `dist/`) | **66 / 66 pass** |
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
 | Phone check, 390 × 844 | **12 / 12 pass** (menus, Labs, drag-to-move gameplay, context action button) |
@@ -59,6 +59,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 36 | Phone: no joystick; drag to move; E becomes a context button | Movement by dragging only; "use" only where it applies | Joystick removed; a faint ring shows the drag; a short drag sneaks; SEND DOG appears only beside the Mission 2 console and HACK TERMINAL beside the Mission 3 terminal, each tap works and the button disappears after use or when walking away; objective text drops "E" on phones | Pass |
 | 37 | Open How to play on a phone or a short laptop window | The whole card can be read and Got it tapped | Before: card clipped, Got it unreachable. After: every full-screen page scrolls when needed; its main button can be scrolled to and is not covered, at 390 × 844, 360 × 640, 1280 × 640 and 1440 × 900; phones show only the phone controls | Pass after fix |
 | 38 | Mission 2 Lab: what do positive, negative and zero rewards do? | The Lab explains itself | Measured 26 settings × 20 runs (default +10/−10/−0.1: 20/20 shortest route; laser 0, −1 or positive: 20/20 crash; step 0: 20/20 lost; step ≤ −0.8: 20/20 crash; ≤ 500 runs: 20/20 lost). Added: "How do rewards work?", 5 ready-made settings, a live hint per slider, and a what/why/try explanation under the grid; unit tests tie the texts to real training | Pass after fix |
+| 39 | Mission 2 Lab: "it always says 28 steps" | Results change with the player's choices | New vault (random, 22–34 steps, shortest learned 10/10); batteries (+0.2: 28 steps, skipped; +1: 38 steps, both taken); puddles 20 % (safe 32-step route, 100 % vs 78 % for a dry-floor dog); blinking (19 with timing; dogs slip through in ~22); training challenge (~1,165 runs with recommended rewards); value and exploration maps; old dog replayed on a new vault; classic results unchanged | Pass |
 
 ## Failures found during development and what changed
-See `docs/challenges.md`: 26 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.
+See `docs/challenges.md`: 27 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.

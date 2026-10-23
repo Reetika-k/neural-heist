@@ -30,7 +30,7 @@ You are a hacker in a neon Indian city run by a corrupt tech company. Each missi
 | Mission | Lab | Teammate in the mission | AI/ML |
 |---|---|---|---|
 | 1. Rooftop | Label 30 CCTV snapshots, train, check held-back accuracy | Drone scans everyone; guards it identifies show their vision cones, missed guards stay invisible | Image classification (k-NN), overfitting |
-| 2. Laser Vault | Set three rewards and the episode count, watch Q-learning train | Robot dog crosses the vault with the learned policy; a bad policy trips a laser | Reinforcement learning (Q-learning) |
+| 2. Laser Vault | Set the rewards and the episode count, watch Q-learning train; pick a new random vault or the classic one, and add bonus batteries, blinking lasers or slippery puddles; see what it learned and where it explored; beat your training-challenge record | Robot dog crosses the vault with the learned policy; a bad policy trips a laser | Reinforcement learning (Q-learning) |
 | 3. Executive Floor | Chunk 40 leaked emails, build the index, test two-hop search | Hacking assistant retrieves emails and asks an LLM for the vault password | Embeddings, retrieval, RAG, LLM |
 
 **Win:** take the data drive to the exit. **Lose:** caught by a guard, the 25 s alarm runs out, the dog trips a laser or gets lost. **Score:** finish + stealth + time under par + your AI's accuracy; up to 3 stars.
@@ -52,10 +52,10 @@ The first time you play each mission, a short guide explains what to do (the gam
 ## Tests
 
 ```bash
-npm test                 # 61 unit tests (Node, no browser)
+npm test                 # 70 unit tests (Node, no browser)
 # browser tests: start the dev server, then Chrome with
 #   --headless=new --remote-debugging-port=9337 --remote-allow-origins=*
-npm run test:e2e         # 74 checks: every screen, all three missions, Brain panel, export, settings
+npm run test:e2e         # 79 checks: every screen, all three missions, Brain panel, export, settings
 npm run test:phone       # 6 checks at 390 px width
 ```
 
