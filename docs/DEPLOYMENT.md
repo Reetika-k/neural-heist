@@ -15,6 +15,8 @@ Verified locally: `npm run build` produces `dist/` (relative asset paths, `data/
 
 ## 2. LLM proxy on Cloudflare Workers
 
+Quickest way (GitHub Pages): `bash scripts/connect-llm.sh`. It logs in to Cloudflare, deploys the Worker (allowed origin `https://reetika-k.github.io`, already set in `wrangler.toml`), asks for the Gemini key in a hidden prompt (stored as a Cloudflare secret, never in the repo), sets the `VITE_LLM_URL` repository variable and re-runs the Pages deploy. Needs a free Gemini key from https://aistudio.google.com and a free Cloudflare account. The manual steps:
+
 ```bash
 cd neural-heist/worker
 npx wrangler login

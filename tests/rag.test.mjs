@@ -141,3 +141,16 @@ test("Lab hints agree with retrieval on every setting; the preview answer matche
   }
   assert.deepEqual(Object.keys(CLUES).sort(), [...RELEVANT].sort());
 });
+
+test("one hop vs two hops (Lab switch): one hop finds only 1 of 3 clues at every setting; two hops reach KESTREL37", () => {
+  for (const c of [1, 2, 3, 4]) for (const k of [1, 2, 3, 4, 5, 6]) {
+    const idx = buildIndex(emails, { chunkSize: c });
+    const one = multiHop(idx, VAULT_QUESTION, k, { hops: 1 });
+    assert.equal(one.hop2.length, 0);
+    assert.equal(recall(one.context, RELEVANT), 1 / 3, `chunk ${c}, k ${k}`);
+    assert.doesNotMatch(reasonOffline(one.context).answer, /KESTREL37/);
+  }
+  const two = multiHop(buildIndex(emails, { chunkSize: 2 }), VAULT_QUESTION, 3);
+  assert.equal(recall(two.context, RELEVANT), 1);
+  assert.equal(ragHint("hops", 1).kind, "bad"); assert.equal(ragHint("hops", 2).kind, "good");
+});

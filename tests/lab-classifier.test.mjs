@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { makeSnapshot, features, labDataset, SNAP } from "../src/lab/snapshots.js";
-import { createClassifier, fit, predict, accuracy, trainingWarnings } from "../src/lab/classifier.js";
+import { createClassifier, fit, predict, accuracy, confusion, trainingWarnings } from "../src/lab/classifier.js";
 import { createDrone, updateDrone, droneAccuracy, isRevealed } from "../src/teammates/drone.js";
 import { createCivilian, updateCivilian } from "../src/world/civilians.js";
 import { MISSION_1, MISSION_1_CIVILIANS, parseMap } from "../src/world/map.js";
@@ -19,8 +19,9 @@ test("snapshots are deterministic 32×32 RGBA images", () => {
   assert.equal(features(a).length, 105, "5×7 cells × RGB");
 });
 
-test("lab dataset: 30 images to label (balanced), 10 held-back, no overlap", () => {
-  assert.equal(train.length, 30); assert.equal(heldOut.length, 10);
+test("lab dataset: 30 images to label (balanced), 40 held-back (20 + 20), no overlap", () => {
+  assert.equal(train.length, 30); assert.equal(heldOut.length, 40);
+  assert.equal(heldOut.filter((s) => s.kind === "guard").length, 20);
   const g = train.filter((s) => s.kind === "guard").length;
   assert.ok(g >= 12 && g <= 18, `roughly balanced (${g} guards)`);
   const seeds = new Set(train.map((s) => s.seed));
@@ -54,7 +55,7 @@ test("predict: confidence in 0.5..1, empty model answers null, single class warn
   const m = fit(createClassifier(3), correct(train));
   const p = predict(m, heldOut[0]);
   assert.ok(p.confidence >= 0.5 && p.confidence <= 1);
-  assert.deepEqual(predict(createClassifier(), heldOut[0]), { label: null, confidence: 0, neighbours: 0 });
+  assert.deepEqual(predict(createClassifier(), heldOut[0]), { label: null, confidence: 0, pGuard: 0, neighbours: 0 });
   assert.ok(trainingWarnings(correct(train.filter((s) => s.kind === "guard"))).some((w) => /one class/.test(w)));
 });
 
@@ -97,4 +98,23 @@ test("drone mission score: the trained model on every Rooftop character; perfect
   assert.equal(modelAccuracy(null, rooftop), 0, "no model, no points");
   const weak = fit(createClassifier(3), train.slice(0, 4).map((s) => ({ snapshot: s, label: s.kind })));
   assert.ok(modelAccuracy(weak, rooftop) < 1, "weak training loses points");
+});
+
+test("threshold: how sure before calling a guard trades missed guards for false alarms (measured on 800 unseen)", () => {
+  const big = Array.from({ length: 800 }, (_, i) => makeSnapshot(i % 2 ? "guard" : "civilian", 7000 + i));
+  const at = (t) => confusion(fit(createClassifier(3, t), correct(train)), big);
+  const low = at(0.3), mid = at(0.5), high = at(0.7);
+  assert.ok(low.fp > mid.fp && mid.fp > high.fp, `false alarms fall as the threshold rises: ${low.fp} > ${mid.fp} > ${high.fp}`);
+  assert.ok(high.fn > mid.fn, `but more guards are missed: ${high.fn} > ${mid.fn}`);
+  assert.ok(high.precision > mid.precision && mid.recall > high.recall);
+  assert.equal(mid.tp + mid.fn + mid.fp + mid.tn, 800);
+  // default 0.5 behaves exactly like the old majority vote
+  const m = fit(createClassifier(3), correct(train));
+  assert.ok(big.slice(0, 50).every((s) => { const p = predict(m, s); return p.label === (p.pGuard >= 0.5 ? "guard" : "civilian"); }));
+});
+
+test("confusion on the 40 test photos with 30 correct labels: no guard missed at 50 %", () => {
+  const c = confusion(fit(createClassifier(3), correct(train)), heldOut);
+  assert.equal(c.fn, 0); assert.equal(c.tp, 20);
+  assert.ok(c.fp <= 6, `false alarms ${c.fp}`);
 });

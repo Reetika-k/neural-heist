@@ -84,10 +84,13 @@ export function features(snapshot) {
   return f;
 }
 
-/** The Lab's dataset: 30 images to label and 10 held-back test images (ground truth known to the game only). */
+export const TEST_SIZE = 40;
+/** The Lab's dataset: 30 images to label and 40 held-back test images (ground truth known to the game only). */
 export function labDataset() {
   const kinds = (n, seed) => { const r = mulberry32(seed); return Array.from({ length: n }, (_, i) => (i % 2 === 0) !== (r() < 0.2) ? "guard" : "civilian"); };
   const train = kinds(30, 11).map((k, i) => makeSnapshot(k, 100 + i));
-  const test = ["guard", "civilian", "guard", "civilian", "guard", "civilian", "guard", "civilian", "guard", "civilian"].map((k, i) => makeSnapshot(k, 500 + i));
+  // RETIRED 2026-10-24: 10 test images, so each one moved test accuracy by 10 points; now 40 (the first 10 are the same).
+  // const test = ["guard", "civilian", "guard", "civilian", "guard", "civilian", "guard", "civilian", "guard", "civilian"].map((k, i) => makeSnapshot(k, 500 + i));
+  const test = Array.from({ length: TEST_SIZE }, (_, i) => makeSnapshot(i % 2 === 0 ? "guard" : "civilian", 500 + i));
   return { train, test };
 }

@@ -7,9 +7,9 @@ import { reasonOffline } from "./reasoner.js";
 /**
  * @returns {Promise<{ question, hop1, hop2, context, prompt, answer, source: "llm"|"fallback", error?, latencyMs, tokens?, recall }>}
  */
-export async function askAssistant(index, question, { k = 3, llmUrl = "", timeoutMs = 45000, fetchImpl = globalThis.fetch } = {}) {
+export async function askAssistant(index, question, { k = 3, hops = 2, llmUrl = "", timeoutMs = 45000, fetchImpl = globalThis.fetch } = {}) {
   const t0 = Date.now();
-  const { hop1, hop2, context } = multiHop(index, question, k);
+  const { hop1, hop2, context } = multiHop(index, question, k, { hops });
   const prompt = buildPrompt(question, context);
   const base = { question, hop1, hop2, context, prompt, recall: recall(context, RELEVANT) };
   // RETIRED 2026-10-23: without a model the assistant only listed the best-matching emails ("I could not reach

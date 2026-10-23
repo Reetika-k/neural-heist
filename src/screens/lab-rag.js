@@ -24,6 +24,10 @@ export function renderHits(hits, label, { markClues = false } = {}) {
 
 /** Slider hints, from measurements over every setting (chunk 1: 1 of 3 clues; k 1–2: 2 of 3; chunk ≥ 2 and k ≥ 3: 3 of 3). */
 export function ragHint(key, v) {
+  // measured 2026-10-24: one hop finds only the rule email (1 of 3) at every chunk size and k; two hops are needed
+  if (key === "hops") return v < 2
+    ? { kind: "bad", text: "One hop searches with the question only. The question never mentions Mr. Varma's robot or the server room, so those clues are never found (1 of 3)." }
+    : { kind: "good", text: "Hop 2 searches again with the new words from the best email and follows the lead to the other clues." };
   if (key === "chunk") return v === 1
     ? { kind: "bad", text: "One sentence per chunk: the rule is cut away from \"Mr. Varma\" and the server room, so the search loses the trail (1 of 3 clues)." }
     : { kind: "good", text: "Sentences stay together with their context, so each clue can be found." };
@@ -34,7 +38,7 @@ export function ragHint(key, v) {
 }
 
 export function mountRagLab(root, { emails, onDone, onBack, prev = null }) {
-  let chunkSize = prev?.chunkSize ?? 2, k = prev?.k ?? 3, index = prev?.index ?? null;
+  let chunkSize = prev?.chunkSize ?? 2, k = prev?.k ?? 3, hops = prev?.hops ?? 2, index = prev?.index ?? null;
   root.innerHTML = `
     <div class="lab">
       <header class="lab-head">
@@ -63,6 +67,7 @@ export function mountRagLab(root, { emails, onDone, onBack, prev = null }) {
           </details>
           <label class="slider">Chunk size (sentences per chunk) <b id="v-chunk"></b><input type="range" id="r-chunk" min="1" max="4" step="1"><span class="q-hint" id="h-chunk"></span></label>
           <label class="slider">Results to retrieve per hop (k) <b id="v-k"></b><input type="range" id="r-k" min="1" max="6" step="1"><span class="q-hint" id="h-k"></span></label>
+          <div class="slider"><span>Search hops</span><div class="view-toggle hop-toggle" role="group" aria-label="Search hops"><button type="button" data-hops="1">1 hop</button><button type="button" data-hops="2">2 hops</button></div><span class="q-hint" id="h-hops"></span></div>
           <button class="btn-primary" id="rag-build">Build index</button>
           <dl class="metric-row"><div><dt>Chunks</dt><dd id="rag-chunks">–</dd></div><div><dt>Vocabulary</dt><dd id="rag-vocab">–</dd></div></dl>
           <p class="fine">Embedding: TF-IDF vectors (word frequency × rarity), L2-normalised. Two hops: the question finds the first chunks; hop 2 follows the best lead with the words it added.</p>
@@ -85,6 +90,13 @@ export function mountRagLab(root, { emails, onDone, onBack, prev = null }) {
   };
   bind("chunk", () => chunkSize, (v) => (chunkSize = v));
   bind("k", () => k, (v) => (k = v));
+  // hops: no rebuild needed (same index, different search), so the test re-runs straight away
+  const showHops = () => {
+    root.querySelectorAll("[data-hops]").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.hops) === hops)));
+    hint("hops", hops);
+  };
+  root.querySelectorAll("[data-hops]").forEach((b) => b.addEventListener("click", () => { hops = Number(b.dataset.hops); showHops(); if (index) search(); }));
+  showHops();
 
   function build() {
     index = buildIndex(emails, { chunkSize });
@@ -96,13 +108,13 @@ export function mountRagLab(root, { emails, onDone, onBack, prev = null }) {
   function search() {
     if (!index) return null;
     const question = $("#rag-q").value;
-    const r = multiHop(index, question, k);
+    const r = multiHop(index, question, k, { hops });
     const isVault = question.trim().toLowerCase() === VAULT_QUESTION.toLowerCase();
     const found = new Set(r.context.map((h) => h.chunk.emailId));
     const words = r.hop2Query.split(/\s+/).filter(Boolean);
     $("#rag-results").innerHTML = renderHits(r.hop1, "Hop 1 · searching with the question", { markClues: true })
       + (words.length ? `<p class="hop-words">Hop 2 searches with the new words from the best result: ${[...new Set(words)].map((w) => `<code>${esc(w)}</code>`).join(" ")}</p>` : "")
-      + renderHits(r.hop2, "Hop 2 · following the lead", { markClues: true });
+      + (hops < 2 ? `<p class="fine">Hop 2 is switched off: the assistant only searches with the question.</p>` : renderHits(r.hop2, "Hop 2 · following the lead", { markClues: true }));
     // summary: clues found, and the answer the assistant would give from exactly these emails
     const s = $("#rag-summary");
     if (isVault) {
@@ -110,7 +122,7 @@ export function mountRagLab(root, { emails, onDone, onBack, prev = null }) {
       const ok = got.length === RELEVANT.length;
       s.innerHTML = `<p class="rag-meter"><b>Clues found: ${got.length} of ${RELEVANT.length}</b> ${Object.entries(CLUES).map(([id, what]) => `<span class="clue-chip${found.has(id) ? " on" : ""}">${found.has(id) ? "✓" : "✗"} ${what}</span>`).join(" ")}</p>
         <p class="rag-answer"><b>What your assistant would answer in the mission:</b> <code>${esc(answer.answer.split("\n")[0])}</code></p>
-        <p>${ok ? "It has every piece, so it can work the password out. In the mission it shows you the answer at the terminal and you type it in." : `It is missing ${Object.entries(CLUES).filter(([id]) => !found.has(id)).map(([, w]) => w).join(" and ")}, so it cannot work the password out. ${ragHint("chunk", chunkSize).kind === "bad" ? "Try a chunk size of 2 or more." : "Try 3 or more results per hop (k)."}`}</p>`;
+        <p>${ok ? "It has every piece, so it can work the password out. In the mission it shows you the answer at the terminal and you type it in." : `It is missing ${Object.entries(CLUES).filter(([id]) => !found.has(id)).map(([, w]) => w).join(" and ")}, so it cannot work the password out. ${hops < 2 ? "Switch on the second hop." : ragHint("chunk", chunkSize).kind === "bad" ? "Try a chunk size of 2 or more." : "Try 3 or more results per hop (k)."}`}</p>`;
       s.dataset.kind = ok ? "good" : "bad";
     } else {
       s.innerHTML = `<p>Testing your own question: the assistant's real question in the mission is <i>"${VAULT_QUESTION}"</i>. Found ${found.size} email${found.size === 1 ? "" : "s"}; recall of the clue emails: ${Math.round(recall(r.context, RELEVANT) * 100)} %.</p>`;
@@ -122,9 +134,9 @@ export function mountRagLab(root, { emails, onDone, onBack, prev = null }) {
   $("#rag-build").addEventListener("click", build);
   $("#rag-search").addEventListener("click", search);
   $("#rag-q").addEventListener("keydown", (e) => { if (e.key === "Enter") search(); });
-  $("#rag-go").addEventListener("click", () => onDone({ rag: { index, chunkSize, k }, report: { chunkSize, k, chunks: index.chunks.length, vocabulary: index.vocabulary } }));
+  $("#rag-go").addEventListener("click", () => onDone({ rag: { index, chunkSize, k, hops }, report: { chunkSize, k, hops, chunks: index.chunks.length, vocabulary: index.vocabulary } }));
   $("#rag-back").addEventListener("click", onBack);
   if (index) { $("#rag-chunks").textContent = index.chunks.length; $("#rag-vocab").textContent = index.vocabulary; $("#rag-go").disabled = false; $("#rag-search").disabled = false; search(); }
-  const setParams = (c, kk) => { $("#r-chunk").value = c; $("#r-chunk").dispatchEvent(new Event("input")); $("#r-k").value = kk; $("#r-k").dispatchEvent(new Event("input")); };
+  const setParams = (c, kk, h = 2) => { $("#r-chunk").value = c; $("#r-chunk").dispatchEvent(new Event("input")); $("#r-k").value = kk; $("#r-k").dispatchEvent(new Event("input")); root.querySelector(`[data-hops="${h}"]`).click(); };
   return { build, search, setParams };
 }

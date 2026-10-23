@@ -49,9 +49,9 @@ await send("Page.reload"); await sleep(1500); await waitFor("!!window.__heist", 
 
 try {
   // ---------- Mission 1: drone ----------
-  const startM1 = async (train) => {
+  const startM1 = async (train, threshold = 0.5) => {
     await js(`window.__heist.openBriefing(0)`); await sleep(150); await js(`document.querySelector("#btn-brief-lab").click()`); await waitFor(`${S}.screen === "lab"`);
-    if (train) { await js(`(() => { const lab = ${S}.lab; document.querySelectorAll(".snap-card").forEach((c, i) => { c.click(); if (lab.train[i].kind === "civilian") c.click(); }); document.querySelector("#lab-train").click(); })()`); await sleep(200); await js(`document.querySelector("#lab-go").click()`); }
+    if (train) { await js(`(() => { const lab = ${S}.lab; document.querySelectorAll(".snap-card").forEach((c, i) => { c.click(); if (lab.train[i].kind === "civilian") c.click(); }); document.querySelector("#lab-train").click(); })()`); await sleep(200); await js(`${S}.lab.setThreshold(${threshold}); document.querySelector("#lab-go").click()`); }
     else await js(`document.querySelector("#lab-skip").click()`);
     await waitFor(`${S}.screen === "playing"`); await park(17, 1);
   };
@@ -72,6 +72,15 @@ try {
   best[1] = verify("M1 without a model, rushed (AI scores 0)", 1, d, best[1]);
   check("M1 rushed: time bonus capped at 300 (cannot outweigh the AI points)", /\+ 300 time \+/.test(d.breakdown), d.breakdown);
   check("M1 without a model: AI 0 points", d.ai === 0 && /\+ 0 AI$/.test(d.breakdown), d.breakdown);
+
+  // false alarm (2026-10-24): at 30 % sure, the well-trained drone calls one Rooftop civilian a guard; a guard comes to check
+  await startM1(true, 0.3);
+  let fa = null;
+  for (const id of ["C1", "C2", "C3"]) {
+    await js(`(() => { const c = ${S}.civilians.find(c => c.id === "${id}"); ${S}.pos = { x: c.pos.x + 0.3, z: c.pos.z + 0.3 }; })()`);
+    if (await waitFor(`${S}.runLog.some(e => e.type === "false_alarm")`, 2500)) { fa = await js(`${S}.runLog.find(e => e.type === "false_alarm")`); break; }
+  }
+  check("M1 at 30 % sure: the drone flags a civilian, a guard leaves its patrol to check, the HUD says why", !!fa && await js(`${S}.guards.find(g => g.id === "${fa?.guard}")?.state !== "patrol"`) && /False alarm/.test(await js(`document.querySelector("#hud-tip").textContent`)), JSON.stringify(fa));
 
   // a lost mission never scores and never lowers the best
   await js(`document.querySelector("#btn-retry").click()`); await waitFor(`${S}.screen === "playing"`); await park(17, 1);

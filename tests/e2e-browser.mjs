@@ -65,7 +65,11 @@ try {
   await js(`(() => { const lab = window.__heist.state.lab; lab.train.forEach((s, i) => lab.setLabel(i, s.kind)); })()`);
   await js(`document.querySelector("#lab-train").click()`); await sleep(300);
   const full = await js(`({ warn: !document.querySelector("#lab-warn").classList.contains("hidden"), test: ${S}.lab.report.testAccuracy, cells: document.querySelectorAll(".test-cell").length })`);
-  check("30 correct labels → test accuracy ≥ 85%, 10 test results shown, no warning", full.test >= 0.85 && full.cells === 10 && !full.warn, `test ${Math.round(full.test * 100)}%`);
+  check("30 correct labels → test accuracy ≥ 85%, 40 test results shown, no warning", full.test >= 0.85 && full.cells === 40 && !full.warn, `test ${Math.round(full.test * 100)}%`);
+  // threshold (2026-10-24): how sure before calling a guard; the table counts right and wrong calls on the 40 test photos
+  const conf = async (t) => { await js(`${S}.lab.setThreshold(${t})`); return js(`({ tp: +document.querySelector("#c-tp").textContent, fn: +document.querySelector("#c-fn").textContent, fp: +document.querySelector("#c-fp").textContent, tn: +document.querySelector("#c-tn").textContent, hint: document.querySelector("#h-thr").textContent, model: ${S}.lab.model.threshold })`); };
+  const c3 = await conf(0.3), c7 = await conf(0.7), c5 = await conf(0.5);
+  check("threshold slider: 30 % → more false alarms, 70 % → guards missed; table adds up to 40; the drone uses the setting", c3.fp > c5.fp && c7.fn > c5.fn && c5.fn === 0 && c5.tp + c5.fn + c5.fp + c5.tn === 40 && /slip through/.test(c7.hint) && c5.model === 0.5, JSON.stringify({ c3, c5, c7 }));
   await shot("08-lab.png");
   await js(`document.querySelector("#lab-go").click()`);
   if (!(await waitFor(`${S}.screen === "playing"`, 10000))) { await js(`document.querySelector("#lab-go")?.click()`); await waitFor(`${S}.screen === "playing"`, 10000); }
@@ -188,6 +192,7 @@ try {
   check("standing at the console shows the E prompt; arrow and tip hide", await js(`!document.querySelector("#hud-hint").classList.contains("hidden") && document.querySelector("#nav-arrow").classList.contains("hidden") && document.querySelector("#hud-tip").classList.contains("hidden")`));
   await press("e", "KeyE"); await waitFor(`${S}.dog?.status === "crossing"`, 5000);
   check("E deploys the dog", await js(`${S}.dog.status === "crossing"`));
+  check("the HUD warns that a guard patrols past the console: hide while the dog crosses", await waitFor(`/hide while the dog crosses/.test(document.querySelector("#hud-tip").textContent) && /hide from the patrol/.test(document.querySelector("#hud-objective").textContent)`, 3000), await js(`document.querySelector("#hud-tip").textContent + " | " + document.querySelector("#hud-objective").textContent`));
   await waitFor(`${S}.screen === "caught"`, 20000);
   check("bad policy: dog trips a laser → alarm → LASER TRIPPED", await js(`document.querySelector("#caught-title").textContent === "LASER TRIPPED" && ${S}.mission.alarm !== null`));
   // README scenario 7: sensible rewards
@@ -218,6 +223,10 @@ try {
   const hits = await js(`[...document.querySelectorAll("#rag-results .hit-head span")].map(s => s.textContent)`);
   check("RAG Lab explains itself: no password typed here; clues found 3 of 3; the assistant would answer KESTREL37", await js(`/You don't type the password here/.test(document.querySelector(".lab-sub").textContent) && /Clues found: 3 of 3/.test(document.querySelector("#rag-summary").textContent) && /KESTREL37/.test(document.querySelector("#rag-summary").textContent) && document.querySelectorAll("#rag-results .clue-badge").length === 3`));
   check("search shows two hops with similarity scores; the rotation email ranks first", hits[0] === "Vault access rotation" && hits.length >= 4, hits.slice(0, 6).join(" | "));
+  await js(`document.querySelector('[data-hops="1"]').click()`); await sleep(150);
+  check("1 hop: only 1 of 3 clues, the assistant cannot answer, the Lab says to switch the second hop on", await js(`/Clues found: 1 of 3/.test(document.querySelector("#rag-summary").textContent) && /Switch on the second hop/.test(document.querySelector("#rag-summary").textContent) && !/KESTREL37/.test(document.querySelector("#rag-summary").textContent)`));
+  await js(`document.querySelector('[data-hops="2"]').click()`); await sleep(150);
+  check("2 hops again: 3 of 3 clues", await js(`/Clues found: 3 of 3/.test(document.querySelector("#rag-summary").textContent)`));
   await shot("12-raglab.png");
   await js(`document.querySelector("#rag-go").click()`); await sleep(300);
   await js(parkAt(20, 1)); await js(`${S}.pos = { x: 8.5, z: 8.5 }`); await sleep(300);
