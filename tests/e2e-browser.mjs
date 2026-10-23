@@ -43,6 +43,7 @@ try {
   check("README scenario 10: settings (including mute) persist after reload", await js(`window.__heist.settings.difficulty === "hard" && window.__heist.settings.palette === "colorblind" && window.__heist.sound.state.muted && document.querySelector("#btn-mute").textContent === "🔇"`));
   await press("m", "KeyM"); await sleep(100);
   check("M toggles mute", await js(`!window.__heist.sound.state.muted && document.querySelector("#btn-mute").textContent === "🔊"`));
+  check("M says so on screen (sound on / off message)", await js(`!document.querySelector("#sound-toast").classList.contains("hidden") && /Sound on/.test(document.querySelector("#sound-toast").textContent)`));
   await js(`localStorage.clear()`); await send("Page.reload"); await sleep(1500); await waitFor("!!window.__heist");
   check("cleared storage → default settings (normal, high quality)", await js(`window.__heist.settings.difficulty === "normal" && window.__heist.settings.quality === "high"`));
 
@@ -66,7 +67,8 @@ try {
   const full = await js(`({ warn: !document.querySelector("#lab-warn").classList.contains("hidden"), test: ${S}.lab.report.testAccuracy, cells: document.querySelectorAll(".test-cell").length })`);
   check("30 correct labels → test accuracy ≥ 85%, 10 test results shown, no warning", full.test >= 0.85 && full.cells === 10 && !full.warn, `test ${Math.round(full.test * 100)}%`);
   await shot("08-lab.png");
-  await js(`document.querySelector("#lab-go").click()`); await sleep(300);
+  await js(`document.querySelector("#lab-go").click()`);
+  if (!(await waitFor(`${S}.screen === "playing"`, 10000))) { await js(`document.querySelector("#lab-go")?.click()`); await waitFor(`${S}.screen === "playing"`, 10000); }
   check("Start mission → playing with the trained model", await js(`${S}.screen === "playing" && !!${S}.models.classifier`));
 
   // ---------- movement ----------

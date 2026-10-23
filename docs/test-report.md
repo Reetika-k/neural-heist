@@ -4,8 +4,8 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 
 | Suite | Result |
 |---|---|
-| Unit tests (`npm test`) | **56 / 56 pass** |
-| Browser test, dev server | **66 / 66 pass** (two runs, 2026-10-22) |
+| Unit tests (`npm test`) | **58 / 58 pass** |
+| Browser test, dev server | **67 / 67 pass** (2026-10-23) |
 | Browser test, production build (`vite preview` of `dist/`) | **66 / 66 pass** |
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
 | Phone check, 390 × 844 | **6 / 6 pass** |
@@ -52,6 +52,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 29 | Settings: click a control, then press M | Sound mutes; checkbox and 🔊 icon update | Mutes after slider, radio or checkbox focus; all three indicators agree; "m" still types in text boxes | Pass after fix |
 | 30 | Three wrong passwords, then open the terminal again | Terminal locked; right password refused | "Terminal locked", input disabled, KESTREL37 refused; counter never negative | Pass after fix |
 | 31 | Mission 2: look for the way to the drive | Clear route to the console; told the vault is dog-only | Arrow at the screen edge points to the console; glowing CONSOLE · E beacon; tip at the vault wall; arrow and tip hide at the console | Pass after fix |
+| 32 | Press M (also Shift+M, Caps Lock M) during play and on Settings | Sound toggles, clearly shown; checkbox agrees and persists | Reproduced on the live site: every form of M toggles; checkbox follows and persists after reopening and reload; audio output 0 while muted (unit test); new on-screen "Sound off / Sound on" message and red-glowing 🔊 while muted | Pass after fix (feedback) |
 
 ## Failures found during development and what changed
-See `docs/challenges.md`: 21 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.
+See `docs/challenges.md`: 22 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.

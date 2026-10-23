@@ -30,6 +30,7 @@
   </div>
 
   <button id="btn-mute" class="btn-mute" aria-label="Mute" title="Mute (M)">🔊</button>
+  <div id="sound-toast" class="sound-toast hidden" role="status" aria-live="polite"></div>
   <button id="btn-brain" class="btn-brain hidden" aria-label="Open AI Brain panel (Tab)" title="AI Brain (Tab)">🧠</button>
   <aside id="brain" class="brain" aria-hidden="true" aria-label="AI Brain panel"></aside>
 
@@ -60,7 +61,8 @@
         <p class="fine" id="set-diff-desc"></p></fieldset>
       <fieldset><legend>Sound</legend>
         <label class="row">Volume <input type="range" name="volume" min="0" max="100" step="5"> <b id="set-volume-v">70%</b></label>
-        <label><input type="checkbox" name="muted"> Mute (also <kbd>M</kbd> or 🔊)</label></fieldset>
+        <label><input type="checkbox" name="muted"> Mute all sound</label>
+        <p class="fine">Shortcut: <kbd>M</kbd> or the 🔊 button switches sound off and on. Each press flips it.</p></fieldset>
       <fieldset><legend>Graphics quality</legend>
         <label><input type="radio" name="quality" value="high"> High (bloom glow, shadows)</label><label><input type="radio" name="quality" value="low"> Low (faster on old laptops)</label></fieldset>
       <fieldset><legend>Vision cone colours</legend>
