@@ -16,10 +16,13 @@ await send("Emulation.setTouchEmulationEnabled", { enabled: true });
 await send("Page.reload"); await sleep(1500);
 for (let i = 0; i < 50 && !(await js("!!window.__heist")); i++) await sleep(100);
 const fits = `document.documentElement.scrollWidth <= innerWidth + 1`;
-const visible = (sel) => `(() => { const r = document.querySelector("${sel}").getBoundingClientRect(); return r.width > 40 && r.left >= 0 && r.right <= innerWidth + 1; })()`;
+// RETIRED 2026-10-23: only checked the width, so a button cut off below the screen (How to play's "Got it") still passed.
+// const visible = (sel) => `(() => { const r = document.querySelector("${sel}").getBoundingClientRect(); return r.width > 40 && r.left >= 0 && r.right <= innerWidth + 1; })()`;
+// Reachable = after scrolling to it, fully inside the screen and not covered by anything (what a finger needs).
+const visible = (sel) => `(() => { const b = document.querySelector("${sel}"); b.scrollIntoView({ block: "nearest" }); const r = b.getBoundingClientRect(); const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return r.width > 40 && r.left >= 0 && r.right <= innerWidth + 1 && r.top >= 0 && r.bottom <= innerHeight + 1 && (hit === b || b.contains(hit)); })()`;
 check("start screen fits the phone width; Start visible", await js(fits) && await js(visible("#btn-start")));
 await js(`document.querySelector("#btn-howto").click()`); await sleep(150);
-check("How to play readable without horizontal scrolling", await js(fits) && await js(visible("#screen-howto [data-back]")));
+check("How to play fits the width, scrolls, and Got it can be reached and tapped", await js(fits) && await js(visible("#screen-howto [data-back]")));
 await js(`document.querySelector("#screen-howto [data-back]").click()`); await js(`document.querySelector("#btn-settings").click()`); await sleep(150);
 check("Settings fit and controls are reachable", await js(fits) && await js(visible("#screen-settings [data-back]")));
 await js(`document.querySelector("#screen-settings [data-back]").click()`); await js(`document.querySelector("#btn-start").click()`); await sleep(200);
