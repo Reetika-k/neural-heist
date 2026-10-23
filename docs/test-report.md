@@ -5,10 +5,10 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | Suite | Result |
 |---|---|
 | Unit tests (`npm test`) | **58 / 58 pass** |
-| Browser test, dev server | **67 / 67 pass** (2026-10-23) |
+| Browser test, dev server | **72 / 72 pass** (2026-10-23) |
 | Browser test, production build (`vite preview` of `dist/`) | **66 / 66 pass** |
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
-| Phone check, 390 × 844 | **6 / 6 pass** |
+| Phone check, 390 × 844 | **9 / 9 pass** (menus, Labs and touch gameplay) |
 | Browser test against the live site (https://reetika-k.github.io/neural-heist/) | **66 / 66 pass** (2026-10-22, offline assistant mode) |
 | Phone check against the live site | **6 / 6 pass** |
 
@@ -26,7 +26,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 8 | Ask the assistant with the LLM offline | Assistant still helps from the retrieved emails | Since 2026-10-23: "offline reasoning over the retrieved emails" → "PASSWORD: KESTREL37" with the three emails it combined and its steps; with k = 1 it answers UNKNOWN and names the missing clue; also unit-tested for refused connection and HTTP 502. (Before: it only listed the best-matching emails.) | Pass |
 | 9 | Press Restart after losing | Mission restarts cleanly | Player back at start, guards back to Patrol with 0 suspicion, fresh timer | Pass |
 | 10 | Press Mute | All sound stops and stays muted after reload | Muted state and other settings survive a page reload; M toggles | Pass |
-| 11 | Open the game on a phone | Game loads and menus are usable | 390 px: start, How to play, Settings, briefing and Lab fit without horizontal scrolling; buttons reachable | Pass (menus; gameplay needs a keyboard) |
+| 11 | Open the game on a phone | Game loads and menus are usable | 390 px: start, How to play, Settings, briefing and Lab fit without horizontal scrolling; buttons reachable | Pass (since 2026-10-23 also gameplay: joystick, SNEAK, USE) |
 | 12 | Press Export in the AI Brain panel | JSON and CSV files download | Both files downloaded to disk and parsed; JSON includes lab reports (test accuracy 0.9) and events | Pass |
 
 ## Additional scenarios
@@ -53,6 +53,8 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 30 | Three wrong passwords, then open the terminal again | Terminal locked; right password refused | "Terminal locked", input disabled, KESTREL37 refused; counter never negative | Pass after fix |
 | 31 | Mission 2: look for the way to the drive | Clear route to the console; told the vault is dog-only | Arrow at the screen edge points to the console; glowing CONSOLE · E beacon; tip at the vault wall; arrow and tip hide at the console | Pass after fix |
 | 32 | Press M (also Shift+M, Caps Lock M) during play and on Settings | Sound toggles, clearly shown; checkbox agrees and persists | Reproduced on the live site: every form of M toggles; checkbox follows and persists after reopening and reload; audio output 0 while muted (unit test); new on-screen "Sound off / Sound on" message and red-glowing 🔊 while muted | Pass after fix (feedback) |
+| 33 | Playtest with 1–3 people: "how do I play?" | Players know what to do without reading a manual | New three-step How to play; first-play guide per mission (paused game, Enter/Next, Skip, ? replays it); objective arrow points to drive / console / terminal / exit in every mission; HUD shows the right mission while the guide is open | Pass after fix |
+| 34 | Playtest on a phone | The game is playable with touch | Joystick (screen-relative), SNEAK and USE buttons, wider camera when upright, compact HUD; dragging up moves the player up the screen (dx −0.69, dz −0.92); no horizontal scrolling | Pass after fix |
 
 ## Failures found during development and what changed
-See `docs/challenges.md`: 22 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.
+See `docs/challenges.md`: 23 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.

@@ -104,7 +104,7 @@ All of these measurements are collected in `reports/dashboard.html`, which `npm 
 
 ## 12. Challenges and solutions
 
-`docs/challenges.md` lists 22 problems and fixes. The most instructive: the retrieval bug where a sentence splitter broke at "Mr." and separated the key clue from its subject (found by measuring recall and then reading the chunks); bloom turning vision cones into grey slabs; the k-NN confidence always reading 100%; and the slow-motion bug where a frame-time cap meant to prevent wall tunnelling made the game crawl on slow machines, fixed with fixed-size substeps.
+`docs/challenges.md` lists 23 problems and fixes. The most instructive: the retrieval bug where a sentence splitter broke at "Mr." and separated the key clue from its subject (found by measuring recall and then reading the chunks); bloom turning vision cones into grey slabs; the k-NN confidence always reading 100%; and the slow-motion bug where a frame-time cap meant to prevent wall tunnelling made the game crawl on slow machines, fixed with fixed-size substeps.
 
 ## 13. Final outcome
 
@@ -112,7 +112,7 @@ A complete three-mission game with real, player-trained AI and honest measuremen
 
 ## 14. Future enhancements
 
-TensorFlow.js MobileNet embeddings and Transformers.js neural embeddings as an optional "online" mode; real camera snapshots; touch controls; Stage 2 missions (regression for patrol timing, clustering of servers, anomaly detection, a boss); a company AI that adapts security to the player's style between missions; leaderboard; Kenney/Quaternius models and recorded audio; a strict global rate limit with Workers KV.
+TensorFlow.js MobileNet embeddings and Transformers.js neural embeddings as an optional "online" mode; real camera snapshots; Stage 2 missions (regression for patrol timing, clustering of servers, anomaly detection, a boss); a company AI that adapts security to the player's style between missions; leaderboard; Kenney/Quaternius models and recorded audio; a strict global rate limit with Workers KV.
 
 ## 15. Project demo
 

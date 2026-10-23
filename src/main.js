@@ -115,6 +115,7 @@ function resetMission() {
   state.caughtBy = null; state.result = null;
   follow(state.pos, 0, true);
   log("mission_start", { name: cfg.name, model: !!state.models.classifier });
+  updateHud(); // the HUD otherwise refreshes only while the game runs; the first-play guide pauses it
   void map;
 }
 
@@ -136,15 +137,26 @@ $("#btn-brain").addEventListener("click", () => brain.toggle());
 const NON_TEXT_INPUTS = new Set(["checkbox", "radio", "range", "button", "submit", "reset", "color"]);
 const isTyping = (el) => el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && !NON_TEXT_INPUTS.has(el.type)) || el?.isContentEditable === true;
 const dirs = new Set();
-let sneaking = false;
+let sneaking = false;          // effective sneak state, recomputed every step from the three sources below
+let shiftHeld = false, sneakToggle = false;
+// Touch joystick (phones/tablets): an analogue direction in SCREEN space turned into world space.
+const touchMove = { active: false, sx: 0, sy: 0, mag: 0 };
+const IS_TOUCH = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+document.body.classList.toggle("touch-ui", IS_TOUCH);
 addEventListener("keydown", (e) => {
   // RETIRED 2026-10-22: skipped every key while ANY input had focus, so after clicking a radio button, the
   // volume slider or the Mute checkbox on Settings, the M key did nothing. Replaced by the text-only check below.
   // if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) { if (e.key === "Escape" && state.screen === "terminal") show("playing"); return; }
   if (isTyping(e.target)) { if (e.key === "Escape" && state.screen === "terminal") show("playing"); return; }
+  if (guide.open) { // the guide pauses the mission: Enter/Space = next, Esc = skip
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); guideNext(); }
+    else if (e.key === "Escape") closeGuide();
+    return;
+  }
+  if (e.key === "?" && state.screen === "playing") { openGuide(state.config.id, true); return; }
   const dir = KEY_TO_DIR[e.key.toLowerCase()];
   if (dir && state.screen === "playing") { dirs.add(dir); if (e.key.startsWith("Arrow")) e.preventDefault(); }
-  if (e.key === "Shift") sneaking = true;
+  if (e.key === "Shift") shiftHeld = true;
   if (e.key === "Tab" && ["playing", "caught", "debrief"].includes(state.screen)) { e.preventDefault(); brain.toggle(); }
   if ((e.key === "m" || e.key === "M") && !e.repeat) { e.preventDefault(); toggleMute(); }
   if (e.key === "Escape" && state.screen === "playing") show("start");
@@ -155,9 +167,9 @@ addEventListener("keydown", (e) => {
 addEventListener("keyup", (e) => {
   const dir = KEY_TO_DIR[e.key.toLowerCase()];
   if (dir) dirs.delete(dir);
-  if (e.key === "Shift") sneaking = false;
+  if (e.key === "Shift") shiftHeld = false;
 });
-addEventListener("blur", () => { dirs.clear(); sneaking = false; }); // avoid stuck keys after alt-tab
+addEventListener("blur", () => { dirs.clear(); shiftHeld = false; touchMove.active = false; }); // avoid stuck keys after alt-tab
 
 /** E: use the console (Mission 2) or the terminal (Mission 3) when standing next to it. */
 const near = (cell, r = 1.3) => cell && Math.hypot(state.pos.x - (cell.x + 0.5), state.pos.z - (cell.z + 0.5)) <= r;
@@ -246,6 +258,9 @@ function show(name) {
   $("#btn-brain").classList.toggle("hidden", !inMission);
   if (!inMission && brain.open) brain.toggle(false);
   if (state.level) state.level.root.visible = name !== "lab";
+  $("#btn-help").classList.toggle("hidden", name !== "playing");
+  $("#touch").classList.toggle("hidden", !(IS_TOUCH && name === "playing"));
+  if (name !== "playing") { closeGuide(false); touchMove.active = false; }
 }
 
 function openBriefing(index) {
@@ -279,7 +294,7 @@ async function openLab() {
   show("lab");
 }
 
-function startMission() { resetMission(); show("playing"); }
+function startMission() { resetMission(); show("playing"); openGuide(state.config.id); }
 function restart() { resetMission(); show("playing"); }
 
 $("#btn-start").addEventListener("click", () => { sound.unlock(); sound.startMusic(); openBriefing(0); });
@@ -435,15 +450,31 @@ function updateHud() {
 // Edge-of-screen arrow towards the Mission 2 console while it is off-screen and the dog is waiting:
 // from the start the console was out of view, and players headed for the visible vault instead.
 const navArrow = $("#nav-arrow"), navVec = new THREE.Vector3();
+// RETIRED 2026-10-23: the arrow only pointed to the Mission 2 console. Playtesters did not know where to go in any
+// mission, so it now points to the current objective everywhere (drive, console, terminal, exit); see objectiveTarget().
+// const target = state.screen === "playing" && state.dog?.status === "idle" && !state.mission?.outcome ? state.map?.console : null;
+function objectiveTarget() {
+  const m = state.mission, cfg = state.config;
+  if (state.screen !== "playing" || !m || m.outcome || guide.open) return null;
+  if (m.hasDrive) return { cell: state.map.exit, label: "EXIT", kind: "exit" };
+  if (cfg.teammate === "dog") return state.dog?.status === "idle" ? { cell: state.map.console, label: "CONSOLE", kind: "use" } : null;
+  if (cfg.teammate === "assistant" && !state.doorOpen) return { cell: state.map.terminal, label: "TERMINAL", kind: "use" };
+  return state.map.drive ? { cell: state.map.drive, label: "DATA DRIVE", kind: "drive" } : null;
+}
 function updateNavArrow() {
-  const target = state.screen === "playing" && state.dog?.status === "idle" && !state.mission?.outcome ? state.map?.console : null;
+  const obj = objectiveTarget(), target = obj?.cell;
+  $("#t-use").classList.toggle("ready", !$("#hud-hint").classList.contains("hidden"));
   if (!target) { navArrow.classList.add("hidden"); return; }
+  if (navArrow.dataset.kind !== obj.kind) navArrow.dataset.kind = obj.kind;
+  if ($("#nav-text").textContent !== obj.label) $("#nav-text").textContent = obj.label;
   navVec.set(target.x + 0.5, 1, target.z + 0.5).project(camera);
   const W = innerWidth, H = innerHeight, sx = ((navVec.x + 1) / 2) * W, sy = ((1 - navVec.y) / 2) * H, m = 70;
-  if (sx > m && sx < W - m && sy > m + 60 && sy < H - m) { navArrow.classList.add("hidden"); return; } // console visible: the beacon does the job
+  if (sx > m && sx < W - m && sy > m + 60 && sy < H - m) { navArrow.classList.add("hidden"); return; } // target on screen: no arrow needed
   const cx = W / 2, cy = H / 2, dx = sx - cx, dy = sy - cy;
   const k = Math.min((W / 2 - m) / Math.abs(dx || 1e-6), (H / 2 - m - 30) / Math.abs(dy || 1e-6));
-  navArrow.style.left = `${cx + dx * k}px`; navArrow.style.top = `${cy + dy * k + 30}px`;
+  // keep the arrow clear of the HUD (top) and, on phones, of the joystick and buttons (bottom 190 px)
+  const bottomLimit = H - (IS_TOUCH ? 200 : m), x = Math.max(90, Math.min(W - 90, cx + dx * k)), y = Math.max(m + 40, Math.min(bottomLimit, cy + dy * k + 30));
+  navArrow.style.left = `${x}px`; navArrow.style.top = `${y}px`;
   navArrow.querySelector(".nav-chev").style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
   navArrow.classList.remove("hidden");
 }
@@ -455,6 +486,73 @@ function nearVaultWall() {
   return Math.hypot(dx, dz) < 1.2;
 }
 
+// ---------- first-play guide (playtesters found the game confusing) ----------
+const K = (keys, touch) => (IS_TOUCH ? touch : keys);
+const GUIDE = {
+  1: [
+    () => `<b>Move</b> with ${K("the <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> arrow keys (or WASD)", "the <b>joystick</b> at the bottom left")}. ${K("Hold <kbd>Shift</kbd>", "Tap <b>SNEAK</b>")} to move quietly.`,
+    () => `<b>Guards</b> see inside their cones. <span class="g-white">White</span> = calm, <span class="g-yellow">yellow</span> = noticing you, <span class="g-red">red</span> = chasing. Walls hide you. If a guard touches you, you are caught.`,
+    () => `<b>Your drone</b> is the AI you just trained. It scans everyone nearby: guards it recognises get a tag and a visible cone. Train it badly and some guards stay invisible.`,
+    () => `<b>Goal:</b> follow the <b class="green">green arrow</b> to the <b class="gold">data drive</b>, then to the <b class="green">exit</b>. ${K("Press <kbd>?</kbd>", "Tap <b>?</b>")} any time to see this again.`,
+  ],
+  2: [
+    () => `This vault is full of <b class="red">lasers</b>. You cannot go in: your <b>robot dog</b> crosses it, following the path it learned in the Lab.`,
+    () => `Follow the <b class="green">arrow</b> to the glowing <b>console</b> and ${K("press <kbd>E</kbd>", "tap <b>USE</b>")} to send the dog.`,
+    () => `If the dog touches a laser, the alarm starts: go back to the Lab and fix its rewards. When it brings the <b class="gold">drive</b>, run to the <b class="green">exit</b>.`,
+  ],
+  3: [
+    () => `The <b class="gold">drive</b> is locked in the CEO's room. Follow the <b class="green">arrow</b> to the <b>terminal</b> and ${K("press <kbd>E</kbd>", "tap <b>USE</b>")}.`,
+    () => `Your <b>hacking assistant</b> searches the leaked emails with the index you built, and works out the password. Type it in. <b class="red">3 wrong passwords</b> start the alarm.`,
+    () => `Then grab the <b class="gold">drive</b> and reach the <b class="green">exit</b>.`,
+  ],
+};
+const GUIDE_KEY = "neural-heist.guide";
+const guide = { open: false, mission: 0, i: 0 };
+function openGuide(id, force = false) {
+  const seen = store.get(GUIDE_KEY, {});
+  if (!GUIDE[id] || (!force && seen[id])) return;
+  Object.assign(guide, { open: true, mission: id, i: 0 });
+  dirs.clear(); touchMove.active = false;
+  renderGuide();
+  $("#guide").classList.remove("hidden");
+}
+function renderGuide() {
+  const steps = GUIDE[guide.mission];
+  $("#guide-count").textContent = `Mission ${guide.mission} guide · ${guide.i + 1} / ${steps.length}`;
+  $("#guide-text").innerHTML = steps[guide.i]();
+  $("#guide-next").textContent = guide.i === steps.length - 1 ? "Let's go" : "Next";
+}
+function guideNext() { if (guide.i < GUIDE[guide.mission].length - 1) { guide.i++; renderGuide(); } else closeGuide(); }
+function closeGuide(markSeen = true) {
+  if (!guide.open) return;
+  if (markSeen) { const seen = store.get(GUIDE_KEY, {}); seen[guide.mission] = 1; store.set(GUIDE_KEY, seen); }
+  guide.open = false; dirs.clear();
+  $("#guide").classList.add("hidden");
+}
+$("#guide-next").addEventListener("click", guideNext);
+$("#guide-skip").addEventListener("click", () => closeGuide());
+$("#btn-help").addEventListener("click", () => { if (state.screen === "playing") openGuide(state.config.id, true); });
+
+// ---------- touch controls: joystick, SNEAK, USE ----------
+(() => {
+  const joy = $("#joy"), knob = $("#joy-knob");
+  let pid = null;
+  const moveTo = (e) => {
+    const r = joy.getBoundingClientRect(), R = r.width / 2;
+    let vx = (e.clientX - (r.left + R)) / R, vy = (e.clientY - (r.top + R)) / R;
+    const len = Math.hypot(vx, vy), mag = Math.min(1, len);
+    knob.style.transform = `translate(${(len ? vx / len : 0) * mag * R * 0.55}px, ${(len ? vy / len : 0) * mag * R * 0.55}px)`;
+    if (mag < 0.2) { touchMove.mag = 0; return; } // dead zone
+    Object.assign(touchMove, { active: true, sx: vx / len, sy: -vy / len, mag });
+  };
+  const end = () => { pid = null; Object.assign(touchMove, { active: false, mag: 0 }); knob.style.transform = ""; };
+  joy.addEventListener("pointerdown", (e) => { e.preventDefault(); pid = e.pointerId; joy.setPointerCapture(pid); touchMove.active = true; moveTo(e); });
+  joy.addEventListener("pointermove", (e) => { if (e.pointerId === pid) moveTo(e); });
+  joy.addEventListener("pointerup", end); joy.addEventListener("pointercancel", end); joy.addEventListener("lostpointercapture", end);
+  $("#t-use").addEventListener("click", () => { if (state.screen === "playing" && !guide.open) interact(); });
+  $("#t-sneak").addEventListener("click", () => { sneakToggle = !sneakToggle; $("#t-sneak").setAttribute("aria-pressed", String(sneakToggle)); });
+})();
+
 // ---------- loop ----------
 let last = performance.now(), t = 0, lastPlayer = { ...state.pos }, stepTimer = 0;
 show("start");
@@ -465,7 +563,7 @@ const OPAQUE_SCREENS = new Set(["start", "settings", "howto", "briefing", "lab"]
 function frame(now) {
   const frameDt = Math.min((now - last) / 1000, MAX_FRAME); last = now; t += frameDt;
   const steps = Math.max(1, Math.ceil(frameDt / MAX_STEP));
-  for (let i = 0; i < steps && state.screen === "playing"; i++) simulate(frameDt / steps);
+  for (let i = 0; i < steps && state.screen === "playing" && !guide.open; i++) simulate(frameDt / steps);
   // Skip the 3D render (with bloom) while an opaque full-screen page hides the city: it was wasted work
   // that also forced the browser to recomposite the page every frame (Mission 1 Lab ran at ~3 fps in a
   // software renderer). Caught, debrief, terminal and complete are see-through, so they keep rendering.
@@ -476,8 +574,15 @@ function frame(now) {
 
 function simulate(dt) {
   {
-    const dir = inputVector(dirs);
-    state.pos = step(state.map, state.pos, dir, sneaking ? SNEAK_SPEED : WALK_SPEED, dt);
+    let dir = inputVector(dirs), speedScale = 1;
+    if (touchMove.active && touchMove.mag > 0) {
+      // screen up = away from the camera; camera offset (6, 18, 8) → forward (-0.6, -0.8), right (0.8, -0.6)
+      const { sx, sy } = touchMove;
+      dir = { dx: sx * 0.8 - sy * 0.6, dz: -sx * 0.6 - sy * 0.8 };
+      speedScale = Math.max(0.45, touchMove.mag);
+    }
+    sneaking = shiftHeld || sneakToggle || (touchMove.active && touchMove.mag > 0 && touchMove.mag < 0.55);
+    state.pos = step(state.map, state.pos, dir, (sneaking ? SNEAK_SPEED : WALK_SPEED) * speedScale, dt);
     if (dir.dx || dir.dz) state.facing = Math.atan2(dir.dx, dir.dz) + Math.PI;
     for (const g of state.guards) {
       const before = g.state;

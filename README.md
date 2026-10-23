@@ -37,14 +37,17 @@ You are a hacker in a neon Indian city run by a corrupt tech company. Each missi
 
 ## Controls
 
-| Action | Keys |
-|---|---|
-| Move | Arrow keys (WASD also works) |
-| Sneak | Shift |
-| Use console / terminal | E |
-| AI Brain panel | Tab (or 🧠) |
-| Mute | M (or 🔊) |
-| Menu / restart | Esc / Enter |
+| Action | Keyboard | Phone / tablet |
+|---|---|---|
+| Move | Arrow keys (WASD also works) | Joystick, bottom left |
+| Sneak | Shift | SNEAK button (or a gentle joystick push) |
+| Use console / terminal | E | USE button (lights up when you can use something) |
+| Mission guide again | ? | ? button |
+| AI Brain panel | Tab (or 🧠) | 🧠 |
+| Mute | M (or 🔊) | 🔊 |
+| Menu / restart | Esc / Enter | – |
+
+The first time you play each mission, a short guide explains what to do (the game is paused while it is open), and a green arrow at the screen edge always points to the next objective: data drive, console, terminal or exit.
 
 ## Tests
 
@@ -52,7 +55,7 @@ You are a hacker in a neon Indian city run by a corrupt tech company. Each missi
 npm test                 # 58 unit tests (Node, no browser)
 # browser tests: start the dev server, then Chrome with
 #   --headless=new --remote-debugging-port=9337 --remote-allow-origins=*
-npm run test:e2e         # 67 checks: every screen, all three missions, Brain panel, export, settings
+npm run test:e2e         # 72 checks: every screen, all three missions, Brain panel, export, settings
 npm run test:phone       # 6 checks at 390 px width
 ```
 
@@ -90,4 +93,4 @@ docs/                    concept · architecture · report · prompts log · cha
 
 ## Deviations from the original plan
 
-TensorFlow.js MobileNet, Transformers.js MiniLM, Howler.js and the Kenney/Quaternius packs were replaced by plain-JS k-NN, TF-IDF retrieval, Web Audio synthesis and procedural models. Reasons: the game stays offline-capable for demos, every ML component is unit-testable, and nothing needs a manual download. The LLM path is real (Worker for Gemini; tested locally through Ollama). Stage 2 items (missions 4–7, adaptive company AI, leaderboard, touch controls) are listed under Future Enhancements in the report.
+TensorFlow.js MobileNet, Transformers.js MiniLM, Howler.js and the Kenney/Quaternius packs were replaced by plain-JS k-NN, TF-IDF retrieval, Web Audio synthesis and procedural models. Reasons: the game stays offline-capable for demos, every ML component is unit-testable, and nothing needs a manual download. The LLM path is real (Worker for Gemini; tested locally through Ollama). Stage 2 items (missions 4–7, adaptive company AI, leaderboard) are listed under Future Enhancements in the report.

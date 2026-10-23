@@ -37,6 +37,7 @@ Requirements come from the PDF's Project 2 section (objective, steps 1–12, exp
 | Mission 2: reinforcement learning | Q-learning with player-set rewards; dog follows the greedy policy | `src/lab/qlearning.js`, `src/teammates/dog.js` | U, B6, B7, B16, D |
 | Mission 3: RAG + LLM | TF-IDF index, two-hop retrieval, LLM through a Worker; offline reasoning over the same retrieved emails when no model is connected | `src/lab/rag.js`, `src/teammates/assistant.js`, `worker/llm-proxy.js` | U, B8, B17–B22, D |
 | AI Brain panel with export | Live numbers for every agent; JSON and CSV export | `src/brain-panel/` | U (export), B12 |
-| Phone support | Menus and Labs usable at 390 px | `src/style.css` | P, B11 |
+| Phone support | Menus, Labs and gameplay at 390 px: touch joystick, SNEAK and USE buttons, wider camera on upright screens | `src/style.css`, `src/main.js`, `src/engine/scene.js` | P (9 checks incl. joystick movement) |
+| Clear instructions (from playtesting) | Three-step How to play; first-play guide per mission (game paused); objective arrow in every mission; ? replays the guide | `index.html`, `src/main.js` | B (guide, pause, replay, arrow) |
 
-Optional features included: difficulty levels, colour-blind palette, graphics quality setting, best score per mission, AI Brain export. Not included: leaderboard, multiplayer, touch controls for gameplay.
+Optional features included: difficulty levels, colour-blind palette, graphics quality setting, best score per mission, AI Brain export. Also included after playtesting: touch controls and a first-play guide. Not included: leaderboard, multiplayer.

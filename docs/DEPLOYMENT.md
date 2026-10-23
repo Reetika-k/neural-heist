@@ -42,7 +42,7 @@ VITE_LLM_URL=http://localhost:8787/ask npm run dev
 
 ## 5. After deploying
 
-- Open the public URL in Chrome, Edge and Firefox, and on a phone (menus are tested at 390 px width; gameplay needs a keyboard).
+- Open the public URL in Chrome, Edge and Firefox, and on a phone (390 px is tested: menus, Labs, and gameplay with the touch joystick and buttons).
 - Play Mission 3 and confirm the terminal says "answered by gemini-…" (or "offline reasoning" if the Worker is not set up).
 - Put the URL in the README and in section 15 of `docs/CAPSTONE_DOCUMENTATION.md`.
 
