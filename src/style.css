@@ -256,6 +256,7 @@ kbd { display: inline-block; min-width: 20px; padding: 0 5px; margin: 0 1px; bor
 /* ---------- touch controls (phones and tablets) ---------- */
 .touch-ui-controls { position: fixed; inset: auto 0 0 0; height: 0; z-index: 5; pointer-events: none; }
 .joy { position: fixed; left: 20px; bottom: calc(24px + env(safe-area-inset-bottom)); width: 132px; height: 132px; border-radius: 50%; background: radial-gradient(circle, rgba(41,230,255,.10), rgba(8,12,34,.55)); border: 2px solid rgba(41,230,255,.45); touch-action: none; pointer-events: auto; display: grid; place-items: center; }
+.joy.floating { bottom: auto; opacity: .9; }
 .joy-knob { width: 56px; height: 56px; border-radius: 50%; background: rgba(41,230,255,.85); box-shadow: 0 0 18px rgba(41,230,255,.6); pointer-events: none; transition: transform .05s; }
 .touch-btns { position: fixed; right: 84px; bottom: calc(22px + env(safe-area-inset-bottom)); display: flex; gap: 10px; pointer-events: auto; }
 .t-btn { width: 70px; height: 70px; border-radius: 50%; border: 2px solid rgba(178,107,255,.7); background: rgba(8,12,34,.75); color: #d9b8ff; font: 800 12px/1 Orbitron, sans-serif; letter-spacing: .06em; touch-action: manipulation; }
