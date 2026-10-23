@@ -4,7 +4,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 
 | Suite | Result |
 |---|---|
-| Unit tests (`npm test`) | **53 / 53 pass** |
+| Unit tests (`npm test`) | **56 / 56 pass** |
 | Browser test, dev server | **66 / 66 pass** (two runs, 2026-10-22) |
 | Browser test, production build (`vite preview` of `dist/`) | **66 / 66 pass** |
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
@@ -23,7 +23,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 5 | Label 30 images correctly and train | Test accuracy above 85%, drone marks all guards | Test accuracy 90% on the 10 held-back images; drone marked 2/2 guards (and one civilian false positive, shown honestly) | Pass |
 | 6 | Set a positive reward for touching lasers | Robot dog learns a bad path, alarm triggers | Laser +5 → learned path hits a laser (20/20 seeds); in the mission the dog trips it, the alarm starts, "LASER TRIPPED" | Pass |
 | 7 | Train Q-learning with sensible rewards | Robot dog crosses safely | +10/−10/−0.1 → shortest safe path (28 steps) on 20/20 seeds; in the mission the dog delivers the drive, AI score 100% | Pass |
-| 8 | Ask the assistant with the LLM offline | Fallback shows best-matching email | "offline fallback (no LLM configured)… Best-matching emails: 1. Vault access rotation…"; also unit-tested for refused connection and HTTP 502 | Pass |
+| 8 | Ask the assistant with the LLM offline | Assistant still helps from the retrieved emails | Since 2026-10-23: "offline reasoning over the retrieved emails" → "PASSWORD: KESTREL37" with the three emails it combined and its steps; with k = 1 it answers UNKNOWN and names the missing clue; also unit-tested for refused connection and HTTP 502. (Before: it only listed the best-matching emails.) | Pass |
 | 9 | Press Restart after losing | Mission restarts cleanly | Player back at start, guards back to Patrol with 0 suspicion, fresh timer | Pass |
 | 10 | Press Mute | All sound stops and stays muted after reload | Muted state and other settings survive a page reload; M toggles | Pass |
 | 11 | Open the game on a phone | Game loads and menus are usable | 390 px: start, How to play, Settings, briefing and Lab fit without horizontal scrolling; buttons reachable | Pass (menus; gameplay needs a keyboard) |
@@ -54,4 +54,4 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 31 | Mission 2: look for the way to the drive | Clear route to the console; told the vault is dog-only | Arrow at the screen edge points to the console; glowing CONSOLE · E beacon; tip at the vault wall; arrow and tip hide at the console | Pass after fix |
 
 ## Failures found during development and what changed
-See `docs/challenges.md`: 20 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.
+See `docs/challenges.md`: 21 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.

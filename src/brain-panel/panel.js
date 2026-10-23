@@ -48,7 +48,7 @@ export function createBrainPanel(el, { getState, onExport }) {
     const head = r ? `<dl class="bp-kv"><dt>Index</dt><dd>${r.index.chunks.length} chunks, ${r.index.vocabulary} words, chunk size ${r.chunkSize}</dd><dt>Retrieval</dt><dd>TF-IDF cosine, two hops, k = ${r.k}</dd></dl>` : "<p class='fine'>No index yet (Mission 3 Lab).</p>";
     const a = s.assist;
     if (!a) return head + "<p class='fine'>The assistant has not been asked yet (use the terminal in Mission 3).</p>";
-    return head + `<dl class="bp-kv"><dt>Answer source</dt><dd>${a.source === "llm" ? `LLM (${esc(a.model)})` : `fallback: ${esc(a.error)}`}</dd><dt>Latency</dt><dd>${(a.latencyMs / 1000).toFixed(1)} s</dd><dt>Tokens</dt><dd>${a.tokens ?? "n/a"}</dd><dt>Recall (relevant emails found)</dt><dd>${pct(a.recall)}</dd></dl>
+    return head + `<dl class="bp-kv"><dt>Answer source</dt><dd>${a.source === "llm" ? `LLM (${esc(a.model)})` : `offline reasoning (${esc(a.error)})`}</dd><dt>Latency</dt><dd>${(a.latencyMs / 1000).toFixed(1)} s</dd><dt>Tokens</dt><dd>${a.tokens ?? "n/a"}</dd><dt>Recall (relevant emails found)</dt><dd>${pct(a.recall)}</dd></dl>
       <table class="bp-table"><tr><th>Hop</th><th>Chunk</th><th>Similarity</th></tr>${[...a.hop1.map((h) => [1, h]), ...a.hop2.map((h) => [2, h])].map(([n, h]) => `<tr><td>${n}</td><td>${esc(h.chunk.subject)}</td><td>${bar(h.score / (a.hop1[0]?.score || 1))} ${h.score.toFixed(3)}</td></tr>`).join("")}</table>
       <pre class="bp-pre">${esc(a.answer)}</pre>`;
   }

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { tokenize, splitSentences, chunkEmails, buildIndex, retrieve, multiHop, recall, buildPrompt, normalisePassword, VAULT_QUESTION, RELEVANT } from "../src/lab/rag.js";
 import { askAssistant, extractPassword } from "../src/teammates/assistant.js";
+import { reasonOffline } from "../src/teammates/reasoner.js";
 import worker, { rateLimited, buildServerPrompt } from "../worker/llm-proxy.js";
 import { MISSION_3, parseMap } from "../src/world/map.js";
 import { MISSIONS } from "../src/world/missions.js";
@@ -54,10 +55,11 @@ test("prompt: contains every retrieved chunk, the answer format and the decoy ru
   assert.match(p, /Kestrel/); assert.match(p, /floor 37/);
 });
 
-test("README scenario 8: assistant falls back to the best-matching emails when the LLM is offline", async () => {
+test("README scenario 8: with the LLM offline the assistant reasons over the retrieved emails", async () => {
   const idx = buildIndex(emails, { chunkSize: 2 });
   const none = await askAssistant(idx, VAULT_QUESTION, { k: 3, llmUrl: "" });
-  assert.equal(none.source, "fallback"); assert.match(none.answer, /Best-matching emails/); assert.match(none.answer, /Vault access rotation/);
+  assert.equal(none.source, "fallback"); assert.equal(extractPassword(none.answer), "KESTREL37"); assert.match(none.answer, /Vault access rotation/);
+  assert.ok(none.steps.length >= 3, "explains how it worked the password out");
   const down = await askAssistant(idx, VAULT_QUESTION, { k: 3, llmUrl: "http://x/ask", fetchImpl: async () => { throw new Error("connection refused"); } });
   assert.equal(down.source, "fallback"); assert.match(down.error, /connection refused/);
   const bad = await askAssistant(idx, VAULT_QUESTION, { k: 3, llmUrl: "http://x/ask", fetchImpl: async () => ({ ok: false, status: 502 }) });
@@ -98,4 +100,31 @@ test("Mission 3 map: terminal next to a locked door that opens", () => {
   assert.equal(map.isBlocked(13, 8), true, "door locked");
   map.unlockAll();
   assert.equal(map.isBlocked(13, 8), false, "door open");
+});
+
+// ---------- offline reasoning (no language model) ----------
+const ctxFor = (chunkSize, k) => multiHop(buildIndex(emails, { chunkSize }), VAULT_QUESTION, k).context;
+const only = (...ids) => buildIndex(emails.filter((e) => ids.includes(e.id)), { chunkSize: 4 }).chunks.map((chunk) => ({ chunk, score: 1 }));
+
+test("offline reasoning: full recall gives KESTREL37 and names the three clue emails", () => {
+  const r = reasonOffline(ctxFor(2, 3));
+  assert.equal(r.password, "KESTREL37");
+  for (const subject of ["Vault access rotation", "Friday story time", "Server room relocation complete"]) assert.match(r.answer, new RegExp(subject));
+});
+
+test("offline reasoning: weak retrieval answers UNKNOWN and says which fact is missing", () => {
+  const k1 = reasonOffline(ctxFor(2, 1));
+  assert.equal(k1.password, null); assert.match(k1.answer, /PASSWORD: UNKNOWN/); assert.ok(k1.missing.length > 0);
+  assert.equal(reasonOffline(ctxFor(1, 3)).password, null, "one-sentence chunks lose the clues (recall 1/3)");
+});
+
+test("offline reasoning ignores every distractor: robotics-club robot, old floor, other floors, retired password", () => {
+  // the rule + the robotics club's robot (Atlas) + the cafeteria floor: no valid robot or server-room floor
+  const r1 = reasonOffline(only("e17", "e21", "e14"));
+  assert.equal(r1.password, null); assert.ok(!/ATLAS/.test(r1.answer));
+  // the retired ORION12 on its own is never offered
+  const r2 = reasonOffline(only("e09"));
+  assert.equal(r2.password, null); assert.ok(!/ORION12/.test(r2.answer.split("\n")[0]));
+  // all clues plus all distractors: still KESTREL37, never floor 12
+  assert.equal(reasonOffline(only("e17", "e05", "e29", "e21", "e14", "e09")).password, "KESTREL37");
 });

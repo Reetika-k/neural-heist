@@ -28,7 +28,7 @@ jobs:
       - run: npm ci
       - run: npm test
       # VITE_LLM_URL is optional: set it as a repository variable once the Cloudflare Worker is deployed.
-      # Without it the hacking assistant uses its offline mode (shows the best-matching emails).
+      # Without it the hacking assistant reasons offline over the emails the player's index retrieved.
       - run: npm run build
         env:
           VITE_LLM_URL: ${{ vars.VITE_LLM_URL }}

@@ -208,7 +208,7 @@ try {
   const term = await js(`({ screen: ${S}.screen, status: document.querySelector("#term-status").textContent, hits: document.querySelectorAll("#term-hits .hit").length, prompt: document.querySelector("#term-prompt").textContent.includes("PASSWORD:"), answer: document.querySelector("#term-answer").textContent.slice(0, 160) })`);
   check("E opens the terminal: retrieved emails, exact prompt and an answer", term.screen === "terminal" && term.hits >= 4 && term.prompt && term.answer.length > 10, `${term.status} · ${term.answer}`);
   const expectLlm = await js(`!!window.__heist.CONFIG.llmUrl`);
-  check(expectLlm ? "LLM configured: answer comes from the model" : "no LLM configured: fallback shows the best-matching emails", expectLlm ? /answered by/.test(term.status) : /fallback/.test(term.status) && /Best-matching emails/.test(term.answer));
+  check(expectLlm ? "LLM configured: answer comes from the model" : "no LLM configured: the assistant reasons offline and finds the password", expectLlm ? /answered by/.test(term.status) : /offline reasoning/.test(term.status) && /PASSWORD: KESTREL37/.test(term.answer) && /How I worked it out/.test(term.answer));
   await shot("13-terminal.png");
   await js(`document.querySelector("#term-close").click()`); await sleep(100);
   await js(`window.__heist.brain.toggle(true); window.__heist.brain.setTab("assistant")`); await sleep(200);
