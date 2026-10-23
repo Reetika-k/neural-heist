@@ -49,10 +49,10 @@ You are a hacker in a neon Indian city run by a corrupt tech company. Each missi
 ## Tests
 
 ```bash
-npm test                 # 56 unit tests (Node, no browser)
+npm test                 # 58 unit tests (Node, no browser)
 # browser tests: start the dev server, then Chrome with
 #   --headless=new --remote-debugging-port=9337 --remote-allow-origins=*
-npm run test:e2e         # 66 checks: every screen, all three missions, Brain panel, export, settings
+npm run test:e2e         # 67 checks: every screen, all three missions, Brain panel, export, settings
 npm run test:phone       # 6 checks at 390 px width
 ```
 

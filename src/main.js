@@ -291,6 +291,7 @@ function applySettings() {
   saveSettings(settings);
   $("#btn-mute").textContent = settings.muted ? "🔇" : "🔊";
   $("#btn-mute").setAttribute("aria-label", settings.muted ? "Unmute" : "Mute");
+  $("#btn-mute").setAttribute("aria-pressed", String(settings.muted));
   $("#settings-form").muted.checked = settings.muted; // keep the Settings checkbox in step with M and 🔊
 }
 function openSettings() {
@@ -304,7 +305,9 @@ function openSettings() {
 const describeDifficulty = (d) => { const x = DIFFICULTY[d]; return `Guards see ${x.range} units, move at ${Math.round(x.speedMul * 100)}% speed, notice you ${x.fillMul === 1 ? "at normal speed" : x.fillMul < 1 ? "more slowly" : "faster"}.`; };
 $("#settings-form").addEventListener("input", (e) => {
   const f = e.currentTarget;
+  const wasMuted = settings.muted;
   Object.assign(settings, { difficulty: f.difficulty.value, quality: f.quality.value, palette: f.palette.value, volume: Number(f.volume.value) / 100, muted: f.muted.checked });
+  if (settings.muted !== wasMuted) announceSound();
   $("#set-volume-v").textContent = `${f.volume.value}%`;
   $("#set-diff-desc").textContent = describeDifficulty(settings.difficulty);
   applySettings();
@@ -312,7 +315,17 @@ $("#settings-form").addEventListener("input", (e) => {
 $("#btn-settings").addEventListener("click", openSettings);
 $("#btn-howto").addEventListener("click", () => show("howto"));
 document.querySelectorAll("[data-back=start]").forEach((b) => b.addEventListener("click", () => show("start")));
-function toggleMute() { settings.muted = !settings.muted; sound.unlock(); applySettings(); }
+// Every mute change says so on screen: M and 🔊 flip the state, and with only a small icon to show it,
+// players who had ticked "Mute" in Settings pressed M expecting silence and switched the sound back on.
+let toastTimer = null;
+function announceSound() {
+  const t = $("#sound-toast");
+  t.textContent = settings.muted ? "🔇 Sound off · press M to turn it on" : "🔊 Sound on · press M to mute";
+  t.dataset.on = String(!settings.muted);
+  t.classList.remove("hidden");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add("hidden"), 1800);
+}
+function toggleMute() { settings.muted = !settings.muted; sound.unlock(); applySettings(); announceSound(); }
 $("#btn-mute").addEventListener("click", toggleMute);
 applySettings();
 $("#btn-brief-lab").addEventListener("click", openLab);
