@@ -1,7 +1,11 @@
 import * as THREE from "three";
+import { createBeacon } from "./beacon.js";
 
 /** The data drive (spinning glowing crystal) and the exit pad (locked until you hold the drive). */
 export function createProps(parent) {
+  // beacons (2026-10-23): the current objective is marked the same way in every mission
+  const driveBeacon = createBeacon(parent, { color: 0xffd23d, text: "DATA DRIVE", labelY: 2.4 });
+  const exitBeacon = createBeacon(parent, { color: 0x3dff9a, text: "EXIT" });
   const drive = new THREE.Group();
   const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.28), new THREE.MeshStandardMaterial({ color: 0xffd23d, emissive: 0xffa800, emissiveIntensity: 1.4, metalness: 0.3, roughness: 0.2 }));
   gem.position.y = 0.7;
@@ -28,7 +32,12 @@ export function createProps(parent) {
   parent.add(exit);
 
   return {
-    update(mission, t) {
+    /** current: which objective is next ("drive" | "exit" | other) so only its beacon shows. */
+    update(mission, t, current = null) {
+      if (mission.drive) driveBeacon.group.position.set(mission.drive.x, 0, mission.drive.z);
+      exitBeacon.group.position.set(mission.exit.x, 0, mission.exit.z);
+      driveBeacon.update(current === "drive" && !!mission.drive && !mission.hasDrive && !mission.outcome, t);
+      exitBeacon.update(current === "exit" && !mission.outcome, t);
       drive.visible = !!mission.drive && !mission.hasDrive;
       if (mission.drive) drive.position.set(mission.drive.x, 0, mission.drive.z);
       gem.rotation.y = t * 1.6; gem.position.y = 0.7 + Math.sin(t * 2.4) * 0.08;

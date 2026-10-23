@@ -86,8 +86,8 @@ function buildLevel(config) {
   const civViews = (config.civilians ?? []).map((_, i) => createCivilianView(root, overlay, i));
   const tags = new Map();
   const droneView = config.teammate === "drone" ? createDroneView(root, DRONE.scanRadius) : null;
-  const vaultView = config.teammate === "dog" ? createVaultView(root, config.vaultOrigin, map.console, state.models.agent?.env) : null; // the vault the dog trained on
-  const terminalView = config.teammate === "assistant" ? createTerminalView(root, map) : null;
+  const vaultView = config.teammate === "dog" ? createVaultView(root, config.vaultOrigin, map.console, state.models.agent?.env, { touch: IS_TOUCH }) : null; // the vault the dog trained on
+  const terminalView = config.teammate === "assistant" ? createTerminalView(root, map, { touch: IS_TOUCH }) : null;
   state.map = map;
   state.level = {
     root, map, props, guardViews, civViews, droneView, vaultView, terminalView, decor, tags,
@@ -456,6 +456,15 @@ const navArrow = $("#nav-arrow"), navVec = new THREE.Vector3();
 // RETIRED 2026-10-23: the arrow only pointed to the Mission 2 console. Playtesters did not know where to go in any
 // mission, so it now points to the current objective everywhere (drive, console, terminal, exit); see objectiveTarget().
 // const target = state.screen === "playing" && state.dog?.status === "idle" && !state.mission?.outcome ? state.map?.console : null;
+/** Which objective is next, for the 3D beacons (unlike the arrow, it stays during the guide). */
+function currentObjectiveKind() {
+  const m = state.mission, cfg = state.config;
+  if (!m || m.outcome) return null;
+  if (m.hasDrive) return "exit";
+  if (cfg.teammate === "dog") return null;                         // the dog fetches the drive; the console has its own beacon
+  if (cfg.teammate === "assistant" && !state.doorOpen) return null; // the terminal has its own beacon
+  return "drive";
+}
 function objectiveTarget() {
   const m = state.mission, cfg = state.config;
   if (state.screen !== "playing" || !m || m.outcome || guide.open) return null;
@@ -690,7 +699,7 @@ function draw(dt) {
     playerMesh.position.set(state.pos.x, 0, state.pos.z);
     playerMesh.rotation.y += (state.facing - playerMesh.rotation.y) * 0.25;
     animatePerson(playerMesh, moved, t);
-    if (state.mission) L.props.update(state.mission, t);
+    if (state.mission) L.props.update(state.mission, t, currentObjectiveKind());
     state.guards.forEach((g, i) => {
       const revealed = !state.drone || isRevealed(state.drone, g.id);
       L.guardViews[i]?.update(g, camera, { revealed, t, dt, range: tuningFor(settings).range, palette: settings.palette });

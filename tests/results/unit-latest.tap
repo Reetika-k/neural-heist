@@ -2,427 +2,427 @@ TAP version 13
 # Subtest: CSV export: header, one row per event, quoting of commas and JSON details
 ok 1 - CSV export: header, one row per event, quoting of commas and JSON details
   ---
-  duration_ms: 0.987292
+  duration_ms: 0.819208
   type: 'test'
   ...
 # Subtest: JSON export: best scores, lab reports, events, assistant summary
 ok 2 - JSON export: best scores, lab reports, events, assistant summary
   ---
-  duration_ms: 2.779625
+  duration_ms: 1.741667
   type: 'test'
   ...
 # Subtest: A* finds a shortest path on the mission map
 ok 3 - A* finds a shortest path on the mission map
   ---
-  duration_ms: 3.195584
+  duration_ms: 2.864667
   type: 'test'
   ...
 # Subtest: A* edge cases: start = goal, wall goal, out of bounds, unreachable
 ok 4 - A* edge cases: start = goal, wall goal, out of bounds, unreachable
   ---
-  duration_ms: 0.315666
+  duration_ms: 0.319917
   type: 'test'
   ...
 # Subtest: A* matches BFS length on 300 random mazes and expands fewer cells
 ok 5 - A* matches BFS length on 300 random mazes and expands fewer cells
   ---
-  duration_ms: 29.084
+  duration_ms: 33.798958
   type: 'test'
   ...
 # Subtest: vision: inside the cone is seen; outside the angle or range is not
 ok 6 - vision: inside the cone is seen; outside the angle or range is not
   ---
-  duration_ms: 0.189208
+  duration_ms: 0.319042
   type: 'test'
   ...
 # Subtest: vision: walls block sight
 ok 7 - vision: walls block sight
   ---
-  duration_ms: 0.148625
+  duration_ms: 0.260375
   type: 'test'
   ...
 # Subtest: patrol: guard walks its route with A* and loops
 ok 8 - patrol: guard walks its route with A* and loops
   ---
-  duration_ms: 1.533084
+  duration_ms: 1.841625
   type: 'test'
   ...
 # Subtest: seeing the player: Suspicious, meter fills, then Chase
 ok 9 - seeing the player: Suspicious, meter fills, then Chase
   ---
-  duration_ms: 0.805084
+  duration_ms: 0.591709
   type: 'test'
   ...
 # Subtest: sneaking fills the meter more slowly
 ok 10 - sneaking fills the meter more slowly
   ---
-  duration_ms: 0.267959
+  duration_ms: 0.189208
   type: 'test'
   ...
 # Subtest: losing sight: Search walks to the last-seen spot with A*, looks around, returns to Patrol
 ok 11 - losing sight: Search walks to the last-seen spot with A*, looks around, returns to Patrol
   ---
-  duration_ms: 0.418834
+  duration_ms: 0.312458
   type: 'test'
   ...
 # Subtest: chase catches a player who stands still; a player out of sight is not caught
 ok 12 - chase catches a player who stands still; a player out of sight is not caught
   ---
-  duration_ms: 1.082334
+  duration_ms: 1.039875
   type: 'test'
   ...
 # Subtest: difficulty tuning: longer range sees further; hard fills faster and moves faster
 ok 13 - difficulty tuning: longer range sees further; hard fills faster and moves faster
   ---
-  duration_ms: 0.244417
+  duration_ms: 0.217333
   type: 'test'
   ...
 # Subtest: snapshots are deterministic 32×32 RGBA images
 ok 14 - snapshots are deterministic 32×32 RGBA images
   ---
-  duration_ms: 1.22475
+  duration_ms: 3.497292
   type: 'test'
   ...
 # Subtest: lab dataset: 30 images to label (balanced), 10 held-back, no overlap
 ok 15 - lab dataset: 30 images to label (balanced), 10 held-back, no overlap
   ---
-  duration_ms: 0.10125
+  duration_ms: 0.360875
   type: 'test'
   ...
 # Subtest: README scenario 5: 30 correct labels → test accuracy above 85%
 ok 16 - README scenario 5: 30 correct labels → test accuracy above 85%
   ---
-  duration_ms: 7.386833
+  duration_ms: 19.8495
   type: 'test'
   ...
 # Subtest: README scenario 4: 4 labels → overfitting warning and clearly worse accuracy
 ok 17 - README scenario 4: 4 labels → overfitting warning and clearly worse accuracy
   ---
-  duration_ms: 14.911584
+  duration_ms: 33.401167
   type: 'test'
   ...
 # Subtest: wrong labels hurt: 40% mislabelled is much worse than correct labels
 ok 18 - wrong labels hurt: 40% mislabelled is much worse than correct labels
   ---
-  duration_ms: 2.316542
+  duration_ms: 6.351
   type: 'test'
   ...
 # Subtest: predict: confidence in 0.5..1, empty model answers null, single class warns
 ok 19 - predict: confidence in 0.5..1, empty model answers null, single class warns
   ---
-  duration_ms: 0.269917
+  duration_ms: 0.601083
   type: 'test'
   ...
 # Subtest: drone: scans characters in range once, uses the real model output, reports accuracy
 ok 20 - drone: scans characters in range once, uses the real model output, reports accuracy
   ---
-  duration_ms: 0.556375
+  duration_ms: 2.305625
   type: 'test'
   ...
 # Subtest: civilians wander along their route with A*
 ok 21 - civilians wander along their route with A*
   ---
-  duration_ms: 0.484208
+  duration_ms: 1.444084
   type: 'test'
   ...
 # Subtest: environment: lasers and goal end the episode; walls keep the dog in place
 ok 22 - environment: lasers and goal end the episode; walls keep the dog in place
   ---
-  duration_ms: 3.245333
+  duration_ms: 1.664791
   type: 'test'
   ...
 # Subtest: README scenario 7: sensible rewards → the dog reaches the drive safely, by the shortest path
 ok 23 - README scenario 7: sensible rewards → the dog reaches the drive safely, by the shortest path
   ---
-  duration_ms: 35.221875
+  duration_ms: 49.248583
   type: 'test'
   ...
 # Subtest: README scenario 6: a positive reward for touching lasers → the dog learns to hit one
 ok 24 - README scenario 6: a positive reward for touching lasers → the dog learns to hit one
   ---
-  duration_ms: 5.9785
+  duration_ms: 8.29375
   type: 'test'
   ...
 # Subtest: no step penalty → the dog dawdles in a loop; too little training is unreliable
 ok 25 - no step penalty → the dog dawdles in a loop; too little training is unreliable
   ---
-  duration_ms: 24.598542
+  duration_ms: 71.845125
   type: 'test'
   ...
 # Subtest: training is reproducible with a seed; epsilon decays; rewards improve
 ok 26 - training is reproducible with a seed; epsilon decays; rewards improve
   ---
-  duration_ms: 5.160292
+  duration_ms: 15.546334
   type: 'test'
   ...
 # Subtest: dog: follows the greedy path cell by cell and reports the outcome once
 ok 27 - dog: follows the greedy path cell by cell and reports the outcome once
   ---
-  duration_ms: 6.501292
+  duration_ms: 12.873334
   type: 'test'
   ...
 # Subtest: Mission 2 map: vault is 10×10 at the dog's origin, blocked for walkers, console reachable
 ok 28 - Mission 2 map: vault is 10×10 at the dog's origin, blocked for walkers, console reachable
   ---
-  duration_ms: 0.241459
+  duration_ms: 0.532834
   type: 'test'
   ...
 # Subtest: classic environment is the original vault: 100 states × 4 actions, shortest route 28
 ok 29 - classic environment is the original vault: 100 states × 4 actions, shortest route 28
   ---
-  duration_ms: 0.112042
+  duration_ms: 0.4235
   type: 'test'
   ...
 # Subtest: random vaults: same seed same vault; always solvable in 22–38 steps; batteries off the shortest route
 ok 30 - random vaults: same seed same vault; always solvable in 22–38 steps; batteries off the shortest route
   ---
-  duration_ms: 30.157667
+  duration_ms: 71.459834
   type: 'test'
   ...
 # Subtest: recommended rewards learn the shortest route on random vaults
 ok 31 - recommended rewards learn the shortest route on random vaults
   ---
-  duration_ms: 18.331167
+  duration_ms: 39.41125
   type: 'test'
   ...
 # Subtest: batteries: a small bonus is skipped (28 steps), a bonus worth the detour is collected (38 steps, 2 batteries)
 ok 32 - batteries: a small bonus is skipped (28 steps), a bonus worth the detour is collected (38 steps, 2 batteries)
   ---
-  duration_ms: 20.838666
+  duration_ms: 38.344083
   type: 'test'
   ...
 # Subtest: puddles: the dog learns a longer dry route and almost always arrives; a dry-floor dog does worse on puddles
 ok 33 - puddles: the dog learns a longer dry route and almost always arrives; a dry-floor dog does worse on puddles
   ---
-  duration_ms: 25.8905
+  duration_ms: 47.995125
   type: 'test'
   ...
 # Subtest: blinking lasers: on 3 steps, off 3; the shortest route uses the gap (19 steps); a trained dog learns to slip through
 ok 34 - blinking lasers: on 3 steps, off 3; the shortest route uses the gap (19 steps); a trained dog learns to slip through
   ---
-  duration_ms: 19.377708
+  duration_ms: 36.595542
   type: 'test'
   ...
 # Subtest: training challenge: the first run after which the route reaches the drive is recorded
 ok 35 - training challenge: the first run after which the route reaches the drive is recorded
   ---
-  duration_ms: 2.723
+  duration_ms: 5.285917
   type: 'test'
   ...
 # Subtest: views: visits count every step; the learned value is higher next to the drive than at the start
 ok 36 - views: visits count every step; the learned value is higher next to the drive than at the start
   ---
-  duration_ms: 2.633792
+  duration_ms: 5.096875
   type: 'test'
   ...
 # Subtest: mission dog: walks the vault it trained on; on puddles each run is a real roll-out; batteries raise the score
 ok 37 - mission dog: walks the vault it trained on; on puddles each run is a real roll-out; batteries raise the score
   ---
-  duration_ms: 7.847583
+  duration_ms: 15.384416
   type: 'test'
   ...
 # Subtest: map has a drive and an exit on floor cells
 ok 38 - map has a drive and an exit on floor cells
   ---
-  duration_ms: 1.43
+  duration_ms: 2.409167
   type: 'test'
   ...
 # Subtest: exit is locked until the drive is picked up
 ok 39 - exit is locked until the drive is picked up
   ---
-  duration_ms: 0.28925
+  duration_ms: 0.325833
   type: 'test'
   ...
 # Subtest: a chase starts the alarm once; it does not reset; reaching 0 loses
 ok 40 - a chase starts the alarm once; it does not reset; reaching 0 loses
   ---
-  duration_ms: 0.622333
+  duration_ms: 1.68175
   type: 'test'
   ...
 # Subtest: winning with time left on the alarm still counts as a win
 ok 41 - winning with time left on the alarm still counts as a win
   ---
-  duration_ms: 0.133667
+  duration_ms: 0.145833
   type: 'test'
   ...
 # Subtest: caught ends the mission and freezes it
 ok 42 - caught ends the mission and freezes it
   ---
-  duration_ms: 0.143792
+  duration_ms: 0.139083
   type: 'test'
   ...
 # Subtest: scoring: three stars for a clean, fast run; fewer otherwise; zero for a loss
 ok 43 - scoring: three stars for a clean, fast run; fewer otherwise; zero for a loss
   ---
-  duration_ms: 0.222583
+  duration_ms: 0.234083
   type: 'test'
   ...
 # Subtest: missions take their own par and alarm times; triggerAlarm starts the alarm once
 ok 44 - missions take their own par and alarm times; triggerAlarm starts the alarm once
   ---
-  duration_ms: 0.072333
+  duration_ms: 0.12425
   type: 'test'
   ...
 # Subtest: a mission without a drive cell can still be won once the drive is delivered
 ok 45 - a mission without a drive cell can still be won once the drive is delivered
   ---
-  duration_ms: 0.103292
+  duration_ms: 0.199375
   type: 'test'
   ...
 # Subtest: every neon sign hangs over a wall cell, never over walkable floor
 ok 46 - every neon sign hangs over a wall cell, never over walkable floor
   ---
-  duration_ms: 1.402542
+  duration_ms: 1.249459
   type: 'test'
   ...
 # Subtest: map parses: size, start and walls
 ok 47 - map parses: size, start and walls
   ---
-  duration_ms: 1.421041
+  duration_ms: 1.476625
   type: 'test'
   ...
 # Subtest: collision: centre of a floor cell is free, overlapping a wall is not
 ok 48 - collision: centre of a floor cell is free, overlapping a wall is not
   ---
-  duration_ms: 0.12075
+  duration_ms: 0.196959
   type: 'test'
   ...
 # Subtest: input vector is normalised so diagonals are not faster
 ok 49 - input vector is normalised so diagonals are not faster
   ---
-  duration_ms: 0.098041
+  duration_ms: 0.189208
   type: 'test'
   ...
 # Subtest: walls block movement and the player slides along them
 ok 50 - walls block movement and the player slides along them
   ---
-  duration_ms: 0.198959
+  duration_ms: 0.526542
   type: 'test'
   ...
 # Subtest: a huge frame (tab switch) cannot tunnel through a wall
 ok 51 - a huge frame (tab switch) cannot tunnel through a wall
   ---
-  duration_ms: 0.064333
+  duration_ms: 0.135458
   type: 'test'
   ...
 # Subtest: arrow keys and WASD map to the same directions
 ok 52 - arrow keys and WASD map to the same directions
   ---
-  duration_ms: 0.046541
+  duration_ms: 0.097792
   type: 'test'
   ...
 # Subtest: dataset: 40 fictional emails; the password needs three of them; a retired decoy exists
 ok 53 - dataset: 40 fictional emails; the password needs three of them; a retired decoy exists
   ---
-  duration_ms: 0.588125
+  duration_ms: 1.343042
   type: 'test'
   ...
 # Subtest: text processing: stopwords removed, plurals folded, 'Mr.' does not end a sentence
 ok 54 - text processing: stopwords removed, plurals folded, 'Mr.' does not end a sentence
   ---
-  duration_ms: 2.21375
+  duration_ms: 0.949625
   type: 'test'
   ...
 # Subtest: retrieval: the question finds the rotation email first; scores are cosine in 0..1, sorted
 ok 55 - retrieval: the question finds the rotation email first; scores are cosine in 0..1, sorted
   ---
-  duration_ms: 2.859
+  duration_ms: 2.37925
   type: 'test'
   ...
 # Subtest: two-hop retrieval at the default settings finds all three facts; single hop does not
 ok 56 - two-hop retrieval at the default settings finds all three facts; single hop does not
   ---
-  duration_ms: 0.726708
+  duration_ms: 1.339041
   type: 'test'
   ...
 # Subtest: parameters matter: k=1 and one-sentence chunks lose facts
 ok 57 - parameters matter: k=1 and one-sentence chunks lose facts
   ---
-  duration_ms: 2.413917
+  duration_ms: 2.094625
   type: 'test'
   ...
 # Subtest: prompt: contains every retrieved chunk, the answer format and the decoy rule
 ok 58 - prompt: contains every retrieved chunk, the answer format and the decoy rule
   ---
-  duration_ms: 1.175583
+  duration_ms: 0.917334
   type: 'test'
   ...
 # Subtest: README scenario 8: with the LLM offline the assistant reasons over the retrieved emails
 ok 59 - README scenario 8: with the LLM offline the assistant reasons over the retrieved emails
   ---
-  duration_ms: 2.204875
+  duration_ms: 3.119083
   type: 'test'
   ...
 # Subtest: assistant uses the LLM answer when the proxy responds; password extraction
 ok 60 - assistant uses the LLM answer when the proxy responds; password extraction
   ---
-  duration_ms: 0.744041
+  duration_ms: 0.961167
   type: 'test'
   ...
 # Subtest: worker: CORS origin check, input validation, rate limit 20/hour, key stays server-side
 ok 61 - worker: CORS origin check, input validation, rate limit 20/hour, key stays server-side
   ---
-  duration_ms: 16.69625
+  duration_ms: 19.240834
   type: 'test'
   ...
 # Subtest: Mission 3 map: terminal next to a locked door that opens
 ok 62 - Mission 3 map: terminal next to a locked door that opens
   ---
-  duration_ms: 0.263917
+  duration_ms: 0.417291
   type: 'test'
   ...
 # Subtest: offline reasoning: full recall gives KESTREL37 and names the three clue emails
 ok 63 - offline reasoning: full recall gives KESTREL37 and names the three clue emails
   ---
-  duration_ms: 1.771334
+  duration_ms: 1.545667
   type: 'test'
   ...
 # Subtest: offline reasoning: weak retrieval answers UNKNOWN and says which fact is missing
 ok 64 - offline reasoning: weak retrieval answers UNKNOWN and says which fact is missing
   ---
-  duration_ms: 2.55875
+  duration_ms: 1.989542
   type: 'test'
   ...
 # Subtest: offline reasoning ignores every distractor: robotics-club robot, old floor, other floors, retired password
 ok 65 - offline reasoning ignores every distractor: robotics-club robot, old floor, other floors, retired password
   ---
-  duration_ms: 0.281833
+  duration_ms: 0.592833
   type: 'test'
   ...
 # Subtest: Lab hints agree with retrieval on every setting; the preview answer matches the clues found
 ok 66 - Lab hints agree with retrieval on every setting; the preview answer matches the clues found
   ---
-  duration_ms: 11.754625
+  duration_ms: 14.679417
   type: 'test'
   ...
 # Subtest: each ready-made setting shows the behaviour it promises (3 seeds each)
 ok 67 - each ready-made setting shows the behaviour it promises (3 seeds each)
   ---
-  duration_ms: 81.96875
+  duration_ms: 150.199667
   type: 'test'
   ...
 # Subtest: after training, the explanation names the real cause and a fix
 ok 68 - after training, the explanation names the real cause and a fix
   ---
-  duration_ms: 15.508458
+  duration_ms: 37.61775
   type: 'test'
   ...
 # Subtest: slider hints agree with real training at the measured thresholds
 ok 69 - slider hints agree with real training at the measured thresholds
   ---
-  duration_ms: 71.197917
+  duration_ms: 133.758166
   type: 'test'
   ...
 # Subtest: mute silences everything: music, sound effects and the alarm siren
 ok 70 - mute silences everything: music, sound effects and the alarm siren
   ---
-  duration_ms: 1.292458
+  duration_ms: 1.204375
   type: 'test'
   ...
 # Subtest: a saved mute applies from the very first sound
 ok 71 - a saved mute applies from the very first sound
   ---
-  duration_ms: 0.196167
+  duration_ms: 0.134542
   type: 'test'
   ...
 1..71
@@ -433,4 +433,4 @@ ok 71 - a saved mute applies from the very first sound
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 45105.45225
+# duration_ms 45120.483709
