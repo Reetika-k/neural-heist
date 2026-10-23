@@ -14,7 +14,20 @@
 <body>
   <canvas id="scene" aria-label="Game view"></canvas>
   <div id="overlay" class="overlay hidden" aria-hidden="true"></div>
-  <div id="nav-arrow" class="nav-arrow hidden" aria-hidden="true"><svg class="nav-chev" viewBox="0 0 16 16" width="20" height="20"><path d="M1 6.5h8V2.5l6 5.5-6 5.5V9.5H1z" fill="currentColor"/></svg><span class="nav-text">CONSOLE</span></div>
+  <div id="nav-arrow" class="nav-arrow hidden" aria-hidden="true"><svg class="nav-chev" viewBox="0 0 16 16" width="20" height="20"><path d="M1 6.5h8V2.5l6 5.5-6 5.5V9.5H1z" fill="currentColor"/></svg><span class="nav-text" id="nav-text">CONSOLE</span></div>
+  <div id="guide" class="guide hidden" role="dialog" aria-live="polite" aria-label="Mission guide">
+    <p class="guide-count" id="guide-count">1 / 4</p>
+    <p class="guide-text" id="guide-text"></p>
+    <div class="guide-btns"><button id="guide-skip" class="btn-link" type="button">Skip guide</button><button id="guide-next" class="btn-primary guide-next" type="button">Next</button></div>
+  </div>
+  <button id="btn-help" class="btn-help hidden" type="button" aria-label="Show the mission guide again" title="Help (?)">?</button>
+  <div id="touch" class="touch-ui-controls hidden" aria-hidden="false">
+    <div id="joy" class="joy" aria-label="Joystick: drag to move"><div class="joy-knob" id="joy-knob"></div></div>
+    <div class="touch-btns">
+      <button id="t-sneak" class="t-btn" type="button" aria-pressed="false">SNEAK</button>
+      <button id="t-use" class="t-btn t-use" type="button">USE</button>
+    </div>
+  </div>
 
   <div id="hud" class="hud hidden" aria-live="polite">
     <span class="hud-chip" id="hud-mission"><b>MISSION 1</b> · Rooftop</span>
@@ -72,6 +85,8 @@
     </form>
   </section>
 
+  <!-- RETIRED 2026-10-23: a single text-heavy page; playtesters (1–3 people) found the game confusing.
+       Replaced by the three-step version below plus an in-game guide on each mission's first play.
   <section id="screen-howto" class="screen hidden">
     <div class="start-card howto-card">
       <p class="eyebrow">How to play</p>
@@ -89,6 +104,32 @@
         <li><b>Guards</b> have vision cones. White → yellow → red as they grow suspicious. A full meter means a chase; contact means caught. Walls block sight.</li>
         <li><b>Alarm</b>: the first chase (or a laser, or 3 wrong passwords) starts a 25-second alarm that never resets.</li>
         <li><b>Stars</b>: finish · never chased · under par time. Score adds your AI's accuracy.</li>
+      </ul>
+      <button class="btn-primary" data-back="start">Got it</button>
+    </div>
+  </section>
+  -->
+  <section id="screen-howto" class="screen hidden">
+    <div class="start-card howto-card">
+      <p class="eyebrow">How to play</p>
+      <h1 class="title brief-title">THE JOB</h1>
+      <p class="brief-text">Three missions. In each one you <b>train an AI teammate</b>, then you <b>sneak in and use it</b>. It helps you exactly as well as you trained it.</p>
+      <ol class="howto-steps">
+        <li><span class="hs-num">1</span><div><b>Briefing</b><p>Read what the mission needs.</p></div></li>
+        <li><span class="hs-num">2</span><div><b>Lab: train your AI</b><p>Label camera photos (drone) · set rewards (robot dog) · build a search index (hacking assistant).</p></div></li>
+        <li><span class="hs-num">3</span><div><b>Mission: sneak</b><p>Follow the <b class="green">green arrow</b>: get the <b class="gold">data drive</b>, then reach the <b class="green">exit</b>. Stay out of the guards' cones.</p></div></li>
+      </ol>
+      <table class="howto-table">
+        <tr><th></th><th>Keyboard</th><th>Phone</th></tr>
+        <tr><td>Move</td><td><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>Joystick (bottom left)</td></tr>
+        <tr><td>Sneak (quieter)</td><td>hold <kbd>Shift</kbd></td><td>SNEAK button</td></tr>
+        <tr><td>Use console / terminal</td><td><kbd>E</kbd></td><td>USE button</td></tr>
+        <tr><td>Help · AI Brain · Sound</td><td><kbd>?</kbd> · <kbd>Tab</kbd> · <kbd>M</kbd></td><td>? · 🧠 · 🔊</td></tr>
+      </table>
+      <ul class="howto-list">
+        <li><b>Guard cones:</b> white = calm, yellow = noticing you, red = chasing. Walls hide you. A touch = caught.</li>
+        <li><b>Alarm:</b> a chase, a laser or 3 wrong passwords starts 25 seconds to escape.</li>
+        <li><b>Stars:</b> finish · never chased · under par time.</li>
       </ul>
       <button class="btn-primary" data-back="start">Got it</button>
     </div>

@@ -44,7 +44,9 @@ export function createScene(canvas, { quality = "high" } = {}) {
   }
   function resize() {
     const w = innerWidth, h = innerHeight, aspect = w / h;
-    camera.left = -VIEW * aspect; camera.right = VIEW * aspect; camera.top = VIEW; camera.bottom = -VIEW;
+    // On an upright phone the view would be only ~3 units wide; keep at least 5.5 units either side.
+    const v = aspect < 1 ? Math.max(VIEW, 5.5 / aspect) : VIEW;
+    camera.left = -v * aspect; camera.right = v * aspect; camera.top = v; camera.bottom = -v;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h, false);
     composer.setPixelRatio(renderer.getPixelRatio());

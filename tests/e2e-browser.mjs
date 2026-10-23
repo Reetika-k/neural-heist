@@ -28,13 +28,13 @@ const park = `${S}.guards.forEach(g => { g.patrol = [g.patrol[0]]; g.pos = { x: 
 await send("Runtime.enable"); await send("Page.enable");
 await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
 await waitFor("!!window.__heist", 30000);
-await js(`localStorage.clear()`);
+await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1 }))`);
 
 try {
   // ---------- settings, how to play, mute ----------
   check("start screen shows title, Start, How to play and Settings", await js(`document.querySelector(".title").textContent.includes("NEURAL") && !!document.querySelector("#btn-howto") && !!document.querySelector("#btn-settings")`));
   await js(`document.querySelector("#btn-howto").click()`); await sleep(150);
-  check("How to play screen lists controls and rules", await js(`${S}.screen === "howto" && document.querySelectorAll(".howto-table tr").length >= 6`));
+  check("How to play: three steps (briefing, lab, mission), keyboard and phone controls, rules", await js(`${S}.screen === "howto" && document.querySelectorAll(".howto-steps li").length === 3 && document.querySelectorAll(".howto-table tr").length >= 5 && /Phone/.test(document.querySelector(".howto-table").textContent) && document.querySelectorAll(".howto-list li").length >= 3`));
   await js(`document.querySelector("#screen-howto [data-back]").click()`); await sleep(100);
   await js(`document.querySelector("#btn-settings").click()`); await sleep(150);
   await js(`(() => { const f = document.querySelector("#settings-form"); f.difficulty.value = "hard"; f.palette.value = "colorblind"; f.quality.value = "low"; f.muted.checked = true; f.dispatchEvent(new Event("input", { bubbles: true })); })()`); await sleep(150);
@@ -44,7 +44,7 @@ try {
   await press("m", "KeyM"); await sleep(100);
   check("M toggles mute", await js(`!window.__heist.sound.state.muted && document.querySelector("#btn-mute").textContent === "🔊"`));
   check("M says so on screen (sound on / off message)", await js(`!document.querySelector("#sound-toast").classList.contains("hidden") && /Sound on/.test(document.querySelector("#sound-toast").textContent)`));
-  await js(`localStorage.clear()`); await send("Page.reload"); await sleep(1500); await waitFor("!!window.__heist");
+  await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1 }))`); await send("Page.reload"); await sleep(1500); await waitFor("!!window.__heist");
   check("cleared storage → default settings (normal, high quality)", await js(`window.__heist.settings.difficulty === "normal" && window.__heist.settings.quality === "high"`));
 
   // ---------- start → briefing → lab ----------
@@ -241,7 +241,23 @@ try {
   check("a locked terminal refuses even the right password", await js(`!${S}.doorOpen && ${S}.map.isBlocked(13, 8)`));
   await js(`document.querySelector("#term-close").click()`); await sleep(100);
 
-  await press("Escape", "Escape"); await js(`document.querySelector("#btn-menu").click()`); await sleep(200);
+  // ---------- first-play guide (added after playtesting) ----------
+  await js(`localStorage.removeItem("neural-heist.guide"); window.__heist.openBriefing(0)`); await sleep(200);
+  await js(`document.querySelector("#btn-brief-lab").click()`); await waitFor(`${S}.screen === "lab"`, 8000);
+  await js(`document.querySelector("#lab-skip").click()`); await waitFor(`${S}.screen === "playing"`, 8000);
+  check("first play of a mission opens the guide (step 1 explains how to move)", await waitFor(`!document.querySelector("#guide").classList.contains("hidden") && /Move/.test(document.querySelector("#guide-text").textContent)`, 8000), await js(`document.querySelector("#guide-count").textContent`));
+  const gp0 = await js(`({ ...${S}.pos })`);
+  await key("keyDown", "ArrowRight", "ArrowRight"); await sleep(1500); await key("keyUp", "ArrowRight", "ArrowRight");
+  const gp1 = await js(`({ ...${S}.pos })`);
+  check("the mission is paused while the guide is open", gp1.x === gp0.x && gp1.z === gp0.z, `${gp0.x} → ${gp1.x}`);
+  for (let i = 0; i < 4; i++) { await press("Enter", "Enter"); await sleep(150); }
+  check("Enter steps through the guide and closes it; it is remembered", await js(`document.querySelector("#guide").classList.contains("hidden") && JSON.parse(localStorage.getItem("neural-heist.guide") || "{}")[1] === 1`));
+  await js(`document.querySelector("#btn-help").click()`); await sleep(150);
+  check("the ? button shows the guide again", await js(`!document.querySelector("#guide").classList.contains("hidden")`));
+  await js(`document.querySelector("#guide-skip").click()`); await sleep(100);
+  check("objective arrow points to the data drive in Mission 1", await waitFor(`document.querySelector("#nav-text").textContent === "DATA DRIVE" || document.querySelector("#nav-arrow").classList.contains("hidden")`, 5000), await js(`document.querySelector("#nav-text").textContent`));
+
+  await press("Escape", "Escape"); await js(`document.querySelector("#btn-menu")?.click()`); await sleep(200);
   check("Main menu returns to the start screen", await js(`${S}.screen === "start"`));
 } catch (e) { check("flow completed without exception", false, e.message); }
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));

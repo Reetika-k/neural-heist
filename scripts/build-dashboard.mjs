@@ -192,7 +192,7 @@ parts.push(`<h2>9. Screens</h2><div class="shots">${shots.length ? shots.map(img
 parts.push(`<h2>10. Limitations</h2><div class="card"><ul>
 <li>Classifier, Q-learning and retrieval figures come from seeded scripts with correct labels or fixed rewards, not from real players.</li>
 <li>The browser test is quoted from its recorded run; the language-model answer was recorded with a local model, not the deployed Worker.</li>
-<li>Gameplay needs a keyboard; on a phone only the menus and labs are usable.</li>
+<li>Touch controls are tested in an emulated phone (390 × 844), not yet on many real devices.</li>
 <li>The public URL is added once the game is deployed (docs/DEPLOYMENT.md).</li>
 </ul></div>`);
 parts.push(`<h2>Reproduce</h2><div class="card"><code>npm test</code> → <code>npm run test:tap</code> (records the unit run) → <code>npm run dashboard</code> (all experiments run inside the build). This file embeds its figures and screenshots and works offline.</div>`);

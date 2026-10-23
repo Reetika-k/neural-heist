@@ -1,4 +1,5 @@
-// README scenario 11: on a phone-size screen the game loads and the menus are usable.
+// README scenario 11: on a phone-size screen the game loads, the menus are usable, and (since 2026-10-23) the game
+// is playable with the touch joystick and buttons.
 // Usage: node tests/phone-check.mjs [url]  (Chrome on --remote-debugging-port=9337)
 const base = process.argv[2] || "http://localhost:5173/";
 const target = await (await fetch(`http://localhost:9337/json/new?${encodeURIComponent(base)}`, { method: "PUT" })).json();
@@ -25,8 +26,28 @@ await js(`document.querySelector("#screen-settings [data-back]").click()`); awai
 check("Briefing fits; Enter the Lab visible", await js(fits) && await js(visible("#btn-brief-lab")));
 await js(`document.querySelector("#btn-brief-lab").click()`); await sleep(300);
 check("Lab: snapshot grid and Train button usable on a phone", await js(fits) && await js(visible("#lab-train")) && await js(`document.querySelectorAll(".snap-card").length === 30`));
-check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 const fs = await import("node:fs");
 const r = await send("Page.captureScreenshot", { format: "png" }); fs.writeFileSync("docs/screenshots/19-phone-lab.png", Buffer.from(r.result.data, "base64"));
+// ---------- playing on a phone (added after playtesting: "it is not mobile friendly") ----------
+await js(`localStorage.removeItem("neural-heist.guide"); document.querySelector("#lab-skip").click()`);
+for (let i = 0; i < 80 && (await js(`window.__heist.state.screen`)) !== "playing"; i++) await sleep(100);
+await sleep(800);
+check("phone gameplay: joystick, SNEAK and USE shown; nothing overflows", await js(fits) && await js(visible("#joy")) && await js(visible("#t-use")) && await js(visible("#t-sneak")));
+check("first-play guide speaks touch: joystick and SNEAK", await js(`!document.querySelector("#guide").classList.contains("hidden") && /joystick/.test(document.querySelector("#guide-text").textContent)`));
+const g = await send("Page.captureScreenshot", { format: "png" }); fs.writeFileSync("docs/screenshots/21-phone-guide.png", Buffer.from(g.result.data, "base64"));
+for (let i = 0; i < 4; i++) { await js(`document.querySelector("#guide-next").click()`); await sleep(120); }
+await js(`window.__heist.state.guards.forEach(g => { g.patrol = [{ x: 17, z: 1 }]; g.pos = { x: 17.5, z: 1.5 }; g.path = []; g.state = "patrol"; g.suspicion = 0; }); window.__heist.state.pos = { x: 5.5, z: 6.5 }`); await sleep(500);
+const p0 = await js(`({ ...window.__heist.state.pos })`);
+const j = await js(`(() => { const r = document.querySelector("#joy").getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+await send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: j.x, y: j.y }] });
+await send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: j.x, y: j.y - 60 }] });
+for (let i = 0; i < 60; i++) { const p = await js(`({ ...window.__heist.state.pos })`); if (Math.hypot(p.x - p0.x, p.z - p0.z) > 0.8) break; await sleep(100); }
+const p1 = await js(`({ ...window.__heist.state.pos })`);
+const g2 = await send("Page.captureScreenshot", { format: "png" }); fs.writeFileSync("docs/screenshots/22-phone-play.png", Buffer.from(g2.result.data, "base64"));
+await send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+// pushing up on screen moves away from the camera: world direction about (-0.6, -0.8)
+const moved = { dx: p1.x - p0.x, dz: p1.z - p0.z };
+check("dragging the joystick up moves the player up the screen", moved.dz < -0.5 && moved.dx <= 0.1, `dx ${moved.dx.toFixed(2)}, dz ${moved.dz.toFixed(2)}`);
+check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${results.filter(Boolean).length} / ${results.length} phone checks passed`);
 ws.close(); process.exit(results.every(Boolean) ? 0 : 1);
