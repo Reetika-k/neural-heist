@@ -251,6 +251,7 @@ $("#term-close").addEventListener("click", () => show("playing"));
 const SCREENS = ["start", "briefing", "lab", "caught", "debrief", "complete", "terminal", "settings", "howto"];
 function show(name) {
   state.screen = name;
+  document.body.dataset.screen = name; // lets CSS place the 🔊 button per screen
   for (const s of SCREENS) $(`#screen-${s}`).classList.toggle("hidden", name !== s);
   const inMission = ["playing", "caught", "debrief", "terminal"].includes(name);
   $("#hud").classList.toggle("hidden", !inMission);
