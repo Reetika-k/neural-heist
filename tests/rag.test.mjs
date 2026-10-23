@@ -128,3 +128,16 @@ test("offline reasoning ignores every distractor: robotics-club robot, old floor
   // all clues plus all distractors: still KESTREL37, never floor 12
   assert.equal(reasonOffline(only("e17", "e05", "e29", "e21", "e14", "e09")).password, "KESTREL37");
 });
+
+// ---------- Mission 3 Lab explanations (2026-10-23): hints and the answer preview agree with real retrieval ----------
+import { ragHint, CLUES } from "../src/screens/lab-rag.js";
+test("Lab hints agree with retrieval on every setting; the preview answer matches the clues found", () => {
+  for (const chunkSize of [1, 2, 3, 4]) for (const k of [1, 2, 3, 4, 5, 6]) {
+    const ctx = multiHop(buildIndex(emails, { chunkSize }), VAULT_QUESTION, k).context;
+    const full = recall(ctx, RELEVANT) === 1;
+    const warned = ragHint("chunk", chunkSize).kind === "bad" || ragHint("k", k).kind === "bad";
+    assert.equal(warned, !full, `chunk ${chunkSize}, k ${k}`);
+    assert.equal(reasonOffline(ctx).password, full ? "KESTREL37" : null, `chunk ${chunkSize}, k ${k}`);
+  }
+  assert.deepEqual(Object.keys(CLUES).sort(), [...RELEVANT].sort());
+});

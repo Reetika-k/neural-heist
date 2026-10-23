@@ -324,3 +324,27 @@ body:not([data-screen="playing"]) .btn-mute { top: 12px; bottom: auto; right: 12
 .q-check { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
 .q-check input { width: 16px; height: 16px; accent-color: var(--cyan); }
 .q-challenge { margin: 0; max-width: 420px; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,210,61,.45); background: rgba(255,210,61,.07); color: #ffe08a; font-size: 13.5px; line-height: 1.45; }
+
+/* ---------- Mission 3 Lab: explained search (2026-10-23) ---------- */
+.rag-steps { list-style: none; padding: 0; margin: 0 0 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.rag-steps li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.04); border: 1px solid rgba(41,230,255,.18); }
+.rag-steps p { margin: 2px 0 0; color: var(--dim); font-size: 13px; line-height: 1.4; }
+@media (max-width: 760px) { .rag-steps { grid-template-columns: 1fr; } }
+.rag-q-label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.rag-summary { margin: 12px 0; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.04); font-size: 14px; line-height: 1.5; }
+.rag-summary p { margin: 4px 0; }
+.rag-summary[data-kind="good"] { border-color: rgba(61,255,154,.5); background: rgba(61,255,154,.07); }
+.rag-summary[data-kind="bad"] { border-color: rgba(255,85,119,.5); background: rgba(255,85,119,.07); }
+.rag-meter { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.clue-chip { padding: 3px 9px; border-radius: 999px; font-size: 12.5px; border: 1px solid rgba(255,85,119,.5); color: #ff9db0; }
+.clue-chip.on { border-color: rgba(61,255,154,.6); color: #9dffcc; }
+.rag-answer code { font-size: 14px; color: #fff; }
+.hit-clue { border-color: rgba(61,255,154,.55) !important; box-shadow: 0 0 12px rgba(61,255,154,.15); }
+.clue-badge { font-style: normal; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(61,255,154,.85); color: #04121a; margin-left: auto; margin-right: 8px; white-space: nowrap; }
+.hop-words { font-size: 13px; color: var(--dim); margin: 10px 0 2px; line-height: 1.8; }
+.hop-words code { background: rgba(41,230,255,.12); color: var(--cyan); padding: 1px 6px; border-radius: 6px; }
+/* the Lab page scrolls now, so its results no longer need their own small scroll box (on phones it hid hop 2) */
+.rag-main .rag-results { max-height: none; overflow: visible; }
+.hit-head { align-items: center; gap: 6px; }
+.clue-badge { align-self: center; flex: none; line-height: 1.4; }
+@media (max-width: 520px) { .clue-badge { font-size: 10px; padding: 2px 6px; margin-right: 4px; } }
