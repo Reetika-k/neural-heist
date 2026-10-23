@@ -105,7 +105,13 @@ function resetMission() {
   state.guards = cfg.guards.map((g) => ({ ...createGuard(g.id, g.patrol), kind: "guard" }));
   state.civilians = (cfg.civilians ?? []).map((c) => createCivilian(c.id, c.route));
   // every character carries its own camera snapshot for the drone to classify
-  [...state.guards, ...state.civilians].forEach((c, i) => { c.snapshot = makeSnapshot(c.kind, 9000 + cfg.id * 100 + i); });
+  // RETIRED 2026-10-23: seeds 9100–9104 for the Rooftop gave two civilians that even a perfectly trained drone calls
+  // guards, so the drone's mission accuracy (the AI points) could never exceed 60 %.
+  // [...state.guards, ...state.civilians].forEach((c, i) => { c.snapshot = makeSnapshot(c.kind, 9000 + cfg.id * 100 + i); });
+  // Seeds chosen by measurement: a perfectly trained drone gets every Rooftop character right (100 %), while
+  // 4 labels average 53 % and 30 % wrong labels 73 %, so training still decides the score.
+  const SNAPSHOT_BASE = { 1: 9130 };
+  [...state.guards, ...state.civilians].forEach((c, i) => { c.snapshot = makeSnapshot(c.kind, (SNAPSHOT_BASE[cfg.id] ?? 9000 + cfg.id * 100) + i); });
   state.mission = createMission(state.map, cfg.rules);
   state.drone = cfg.teammate === "drone" ? createDrone(state.pos) : null;
   state.dog = cfg.teammate === "dog" ? createDog(state.models.agent, cfg.vaultOrigin) : null;

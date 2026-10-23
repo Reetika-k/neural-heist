@@ -154,7 +154,7 @@ const status = (s) => (/^pass/i.test(s) ? `<span class="ok">${esc(s)}</span>` : 
 
 const parts = [];
 const stamp = new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC";
-parts.push(`<h1>Neural Heist — Project dashboard</h1><p class="sub">IIT Patna AI/ML capstone, Project 2 · Reetika Kukreja. Missions, guard AI, the three player-trained AI teammates, the unit tests and the recorded browser test. Generated ${stamp}; every figure is computed from the game's own code with fixed seeds or read from recorded files.</p>`);
+parts.push(`<h1>Neural Heist — Project dashboard</h1><p class="sub">IIT Patna AI/ML capstone, Project 2 · Reetika Kukreja. The AI techniques the game uses, missions, guard AI, the three player-trained AI teammates, the unit tests and the recorded browser test. Generated ${stamp}; every figure is computed from the game's own code with fixed seeds or read from recorded files.</p>`);
 
 const def = qRuns[0];
 parts.push(`<div class="grid">${[
@@ -162,6 +162,20 @@ parts.push(`<div class="grid">${[
   ["drone accuracy, 30 labels", pct(labelCounts.at(-1).acc)], ["dog reaches goal (sensible rewards)", `${def.goal}/${SEEDS} seeds`],
   ["assistant retrieval recall (k = 3)", pct(recall(trace.context, RELEVANT))], ["unit tests", unit ? `${unit.pass}/${unit.tests}` : "not recorded"],
 ].map(([k, v]) => `<div class="card stat"><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join("")}</div>`);
+
+// 0 AI techniques (2026-10-23: "which AI techniques do we use? I can't see it")
+parts.push(`<h2>AI techniques used in Neural Heist</h2><p>Eight kinds of AI, each doing a real job in the game. The three marked <b>trained by you</b> are machine-learning models the player trains in a Lab before the mission; the rest run the world. Sections below measure each one.</p>`
+  + table(["AI technique", "family", "where in the game", "what it does", "measured in", "code"], [
+    ["<b>k-nearest neighbours image classifier</b> (k = 3, distance-weighted vote on 105 colour features of 32 × 32 CCTV snapshots)", "supervised machine learning · <b>trained by you</b>", "Mission 1 · drone", "learns guard vs civilian from the photos you label; the drone reveals the guards it recognises", "section 3", "<code>src/lab/classifier.js</code>, <code>snapshots.js</code>"],
+    ["<b>Tabular Q-learning</b> (ε-greedy, α 0.2, γ 0.95; puddles add random slips, batteries and blinking lasers extend the state)", "reinforcement learning · <b>trained by you</b>", "Mission 2 · robot dog", "learns a route through the laser vault from the rewards you design", "section 4", "<code>src/lab/qlearning.js</code>"],
+    ["<b>Retrieval-augmented generation</b>: TF-IDF embeddings, cosine similarity, two-hop retrieval", "information retrieval / NLP · <b>built by you</b>", "Mission 3 · hacking assistant", "finds the emails that hold the password clues, using the index you build", "section 5", "<code>src/lab/rag.js</code>"],
+    ["<b>Large language model</b> (Gemini via a Cloudflare Worker, Groq as backup; Ollama qwen2:7b in testing)", "generative AI", "Mission 3 · terminal", "reads only the retrieved emails and answers with the password and its reasons", "section 5, test report", "<code>src/teammates/assistant.js</code>, <code>worker/</code>"],
+    ["<b>Rule-based reasoning</b> over the retrieved emails", "symbolic AI", "Mission 3 · when no model is connected", "combines the rule, the robot's name and the floor; says which clue is missing", "section 5", "<code>src/teammates/reasoner.js</code>"],
+    ["<b>A* pathfinding</b> (Manhattan heuristic; breadth-first search as the baseline)", "search", "all missions · guards", "chase the player along the shortest route, re-planned every 0.3 s", "section 2", "<code>src/guards/astar.js</code>"],
+    ["<b>Finite-state machine + vision cones</b> (Patrol → Suspicious → Search → Chase; line of sight blocked by walls; suspicion meter)", "game AI / agents", "all missions · guards", "decides what each guard does from what it can see", "section 2", "<code>src/guards/guard.js</code>, <code>vision.js</code>"],
+    ["<b>Procedural generation with a solvability check</b>", "search-based content generation", "Mission 2 · New vault", "builds random laser vaults and keeps only those with a safe route of 22–38 steps", "section 4 · vault extras", "<code>generateLayout</code> in <code>qlearning.js</code>"],
+  ])
+  + `<p class="muted">In the game, the <b>AI Brain panel</b> (Tab or 🧠) shows each of these working live, with JSON/CSV export of every decision.</p>`);
 
 // 1 missions
 parts.push(`<h2>1. Missions and rules</h2><p>From <code>src/world/missions.js</code> and <code>src/world/mission.js</code>. Score = finish ${MISSION_RULES.points.finish} + stealth ${MISSION_RULES.points.stealth} (never chased) + ${MISSION_RULES.points.perSecondUnderPar} per second under par + up to ${MISSION_RULES.points.ai} for how well your AI did. Stars: finished · never chased · under par. The alarm countdown starts on the first chase and never resets.</p>`

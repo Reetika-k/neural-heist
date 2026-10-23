@@ -56,6 +56,7 @@ npm test                 # 71 unit tests (Node, no browser)
 # browser tests: start the dev server, then Chrome with
 #   --headless=new --remote-debugging-port=9337 --remote-allow-origins=*
 npm run test:e2e         # 80 checks: every screen, all three missions, Brain panel, export, settings
+npm run test:scores      # 32 score checks: every debrief, stars, best scores and the Heist Complete total
 npm run test:phone       # 6 checks at 390 px width
 ```
 

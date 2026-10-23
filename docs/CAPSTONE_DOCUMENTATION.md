@@ -104,7 +104,7 @@ All of these measurements are collected in `reports/dashboard.html`, which `npm 
 
 ## 12. Challenges and solutions
 
-`docs/challenges.md` lists 29 problems and fixes. The most instructive: the retrieval bug where a sentence splitter broke at "Mr." and separated the key clue from its subject (found by measuring recall and then reading the chunks); bloom turning vision cones into grey slabs; the k-NN confidence always reading 100%; and the slow-motion bug where a frame-time cap meant to prevent wall tunnelling made the game crawl on slow machines, fixed with fixed-size substeps.
+`docs/challenges.md` lists 30 problems and fixes. The most instructive: the retrieval bug where a sentence splitter broke at "Mr." and separated the key clue from its subject (found by measuring recall and then reading the chunks); bloom turning vision cones into grey slabs; the k-NN confidence always reading 100%; and the slow-motion bug where a frame-time cap meant to prevent wall tunnelling made the game crawl on slow machines, fixed with fixed-size substeps.
 
 ## 13. Final outcome
 
