@@ -35,3 +35,29 @@ test("a saved mute applies from the very first sound", () => {
   s.unlock();
   assert.equal(gains[0].gain.value, 0);
 });
+
+// 2026-10-24: calmer sound after player feedback ("the sound is so annoying")
+test("music has its own level, is quieter on reading screens, and can be switched off", () => {
+  gains.length = 0;
+  const s = createSound({ volume: 0.7, music: 0.4 });
+  s.startMusic(); const musicGain = gains[1];
+  assert.ok(Math.abs(musicGain.gain.value - 0.04) < 1e-9, "40 % of the music ceiling");
+  s.duck(true); assert.ok(musicGain.gain.value < 0.04 && musicGain.gain.value > 0, "ducked while reading");
+  s.duck(false); s.setMusic(0); assert.equal(musicGain.gain.value, 0, "music 0 = off");
+  s.stopMusic();
+});
+
+test("footsteps can be switched off; the alarm beeps on a timer that stops cleanly", () => {
+  gains.length = 0;
+  const s = createSound({ footsteps: false }); s.unlock();
+  const before = gains.length; s.play("step", false);
+  assert.equal(gains.length, before, "no step sound when footsteps are off");
+  s.siren(true); s.siren(true); s.siren(false); // idempotent; must not leave a timer running (the test would hang)
+});
+
+test("suspend and resume follow the page being hidden and shown", () => {
+  let st = "running"; // the fake context has no suspend/resume: add them
+  globalThis.window.AudioContext.prototype.suspend = function () { this.state = "suspended"; st = "suspended"; };
+  globalThis.window.AudioContext.prototype.resume = function () { this.state = "running"; st = "running"; };
+  const s = createSound(); s.unlock(); s.suspend(); assert.equal(st, "suspended"); s.resume(); assert.equal(st, "running");
+});

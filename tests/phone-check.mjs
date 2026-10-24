@@ -87,4 +87,6 @@ check("mission select fits the phone; Mission 3 Play reachable", msOk);
 fs.writeFileSync("docs/screenshots/28-mission-select.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${results.filter(Boolean).length} / ${results.length} phone checks passed`);
+// close this test's tab: left open, finished test tabs kept playing the game's music in the background (2026-10-24)
+await fetch(`http://localhost:9337/json/close/${target.id}`).catch(() => {});
 ws.close(); process.exit(results.every(Boolean) ? 0 : 1);

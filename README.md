@@ -54,10 +54,10 @@ The first time you play each mission, a short guide explains what to do (the gam
 ## Tests
 
 ```bash
-npm test                 # 77 unit tests (Node, no browser)
+npm test                 # 80 unit tests (Node, no browser)
 # browser tests: start the dev server, then Chrome with
-#   --headless=new --remote-debugging-port=9337 --remote-allow-origins=*
-npm run test:e2e         # 88 checks: every screen, pause menu, all three missions, Brain panel, export, settings
+#   --headless=new --mute-audio --remote-debugging-port=9337 --remote-allow-origins=*   (--mute-audio: test runs stay silent)
+npm run test:e2e         # 92 checks: every screen, pause menu, all three missions, Brain panel, export, settings
 npm run test:scores      # 38 score checks: every debrief, stars, best scores, mission select and the Heist Complete total
 npm run test:phone       # 15 checks at 390 px width
 ```

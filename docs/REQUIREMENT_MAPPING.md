@@ -20,7 +20,7 @@ Requirements come from the PDF's Project 2 section (objective, steps 1–12, exp
 | Lives / health (Step 6) | One life per attempt; the suspicion meter is the warning bar before capture | `src/guards/guard.js` | U, B2 |
 | Obstacles / enemies (Step 5) | Patrolling guards with A* chase, lasers, locked doors, civilians as look-alikes | `src/guards/`, `src/world/civilians.js` | U, B2, B5, D |
 | Sound with mute option (Step 10) | Web Audio synthesised sound, volume setting, M key and 🔊 button, remembered after reload | `src/audio/sound.js`, `src/settings.js` | B10 |
-| Test the game (Step 11) | 77 unit tests, 88 browser checks, 38 score checks on dev and production builds (64 with the LLM enabled), phone check | `tests/` | All, see [test-report.md](test-report.md) |
+| Test the game (Step 11) | 80 unit tests, 92 browser checks, 38 score checks on dev and production builds (64 with the LLM enabled), phone check | `tests/` | All, see [test-report.md](test-report.md) |
 | Online hosting / public URL (Step 12) | Live on GitHub Pages: https://reetika-k.github.io/neural-heist/, published by GitHub Actions; LLM proxy prepared as a Cloudflare Worker | `.github/workflows/deploy-pages.yml`, `docs/DEPLOYMENT.md`, `worker/` | B (full browser test against the live site) |
 | Game instructions | How to play screen, Lab hints, README | `#screen-howto`, `README.md` | B1, P |
 | Project explanation | Report with 15 sections, concept, architecture | `docs/CAPSTONE_DOCUMENTATION.md`, `concept.md`, `architecture.md` | – |
