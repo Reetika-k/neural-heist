@@ -61,3 +61,17 @@ test("suspend and resume follow the page being hidden and shown", () => {
   globalThis.window.AudioContext.prototype.resume = function () { this.state = "running"; st = "running"; };
   const s = createSound(); s.unlock(); s.suspend(); assert.equal(st, "suspended"); s.resume(); assert.equal(st, "running");
 });
+
+test("a sound started while the page is hidden does not wake the audio up", () => {
+  let st = "running";
+  globalThis.window.AudioContext.prototype.suspend = function () { this.state = "suspended"; st = "suspended"; };
+  globalThis.window.AudioContext.prototype.resume = function () { this.state = "running"; st = "running"; };
+  globalThis.document = { hidden: false };
+  const s = createSound(); s.unlock(); s.suspend();
+  globalThis.document.hidden = true;
+  s.play("pickup"); s.resume();
+  assert.equal(st, "suspended", "still silent while hidden");
+  globalThis.document.hidden = false; s.resume();
+  assert.equal(st, "running", "resumes once visible");
+  delete globalThis.document;
+});

@@ -8,8 +8,11 @@ export function createSound({ volume = 0.7, muted = false, music: musicLevel = 0
   let ctx = null, master = null, musicGain = null, music = null, sirenOsc = null;
   const state = { volume, muted, music: musicLevel, footsteps, ducked: false, started: false };
 
+  // never wake the audio up while the page is hidden (it stays silent until the player comes back)
+  const pageHidden = () => typeof document !== "undefined" && document.hidden;
   function ensure() {
-    if (ctx) { if (ctx.state === "suspended") ctx.resume(); return true; }
+    // if (ctx) { if (ctx.state === "suspended") ctx.resume(); return true; } // RETIRED 2026-10-24: a sound started while hidden woke the audio up
+    if (ctx) { if (ctx.state === "suspended" && !pageHidden()) ctx.resume(); return true; }
     try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return false; }
     master = ctx.createGain(); master.connect(ctx.destination);
     // RETIRED 2026-10-24: fixed music level. musicGain = ctx.createGain(); musicGain.gain.value = 0.18; musicGain.connect(master);
@@ -122,8 +125,10 @@ export function createSound({ volume = 0.7, muted = false, music: musicLevel = 0
     duck(on) { state.ducked = on; apply(); },
     /** Stop all audio while the page is hidden or closed; carry on when it is visible again. */
     suspend() { if (ctx && ctx.state === "running") ctx.suspend(); },
-    resume() { if (ctx && ctx.state === "suspended") ctx.resume(); },
+    resume() { if (ctx && ctx.state === "suspended" && !pageHidden()) ctx.resume(); },
     setMuted(m) { state.muted = m; apply(); },
     get audible() { return !state.muted && state.volume > 0; },
+    /** "running", "suspended" or "none" (no audio yet): lets tests confirm that a hidden page is really silent. */
+    get contextState() { return ctx ? ctx.state : "none"; },
   };
 }

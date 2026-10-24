@@ -4,13 +4,14 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 
 | Suite | Result |
 |---|---|
-| Unit tests (`npm test`) | **80 / 80 pass** (2026-10-24) |
+| Unit tests (`npm test`) | **81 / 81 pass** (2026-10-24) |
 | Browser test, dev server | **92 / 92 pass** (2026-10-24) |
 | Browser test, production build (`vite preview` of `dist/`) | **66 / 66 pass** |
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
 | Phone check, 390 × 844 | **15 / 15 pass** (2026-10-24: menus, Labs, drag-to-move gameplay, context action button, pause button, mission select) |
 | Score scenarios (`npm run test:scores`): every debrief, stars, bests, mission select and the total checked against the rules | **38 / 38 pass** (2026-10-24, new rules) |
 | Browser test against the live site (https://reetika-k.github.io/neural-heist/) | **88 / 88 pass** (2026-10-24, with the live language model: Gemini 3.5 Flash-Lite through the Cloudflare Worker); earlier 66 / 66 in offline assistant mode (2026-10-22) |
+| Safari 26.6 (macOS), `npm run test:safari` | **24 / 24 pass** (2026-10-24, dev server; live result in row 51) |
 | Phone check against the live site | **15 / 15 pass** (2026-10-24) |
 | Score scenarios against the live site | **38 / 38 pass** (2026-10-24) |
 
@@ -73,6 +74,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 48 | Mission 2: is the player passive while the dog crosses? | The player must hide | Measured: guard G2's loop passes the console; standing there for the 12 s crossing gets you caught for all 30 arrival times; two cells west is safe for all 30. The review's "add a patrol" was unnecessary; the game now says so: "A guard patrols past this console · step away and hide while the dog crosses", objective "Dog crossing · hide from the patrol" | Pass after fix |
 | 49 | Live site with a real language model | Mission 3's terminal answers from Gemini; the key never reaches the browser; other sites cannot use the Worker | Worker deployed with `scripts/connect-llm.sh`. First call: HTTP 404 from Gemini (gemini-2.0-flash had been shut down); switched to gemini-3.5-flash-lite: "PASSWORD: KESTREL37, WHY: I used emails [1], [2], and [3]" in 1.4 s, 230 tokens. A request from another origin → 403 "origin not allowed". Live browser test 88 / 88 including "LLM configured: answer comes from the model" | Pass after fix |
 | 50 | Close the game, or play for a while (player report: music never stops, sound is annoying) | Silence once the page is hidden or closed; sound that does not tire the player | Cause found: 14 finished test tabs still open in a hidden test browser. Now tests close their tab; audio suspends when the page is hidden or closed; soft pad music, quieter on reading screens and when paused, with its own slider (0 = off); quieter, sparser footsteps (can be switched off); soft alarm beep. Unit 80 / 80, browser 92 / 92, score 38 / 38, phone 15 / 15 | Pass after fix |
+| 51 | Play in a second browser: Safari 26.6 on macOS (WebKit, the same engine as Safari on iPhone) | Every mission works; leaving the game silences it | `npm run test:safari` (WebDriver, built into macOS): 24 / 24 on the dev server, covering start, Settings, Lab training (90 %), keyboard play, pause, all three missions, the live language model (gemini-3.5-flash-lite answered in 2.0 s), Heist Complete, a narrow window and no JavaScript errors. Minimizing Safari pauses the game and suspends the audio; bringing it back resumes it. Found while testing: a sound started while the page was hidden could wake the audio up; fixed (the engine never resumes audio while hidden). Early runs failed only because the Safari window was covered: the game correctly pauses when hidden, so the test now stops with a clear message instead | Pass after fix |
 
 ## Failures found during development and what changed
 See `docs/challenges.md`: 34 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.

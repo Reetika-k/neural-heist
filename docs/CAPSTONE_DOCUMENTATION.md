@@ -168,7 +168,7 @@ Why each line is there: "ONLY the emails below" keeps the answer grounded in ret
 
 ## 11. Testing report
 
-Main test scenarios (all run in a real browser or as automated tests; the full list of 50 is in `docs/test-report.md`):
+Main test scenarios (all run in a real browser or as automated tests; the full list of 51 is in `docs/test-report.md`):
 
 | # | User action | Expected result | Actual result | Status |
 |---|---|---|---|---|
@@ -192,10 +192,11 @@ Automated test suites, current runs (2026-10-24):
 
 | Suite | Result |
 |---|---|
-| Unit tests (`npm test`): game rules, guards, A*, classifier, Q-learning, retrieval, Worker, sound | 80 / 80 pass |
+| Unit tests (`npm test`): game rules, guards, A*, classifier, Q-learning, retrieval, Worker, sound | 81 / 81 pass |
 | Browser test (`npm run test:e2e`): every screen, all three missions, Labs, Brain panel, export, settings, pause, sound | 92 / 92 pass on the dev server; 88 / 88 on the live site with the language model connected (before the 4 sound checks were added) |
 | Score scenarios (`npm run test:scores`): every debrief checked against the scoring rules | 38 / 38 pass (dev and live) |
 | Phone check (`npm run test:phone`), 390 × 844 | 15 / 15 pass (dev and live) |
+| Second browser: Safari 26.6 on macOS (`npm run test:safari`) | 24 / 24 pass: all three missions, the live language model, and leaving the game silences it |
 
 Key measured results (all reproducible with fixed seeds, collected in the dashboard):
 
