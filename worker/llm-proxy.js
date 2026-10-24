@@ -46,7 +46,12 @@ async function callGemini(env, prompt, fetchImpl) {
     method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 200 } }),
   });
-  if (!res.ok) throw new Error(`gemini ${res.status}`);
+  if (!res.ok) {
+    // Google's reason goes to the private Worker log only (npx wrangler tail); visitors just see "LLM unavailable".
+    // The request URL (which carries the key) is never logged.
+    console.error(`gemini ${res.status}:`, (await res.text().catch(() => "")).slice(0, 400));
+    throw new Error(`gemini ${res.status}`);
+  }
   const data = await res.json();
   return { answer: data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "", model, tokens: data.usageMetadata?.totalTokenCount };
 }

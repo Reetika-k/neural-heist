@@ -2,6 +2,11 @@ name = "neural-heist-llm"
 main = "llm-proxy.js"
 compatibility_date = "2026-10-01"
 
+# 2026-10-24: run the Worker in a fixed Google Cloud region. Cloudflare otherwise runs it at the data centre nearest the
+# visitor, and from some of those Gemini answers HTTP 400 "User location is not supported for the API use".
+[placement]
+region = "gcp:us-central1"
+
 [vars]
 # Only the live game may call the Worker (GitHub Pages origin; no path). For Cloudflare Pages use "https://<project>.pages.dev".
 ALLOWED_ORIGIN = "https://reetika-k.github.io"
