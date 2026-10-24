@@ -56,12 +56,13 @@ The first time you play each mission, a short guide explains what to do (the gam
 ## Tests
 
 ```bash
-npm test                 # 80 unit tests (Node, no browser)
+npm test                 # 81 unit tests (Node, no browser)
 # browser tests: start the dev server, then Chrome with
 #   --headless=new --mute-audio --remote-debugging-port=9337 --remote-allow-origins=*   (--mute-audio: test runs stay silent)
 npm run test:e2e         # 92 checks: every screen, pause menu, all three missions, Brain panel, export, settings
 npm run test:scores      # 38 score checks: every debrief, stars, best scores, mission select and the Heist Complete total
 npm run test:phone       # 15 checks at 390 px width
+npm run test:safari      # 24 checks in real Safari (safaridriver -p 4444; Safari → Develop → Allow Remote Automation)
 ```
 
 Results: [docs/test-report.md](docs/test-report.md). All 12 README scenarios pass.

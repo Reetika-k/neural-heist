@@ -17,7 +17,8 @@
     "dashboard": "node scripts/build-dashboard.mjs",
     "test:scores": "node tests/score-scenarios.mjs",
     "submission": "node scripts/build-submission.mjs",
-    "record:demo": "node tools/record-walkthrough.mjs"
+    "record:demo": "node tools/record-walkthrough.mjs",
+    "test:safari": "node tests/safari-check.mjs"
   },
   "dependencies": {
     "three": "^0.186.1",
