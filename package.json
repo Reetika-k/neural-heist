@@ -15,7 +15,8 @@
     "test:phone": "node tests/phone-check.mjs",
     "test:tap": "mkdir -p tests/results && node --test --test-reporter=tap --test-reporter-destination=tests/results/unit-latest.tap tests/*.test.mjs",
     "dashboard": "node scripts/build-dashboard.mjs",
-    "test:scores": "node tests/score-scenarios.mjs"
+    "test:scores": "node tests/score-scenarios.mjs",
+    "submission": "node scripts/build-submission.mjs"
   },
   "dependencies": {
     "three": "^0.186.1",
