@@ -6,6 +6,8 @@ Two pieces: the static game (GitHub Pages, or Cloudflare Pages as an alternative
 
 Model names change: Google shut down `gemini-2.0-flash` (the Worker then got HTTP 404 from Gemini). To change the model, edit `GEMINI_MODEL` in `worker/wrangler.toml` and run `npx wrangler deploy` in `worker/` (the key secret is kept). Check the current names at https://ai.google.dev/gemini-api/docs/models.
 
+The Worker is pinned to `[placement] region = "gcp:us-central1"`: without it, Cloudflare sometimes ran it in a region where Gemini answers 400 "User location is not supported". To see Google's reason for any failure, run `npx wrangler tail` in `worker/` (the key is never logged).
+
 Verified locally: `npm run build` produces `dist/` (relative asset paths, `data/emails.json` included) and the full browser test passes 66/66 against `vite preview` of that build (2026-10-22).
 
 ## 1. Alternative: game on Cloudflare Pages

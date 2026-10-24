@@ -168,7 +168,7 @@ Why each line is there: "ONLY the emails below" keeps the answer grounded in ret
 
 ## 11. Testing report
 
-Main test scenarios (all run in a real browser or as automated tests; the full list of 51 is in `docs/test-report.md`):
+Main test scenarios (all run in a real browser or as automated tests; the full list of 52 is in `docs/test-report.md`):
 
 | # | User action | Expected result | Actual result | Status |
 |---|---|---|---|---|
@@ -212,7 +212,7 @@ Key measured results (all reproducible with fixed seeds, collected in the dashbo
 
 ## 12. Challenges and solutions
 
-`docs/challenges.md` lists 34 problems and fixes, each with what broke, the cause, how AI helped and the fix. A selection:
+`docs/challenges.md` lists 35 problems and fixes, each with what broke, the cause, how AI helped and the fix. A selection:
 
 | Problem | Cause | Fix |
 |---|---|---|
@@ -222,6 +222,7 @@ Key measured results (all reproducible with fixed seeds, collected in the dashbo
 | Playtesters did not know how to play; not usable on phones | no guidance; keyboard-only design | first-play guide, objective arrow and beacons; drag-to-move and a context button |
 | The game crawled on slow machines | a frame-time cap meant to stop wall tunnelling | fixed-size physics substeps |
 | Live Gemini returned 404 | the configured model had been shut down by Google | switched to gemini-3.5-flash-lite after checking the current model list |
+| Gemini sometimes answered 400 "User location is not supported" | Cloudflare ran the Worker in a region Google does not serve | the Worker is pinned to a Google Cloud region (gcp:us-central1) |
 | Music kept playing after the browser was closed; the sound was tiring | finished test tabs left open in a hidden test browser; a hidden tab was never silenced; a buzzy, repetitive loop | tests close their tab; audio suspends when the page is hidden; calmer music with its own slider; quieter, optional footsteps; soft alarm beep |
 
 ## 13. Final outcome
