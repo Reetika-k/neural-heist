@@ -1,5 +1,5 @@
 // Browser test via Chrome DevTools Protocol (no dependencies).
-// 1) npm run dev   2) Chrome --headless=new --remote-debugging-port=9337 --remote-allow-origins=*
+// 1) npm run dev   2) Chrome --headless=new --mute-audio --remote-debugging-port=9337 --remote-allow-origins=*
 // 3) node tests/e2e-browser.mjs [url]
 import fs from "node:fs";
 import os from "node:os";
@@ -39,6 +39,11 @@ try {
   await js(`document.querySelector("#btn-settings").click()`); await sleep(150);
   await js(`(() => { const f = document.querySelector("#settings-form"); f.difficulty.value = "hard"; f.palette.value = "colorblind"; f.quality.value = "low"; f.muted.checked = true; f.dispatchEvent(new Event("input", { bubbles: true })); })()`); await sleep(150);
   check("Settings apply immediately (hard: guards see 10 units; muted)", await js(`window.__heist.settings.difficulty === "hard" && window.__heist.sound.state.muted && /10 units/.test(document.querySelector("#set-diff-desc").textContent)`));
+  // 2026-10-24: calmer sound: music has its own level (default 40 %, 0 = off) and footsteps can be switched off
+  check("Settings: music defaults to 40 %, footsteps on", await js(`(() => { const f = document.querySelector("#settings-form"); return f.music.value === "40" && f.footsteps.checked && document.querySelector("#set-music-v").textContent === "40%"; })()`));
+  await js(`(() => { const f = document.querySelector("#settings-form"); f.music.value = "0"; f.footsteps.checked = false; f.dispatchEvent(new Event("input", { bubbles: true })); })()`); await sleep(100);
+  check("Settings: music 0 shows 'off' and silences the music; footsteps off", await js(`window.__heist.sound.state.music === 0 && !window.__heist.sound.state.footsteps && document.querySelector("#set-music-v").textContent === "off"`));
+  await js(`(() => { const f = document.querySelector("#settings-form"); f.music.value = "40"; f.footsteps.checked = true; f.dispatchEvent(new Event("input", { bubbles: true })); })()`); await sleep(100);
   await send("Page.reload"); await sleep(1500); await waitFor("!!window.__heist", 30000);
   check("README scenario 10: settings (including mute) persist after reload", await js(`window.__heist.settings.difficulty === "hard" && window.__heist.settings.palette === "colorblind" && window.__heist.sound.state.muted && document.querySelector("#btn-mute").textContent === "🔇"`));
   await press("m", "KeyM"); await sleep(100);
@@ -291,8 +296,10 @@ try {
   await key("keyDown", "ArrowRight", "ArrowRight"); await sleep(1000); await key("keyUp", "ArrowRight", "ArrowRight");
   const pp1 = await js(`({ ...${S}.pos, t: ${S}.mission.time })`);
   check("Esc pauses the mission: menu shown, player and clock frozen", await js(`${S}.screen === "paused"`) && pp0.x === pp1.x && pp0.t === pp1.t);
+  check("paused: the music drops to its quieter level", await js(`window.__heist.sound.state.ducked`));
   await press("Escape", "Escape"); await sleep(200);
   check("Esc again resumes", await js(`${S}.screen === "playing"`));
+  check("playing again: music back at full level", await js(`!window.__heist.sound.state.ducked`));
   await js(`document.querySelector("#btn-pause").click()`); await sleep(150);
   check("the pause button opens the same menu", await js(`${S}.screen === "paused"`));
   await js(`document.querySelector("#btn-pause-lab").click()`); await sleep(300);
@@ -303,4 +310,6 @@ try {
 } catch (e) { check("flow completed without exception", false, e.message); }
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${results.filter(Boolean).length} / ${results.length} checks passed`);
+// close this test's tab: left open, finished test tabs kept playing the game's music in the background (2026-10-24)
+await fetch(`http://localhost:9337/json/close/${target.id}`).catch(() => {});
 ws.close(); process.exit(results.every(Boolean) ? 0 : 1);

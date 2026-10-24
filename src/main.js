@@ -49,7 +49,8 @@ const getStars = (id) => Number(store.get(starsKey(id), 0)) || 0;
 const getBest = (id) => Number(store.get(bestKey(id), 0)) || 0;
 
 const settings = loadSettings();
-const sound = createSound({ volume: settings.volume, muted: settings.muted });
+// const sound = createSound({ volume: settings.volume, muted: settings.muted }); // RETIRED 2026-10-24: no music level or footsteps switch
+const sound = createSound({ volume: settings.volume, muted: settings.muted, music: settings.music, footsteps: settings.footsteps });
 // The game needs WebGL (3D graphics in the browser). If the browser has it turned off (hardware acceleration
 // disabled, or Chrome's graphics process crashed), say so on the start screen instead of failing silently:
 // without this check the renderer threw on load and every button, including Start, stopped responding.
@@ -268,6 +269,7 @@ const SCREENS = ["start", "briefing", "lab", "caught", "debrief", "complete", "t
 function show(name) {
   state.screen = name;
   document.body.dataset.screen = name; // lets CSS place the 🔊 button per screen
+  sound.duck(name !== "playing"); // full music only while playing; quieter while reading briefings, Labs and menus
   for (const s of SCREENS) $(`#screen-${s}`).classList.toggle("hidden", name !== s);
   const inMission = ["playing", "caught", "debrief", "terminal", "paused"].includes(name);
   $("#hud").classList.toggle("hidden", !inMission);
@@ -336,7 +338,7 @@ function showMissions() {
 
 // ---------- settings, how to play, mute ----------
 function applySettings() {
-  sound.setVolume(settings.volume); sound.setMuted(settings.muted);
+  sound.setVolume(settings.volume); sound.setMuted(settings.muted); sound.setMusic(settings.music); sound.setFootsteps(settings.footsteps);
   setQuality(settings.quality);
   saveSettings(settings);
   $("#btn-mute").textContent = settings.muted ? "🔇" : "🔊";
@@ -348,17 +350,19 @@ function openSettings() {
   const f = $("#settings-form");
   f.difficulty.value = settings.difficulty; f.quality.value = settings.quality; f.palette.value = settings.palette;
   f.volume.value = Math.round(settings.volume * 100); f.muted.checked = settings.muted;
-  $("#set-volume-v").textContent = `${f.volume.value}%`;
+  f.music.value = Math.round(settings.music * 100); f.footsteps.checked = settings.footsteps;
+  $("#set-volume-v").textContent = `${f.volume.value}%`; $("#set-music-v").textContent = musicLabel(f.music.value);
   $("#set-diff-desc").textContent = describeDifficulty(settings.difficulty);
   show("settings");
 }
+const musicLabel = (v) => (Number(v) === 0 ? "off" : `${v}%`);
 const describeDifficulty = (d) => { const x = DIFFICULTY[d]; return `Guards see ${x.range} units, move at ${Math.round(x.speedMul * 100)}% speed, notice you ${x.fillMul === 1 ? "at normal speed" : x.fillMul < 1 ? "more slowly" : "faster"}.`; };
 $("#settings-form").addEventListener("input", (e) => {
   const f = e.currentTarget;
   const wasMuted = settings.muted;
-  Object.assign(settings, { difficulty: f.difficulty.value, quality: f.quality.value, palette: f.palette.value, volume: Number(f.volume.value) / 100, muted: f.muted.checked });
+  Object.assign(settings, { difficulty: f.difficulty.value, quality: f.quality.value, palette: f.palette.value, volume: Number(f.volume.value) / 100, muted: f.muted.checked, music: Number(f.music.value) / 100, footsteps: f.footsteps.checked });
   if (settings.muted !== wasMuted) announceSound();
-  $("#set-volume-v").textContent = `${f.volume.value}%`;
+  $("#set-volume-v").textContent = `${f.volume.value}%`; $("#set-music-v").textContent = musicLabel(f.music.value);
   $("#set-diff-desc").textContent = describeDifficulty(settings.difficulty);
   applySettings();
 });
@@ -396,7 +400,10 @@ $("#btn-resume").addEventListener("click", resume);
 $("#btn-pause-restart").addEventListener("click", restart);
 $("#btn-pause-lab").addEventListener("click", openLab);
 $("#btn-pause-quit").addEventListener("click", () => show("start"));
-document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); }); // switching tabs pauses
+// RETIRED 2026-10-24: paused the game but the audio kept playing in a hidden tab.
+// document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); }); // switching tabs pauses
+document.addEventListener("visibilitychange", () => { if (document.hidden) { pause(); sound.suspend(); } else sound.resume(); }); // switching tabs pauses the game and silences it
+window.addEventListener("pagehide", () => sound.suspend()); // closing or leaving the page stops all sound at once
 $("#term-relab").addEventListener("click", openLab);
 $("#btn-complete-menu").addEventListener("click", () => show("start"));
 
@@ -752,7 +759,9 @@ function simulate(dt) {
     sound.siren(state.mission.alarm !== null && !state.mission.outcome);
     // footsteps
     stepTimer -= dt;
-    if ((dir.dx || dir.dz) && stepTimer <= 0) { sound.play("step", sneaking); stepTimer = sneaking ? 0.5 : 0.32; }
+    // RETIRED 2026-10-24: a step every 0.32 s walking / 0.5 s sneaking felt like constant clicking.
+    // if ((dir.dx || dir.dz) && stepTimer <= 0) { sound.play("step", sneaking); stepTimer = sneaking ? 0.5 : 0.32; }
+    if ((dir.dx || dir.dz) && stepTimer <= 0) { sound.play("step", sneaking); stepTimer = sneaking ? 0.7 : 0.45; }
     updateHud();
     if (state.mission.outcome) endMission(state.mission.outcome);
   }

@@ -5,7 +5,9 @@ export const DIFFICULTY = {
   hard: { label: "Hard", range: 10, speedMul: 1.15, fillMul: 1.3 },
 };
 const KEY = "neural-heist.settings";
-export const DEFAULT_SETTINGS = { difficulty: "normal", volume: 0.7, muted: false, quality: "high", palette: "standard" };
+// 2026-10-24: music (separate level, default 40 %) and footsteps (on/off) added after "the sound is so annoying".
+// export const DEFAULT_SETTINGS = { difficulty: "normal", volume: 0.7, muted: false, quality: "high", palette: "standard" };
+export const DEFAULT_SETTINGS = { difficulty: "normal", volume: 0.7, muted: false, music: 0.4, footsteps: true, quality: "high", palette: "standard" };
 
 export function loadSettings() {
   try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch { return { ...DEFAULT_SETTINGS }; }

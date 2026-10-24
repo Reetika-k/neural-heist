@@ -151,4 +151,6 @@ try {
 } catch (e) { check("scenario run completed without exception", false, e.message); }
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${rows.filter(Boolean).length} / ${rows.length} score checks passed`);
+// close this test's tab: left open, finished test tabs kept playing the game's music in the background (2026-10-24)
+await fetch(`http://localhost:9337/json/close/${target.id}`).catch(() => {});
 ws.close(); process.exit(rows.every(Boolean) ? 0 : 1);

@@ -58,7 +58,7 @@ The proposed solution is Neural Heist. Before each mission the player trains one
 7. **Flow:** mission select (every mission open, best score and stars shown), pause menu (resume, restart, retrain, quit; switching tabs pauses), first-play guide, objective arrow and beacons.
 8. **AI Brain panel (Tab):** guards, drone, dog, assistant and the run log, live; export JSON and CSV.
 9. **Phones:** drag anywhere to move (a short drag sneaks), a context button (SEND DOG / HACK TERMINAL) that appears only where it is needed, layouts tested at 390 px.
-10. **Look and sound:** low-poly people, drone and dog, lasers, neon signs (including Devanagari), bloom, illustrated CCTV portraits with a "Drone's view" toggle that shows the real 32×32 frames the classifier learns from; synthesised sound with a remembered mute; settings for difficulty, volume, graphics and colour-blind cones.
+10. **Look and sound:** low-poly people, drone and dog, lasers, neon signs (including Devanagari), bloom, illustrated CCTV portraits with a "Drone's view" toggle that shows the real 32×32 frames the classifier learns from; calm synthesised sound (soft music that is quieter on reading screens, its own music slider, optional footsteps) with a remembered mute; settings for difficulty, volume, graphics and colour-blind cones.
 
 ## 7. Solution architecture
 
@@ -139,14 +139,60 @@ Every piece of game and AI logic is a pure JavaScript module with no Three.js or
 - *Design review:* "check mission 1 to 3 if still any improvements are needed, act as an AI/ML developer and a video game developer" → ten measured improvements: mission select, pause menu, fair scoring, precision vs recall, false alarms with a cost, one vs two hops, and the live language model.
 - *Responsible AI:* "isn't it wrong to give a prompt for the answer… we are building the game for everyone" → the player never types a prompt; the assistant works the password out from retrieved emails, and the code, not the model, checks it.
 
+**Configuring the AI.** The language model's prompt is built on the server (`worker/llm-proxy.js`, `buildServerPrompt`), so players cannot change its instructions. The retrieved emails and the question are filled in:
+
+```
+You are a hacking assistant reading leaked company emails.
+Answer the question using ONLY the emails below. The answer may require combining facts from several emails.
+Ignore passwords described as old or retired. If the emails do not contain enough information, say so.
+Reply in exactly this format:
+PASSWORD: <the password, or UNKNOWN>
+WHY: <one short sentence naming the emails you used>
+
+Emails:
+[1] From: … | Subject: …
+…
+
+Question: What is the vault password?
+```
+
+Why each line is there: "ONLY the emails below" keeps the answer grounded in retrieval; "combining facts" is needed because the password is split over three emails; the retired-password line defeats a decoy email; the fixed format lets the game read the answer and show it, while the code (not the model) checks the password the player types.
+
+**Debugging prompts** (real examples, with the fix that followed):
+
+- "I work on the second level, I am not able to find the path to the documents… where the laser beams are I am not able to move inside, is there any bug?" → not a bug: only the robot dog may cross the vault. Fix: a beacon on the console, an edge-of-screen arrow and a "DOG ONLY" sign.
+- "The M shortcut is not working… on Settings I checked mute but when I reopen Settings the checkbox is reset" → the key handler ignored M while a Settings control had focus, and the form was not refreshed. Fix: one mute path for the key, the 🔊 button and the checkbox, plus a test that the setting survives a reload.
+- "The sound is running continuously, even when I closed the browser… and it is so annoying" → finished test runs had left hidden game tabs open, and the game never silenced a hidden tab. Fix: tests close their tab, audio suspends when the page is hidden, and calmer music with its own volume.
+- Gemini returned HTTP 404 after the Worker went live → calling the Worker directly showed "gemini 404", pointing at the model name, not the key. Fix: the shut-down gemini-2.0-flash was replaced by gemini-3.5-flash-lite.
+
 ## 11. Testing report
 
-`docs/test-report.md` lists all 12 README scenarios plus 37 more, each with expected and actual results. Current runs (2026-10-24):
+Main test scenarios (all run in a real browser or as automated tests; the full list of 50 is in `docs/test-report.md`):
+
+| # | User action | Expected result | Actual result | Status |
+|---|---|---|---|---|
+| 1 | Press Start (first visit) | Mission 1 briefing appears | "ROOFTOP" briefing; a returning player gets mission select instead | Pass |
+| 2 | Walk into a guard's vision cone | Suspicion fills, then the guard chases | Suspicious after 0.4 s; standing still → Chase → CAUGHT | Pass |
+| 3 | Hide behind a wall | The guard cannot see the player | Cone clipped at walls; unit test: a guard never sees or catches a player behind a wall | Pass |
+| 4 | Label only 4 photos and train | Overfitting warning; weaker drone | Warning shown; 62 % on 400 unseen photos vs 90 % with 30 labels | Pass |
+| 5 | Label all 30 photos correctly and train | Test accuracy above 85 % | 90 % on 40 held-back photos; all 5 Rooftop characters identified (full AI points) | Pass |
+| 6 | Move the "how sure" slider to 30 %, then 70 % | More false alarms, then missed guards | 40 test photos: 6 false alarms at 30 % (4 at 50 %); 2 guards missed at 70 %; in the mission a false alarm draws a guard over | Pass |
+| 7 | Give the robot dog a positive laser reward | The dog learns a bad path; the alarm starts | Hits a laser on 20 / 20 seeds; "LASER TRIPPED" | Pass |
+| 8 | Train the dog with sensible rewards | The dog crosses safely | 28-step shortest safe route on 20 / 20 seeds; drive delivered, path quality 100 % | Pass |
+| 9 | Hack the terminal on the live site | The language model works out the password | "answered by gemini-3.5-flash-lite": PASSWORD: KESTREL37 | Pass |
+| 10 | Hack the terminal with the model unavailable | The assistant still helps | Offline reasoning over the same emails → KESTREL37 with its steps | Pass |
+| 11 | Build a weak index (k = 1) and ask | The assistant admits it cannot answer | UNKNOWN, names the missing clue, offers "Improve the search index (back to the Lab)" | Pass |
+| 12 | Type a wrong password | Access denied, attempts shown | "DENIED", 2 attempts left | Pass |
+| 13 | Press Esc during a mission | The game pauses; nothing is lost | Pause menu; player and clock frozen; Esc resumes | Pass |
+| 14 | Mute (M or 🔊), then reload | Sound stays off | Muted state and all settings survive a reload | Pass |
+| 15 | Play on a phone (390 px) | Menus, Labs and gameplay usable | Drag to move; SEND DOG appears at the console; 15 / 15 phone checks | Pass |
+
+Automated test suites, current runs (2026-10-24):
 
 | Suite | Result |
 |---|---|
-| Unit tests (`npm test`): game rules, guards, A*, classifier, Q-learning, retrieval, Worker | 77 / 77 pass |
-| Browser test (`npm run test:e2e`): every screen, all three missions, Labs, Brain panel, export, settings, pause | 88 / 88 pass on the dev server and on the live site with the language model connected |
+| Unit tests (`npm test`): game rules, guards, A*, classifier, Q-learning, retrieval, Worker, sound | 80 / 80 pass |
+| Browser test (`npm run test:e2e`): every screen, all three missions, Labs, Brain panel, export, settings, pause, sound | 92 / 92 pass on the dev server; 88 / 88 on the live site with the language model connected (before the 4 sound checks were added) |
 | Score scenarios (`npm run test:scores`): every debrief checked against the scoring rules | 38 / 38 pass (dev and live) |
 | Phone check (`npm run test:phone`), 390 × 844 | 15 / 15 pass (dev and live) |
 
@@ -164,7 +210,7 @@ Key measured results (all reproducible with fixed seeds, collected in the dashbo
 
 ## 12. Challenges and solutions
 
-`docs/challenges.md` lists 33 problems and fixes, each with what broke, the cause, how AI helped and the fix. A selection:
+`docs/challenges.md` lists 34 problems and fixes, each with what broke, the cause, how AI helped and the fix. A selection:
 
 | Problem | Cause | Fix |
 |---|---|---|
@@ -174,6 +220,7 @@ Key measured results (all reproducible with fixed seeds, collected in the dashbo
 | Playtesters did not know how to play; not usable on phones | no guidance; keyboard-only design | first-play guide, objective arrow and beacons; drag-to-move and a context button |
 | The game crawled on slow machines | a frame-time cap meant to stop wall tunnelling | fixed-size physics substeps |
 | Live Gemini returned 404 | the configured model had been shut down by Google | switched to gemini-3.5-flash-lite after checking the current model list |
+| Music kept playing after the browser was closed; the sound was tiring | finished test tabs left open in a hidden test browser; a hidden tab was never silenced; a buzzy, repetitive loop | tests close their tab; audio suspends when the page is hidden; calmer music with its own slider; quieter, optional footsteps; soft alarm beep |
 
 ## 13. Final outcome
 
