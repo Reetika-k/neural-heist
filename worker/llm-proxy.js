@@ -40,7 +40,8 @@ Question: ${String(question).slice(0, 300)}`;
 }
 
 async function callGemini(env, prompt, fetchImpl) {
-  const model = env.GEMINI_MODEL || "gemini-2.0-flash";
+  // const model = env.GEMINI_MODEL || "gemini-2.0-flash"; // RETIRED 2026-10-24: model shut down (404)
+  const model = env.GEMINI_MODEL || "gemini-3.5-flash-lite";
   const res = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`, {
     method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 200 } }),
