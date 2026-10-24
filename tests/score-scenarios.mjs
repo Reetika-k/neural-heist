@@ -1,6 +1,6 @@
 // Score scenarios: plays the real game in a browser (Chrome on --remote-debugging-port=9337) through many outcomes
 // and checks every debrief against the scoring rules, computed independently here:
-//   score = 1000 finish + 500 if never chased + 20 per second under par + round(AI × 500); 0 if the mission is lost
+//   score = 1000 finish + 500 if never chased + 10 per second under par (at most 300) + round(AI × 500); 0 if lost
 //   stars = finished · never chased · under par;   best = highest score per mission (never lowered);
 //   Heist Complete total = sum of the three bests;  bests survive a reload.
 // Usage: node tests/score-scenarios.mjs [url]

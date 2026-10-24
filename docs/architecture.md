@@ -22,7 +22,7 @@ Browser game · Vite + Three.js  (src/main.js: screens, game loop with fixed 0.0
   │
   ├── AI Brain panel (Tab)  src/brain-panel/   live values from every AI · Export JSON / CSV
   │
-  └── Hacking assistant ──POST /ask──▶ Cloudflare Worker (worker/llm-proxy.js) ──▶ Gemini API (Groq backup)
+  └── Hacking assistant ──POST /ask──▶ Cloudflare Worker (worker/llm-proxy.js) ──▶ Gemini API, gemini-3.5-flash-lite (Groq backup)   [live]
                          │                (origin allow-list, 20 req/h/IP, server-side prompt, key secret)
                          ├── dev: tools/llm-dev-proxy.mjs ──▶ Ollama (qwen2:7b)
                          └── no LLM answer: offline reasoning over the same retrieved emails (src/teammates/reasoner.js)

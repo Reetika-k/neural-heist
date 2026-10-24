@@ -2,7 +2,9 @@
 
 **Live:** https://reetika-k.github.io/neural-heist/ (GitHub Pages, published by `.github/workflows/deploy-pages.yml` on every push to `main`: `npm ci` → `npm test` → `npm run build` → deploy `dist/`).
 
-Two pieces: the static game (GitHub Pages, or Cloudflare Pages as an alternative) and the LLM proxy (a Cloudflare Worker holding the Gemini key). The game works without the Worker: Mission 3's assistant then reasons offline over the retrieved emails (`src/teammates/reasoner.js`) and answers in the same format.
+Two pieces: the static game (GitHub Pages, or Cloudflare Pages as an alternative) and the LLM proxy (a Cloudflare Worker holding the Gemini key). **Status (2026-10-24): both are live.** Worker: `https://neural-heist-llm.reetikakukreja12.workers.dev` with `GEMINI_MODEL = "gemini-3.5-flash-lite"`; the repository variable `VITE_LLM_URL` points the Pages build at it. The game also works without the Worker: Mission 3's assistant then reasons offline over the retrieved emails (`src/teammates/reasoner.js`) and answers in the same format.
+
+Model names change: Google shut down `gemini-2.0-flash` (the Worker then got HTTP 404 from Gemini). To change the model, edit `GEMINI_MODEL` in `worker/wrangler.toml` and run `npx wrangler deploy` in `worker/` (the key secret is kept). Check the current names at https://ai.google.dev/gemini-api/docs/models.
 
 Verified locally: `npm run build` produces `dist/` (relative asset paths, `data/emails.json` included) and the full browser test passes 66/66 against `vite preview` of that build (2026-10-22).
 
@@ -44,8 +46,8 @@ VITE_LLM_URL=http://localhost:8787/ask npm run dev
 
 ## 5. After deploying
 
-- Open the public URL in Chrome, Edge and Firefox, and on a phone (390 px is tested: menus, Labs, and gameplay with the touch joystick and buttons).
-- Play Mission 3 and confirm the terminal says "answered by gemini-…" (or "offline reasoning" if the Worker is not set up).
+- Open the public URL in Chrome, Edge and Firefox, and on a phone (390 px is tested: menus, Labs, drag-to-move gameplay, the context action button, pause and mission select).
+- Play Mission 3 and confirm the terminal says "answered by gemini-…" (or "offline reasoning" if the Worker is not set up). Quick check without the game: `curl -X POST <worker>/ask -H "content-type: application/json" -H "origin: https://reetika-k.github.io" -d '{"question":"What is the vault password?","context":[…]}'`; any other origin gets 403 "origin not allowed".
 - Put the URL in the README and in section 15 of `docs/CAPSTONE_DOCUMENTATION.md`.
 
 ## Project dashboard

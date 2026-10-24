@@ -10,8 +10,9 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
 | Phone check, 390 × 844 | **15 / 15 pass** (2026-10-24: menus, Labs, drag-to-move gameplay, context action button, pause button, mission select) |
 | Score scenarios (`npm run test:scores`): every debrief, stars, bests, mission select and the total checked against the rules | **38 / 38 pass** (2026-10-24, new rules) |
-| Browser test against the live site (https://reetika-k.github.io/neural-heist/) | **66 / 66 pass** (2026-10-22, offline assistant mode) |
-| Phone check against the live site | **6 / 6 pass** |
+| Browser test against the live site (https://reetika-k.github.io/neural-heist/) | **88 / 88 pass** (2026-10-24, with the live language model: Gemini 3.5 Flash-Lite through the Cloudflare Worker); earlier 66 / 66 in offline assistant mode (2026-10-22) |
+| Phone check against the live site | **15 / 15 pass** (2026-10-24) |
+| Score scenarios against the live site | **38 / 38 pass** (2026-10-24) |
 
 ## README scenarios (section 7)
 
@@ -70,6 +71,7 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 46 | Mission 1: does a false alarm cost anything in play? | A wrongly flagged civilian draws a guard | At 30 % sure the well-trained drone flags one Rooftop civilian; the nearest patrolling guard leaves its route to check (A* to the spot, looks around, returns) and the HUD says why. At 50 % with 30 correct labels: no false alarms on the Rooftop | Pass |
 | 47 | Mission 3 Lab: what does the second hop add? | One-hop vs two-hop switch | One hop finds only the rule email (1 of 3 clues) at all 24 chunk/k settings and the assistant cannot answer; two hops reach 3 of 3 and KESTREL37 from chunk 2, k 3. The Lab says "Switch on the second hop"; the mission uses the setting | Pass |
 | 48 | Mission 2: is the player passive while the dog crosses? | The player must hide | Measured: guard G2's loop passes the console; standing there for the 12 s crossing gets you caught for all 30 arrival times; two cells west is safe for all 30. The review's "add a patrol" was unnecessary; the game now says so: "A guard patrols past this console · step away and hide while the dog crosses", objective "Dog crossing · hide from the patrol" | Pass after fix |
+| 49 | Live site with a real language model | Mission 3's terminal answers from Gemini; the key never reaches the browser; other sites cannot use the Worker | Worker deployed with `scripts/connect-llm.sh`. First call: HTTP 404 from Gemini (gemini-2.0-flash had been shut down); switched to gemini-3.5-flash-lite: "PASSWORD: KESTREL37, WHY: I used emails [1], [2], and [3]" in 1.4 s, 230 tokens. A request from another origin → 403 "origin not allowed". Live browser test 88 / 88 including "LLM configured: answer comes from the model" | Pass after fix |
 
 ## Failures found during development and what changed
-See `docs/challenges.md`: 32 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.
+See `docs/challenges.md`: 33 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.
