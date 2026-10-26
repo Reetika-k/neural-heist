@@ -247,7 +247,7 @@ New missions: regression (guard patrol timing), a small neural network (a sound 
 
 ## 15. Project demo
 
-- Gameplay walkthrough video (2 min 13 s, captioned, recorded on the live site): https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough.mp4
+- Gameplay walkthrough video (2 min 23 s, captioned, recorded on the live site): https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough.mp4
 - Five-minute demo script for a live demonstration: `docs/DEMO_SCRIPT.md`.
 - Play online: https://reetika-k.github.io/neural-heist/
 - Project dashboard: https://reetika-k.github.io/neural-heist/dashboard.html
