@@ -4,14 +4,14 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 
 | Suite | Result |
 |---|---|
-| Unit tests (`npm test`) | **81 / 81 pass** (2026-10-24) |
-| Browser test, dev server | **92 / 92 pass** (2026-10-24) |
+| Unit tests (`npm test`) | **90 / 90 pass** (2026-10-26, with Mission 4) |
+| Browser test, dev server | **103 / 103 pass** (2026-10-26, with Mission 4) |
 | Browser test, production build (`vite preview` of `dist/`) | **66 / 66 pass** |
 | Browser test with the LLM configured (Ollama via the dev proxy) | **64 / 64 pass** (qwen2:7b answered KESTREL37 in 16 s; run before the two Mission 2 checks were added) |
-| Phone check, 390 × 844 | **15 / 15 pass** (2026-10-24: menus, Labs, drag-to-move gameplay, context action button, pause button, mission select) |
-| Score scenarios (`npm run test:scores`): every debrief, stars, bests, mission select and the total checked against the rules | **38 / 38 pass** (2026-10-24, new rules) |
+| Phone check, 390 × 844 | **16 / 16 pass** (2026-10-26 with the Mission 4 Lab; 2026-10-24: menus, Labs, drag-to-move gameplay, context action button, pause button, mission select) |
+| Score scenarios (`npm run test:scores`): every debrief, stars, bests, mission select and the total checked against the rules | **56 / 56 pass** (2026-10-26, with Mission 4); 38 / 38 before |
 | Browser test against the live site (https://reetika-k.github.io/neural-heist/) | **88 / 88 pass** (2026-10-24, with the live language model: Gemini 3.5 Flash-Lite through the Cloudflare Worker); earlier 66 / 66 in offline assistant mode (2026-10-22) |
-| Safari 26.6 (macOS), `npm run test:safari` | **24 / 24 pass** (2026-10-24, dev server; live result in row 51) |
+| Safari 26.6 (macOS), `npm run test:safari` | **27 / 27 pass** (2026-10-26, dev server, with Mission 4); 24 / 24 on the live site (row 51) |
 | Phone check against the live site | **15 / 15 pass** (2026-10-24) |
 | Score scenarios against the live site | **38 / 38 pass** (2026-10-24) |
 
@@ -76,6 +76,9 @@ All tests below were actually run (2026-10-20, macOS, Node 25, Chrome 153 headle
 | 50 | Close the game, or play for a while (player report: music never stops, sound is annoying) | Silence once the page is hidden or closed; sound that does not tire the player | Cause found: 14 finished test tabs still open in a hidden test browser. Now tests close their tab; audio suspends when the page is hidden or closed; soft pad music, quieter on reading screens and when paused, with its own slider (0 = off); quieter, sparser footsteps (can be switched off); soft alarm beep. Unit 80 / 80, browser 92 / 92, score 38 / 38, phone 15 / 15 | Pass after fix |
 | 51 | Play in a second browser: Safari 26.6 on macOS (WebKit, the same engine as Safari on iPhone) | Every mission works; leaving the game silences it | `npm run test:safari` (WebDriver, built into macOS): 24 / 24 on the dev server, covering start, Settings, Lab training (90 %), keyboard play, pause, all three missions, the live language model (gemini-3.5-flash-lite answered in 2.0 s), Heist Complete, a narrow window and no JavaScript errors. Minimizing Safari pauses the game and suspends the audio; bringing it back resumes it. Found while testing: a sound started while the page was hidden could wake the audio up; fixed (the engine never resumes audio while hidden). Early runs failed only because the Safari window was covered: the game correctly pauses when hidden, so the test now stops with a clear message instead | Pass after fix |
 | 52 | Live site, Mission 3 terminal, repeated over the day | Gemini answers every time | Safari on the live site: 24 / 24 checks, but the terminal fell back to offline reasoning ("proxy returned 502"). Worker log: Gemini 400 "User location is not supported for the API use" (Cloudflare had run the Worker in a region Google does not serve). Fixed by pinning the Worker to gcp:us-central1; 4 / 4 direct calls then answered KESTREL37 (0.6–1.0 s) | Pass after fix |
+| 53 | Mission 4 Lab: does clustering teach what it should? (measured on the game's server farm) | Scaling and k matter; the tools point to the right k | All readings, scaled, k = 4: the quietest group is exactly the 5 archive servers (F1 1.00). Not scaled: F1 0.67 (data stored dominates). k = 3: the archive is merged into an 11-server group (F1 0.63). Elbow flattens after k = 4 (14.8 → 4.1 → 3.2); silhouette highest at k = 4 (0.77). Unit-tested | Pass |
+| 54 | Mission 4: is the rack search fair? | Good clustering never fails by bad luck; poor clustering costs | First design: 3 empty racks = alarm, but a perfect group flags 5 look-alike archive racks, so bad luck could set off the alarm with perfect AI. Changed to 5: perfect clustering can open at most 4 empty racks (each still brings a guard); with k = 3 the fifth empty rack starts the alarm (score test). A unit test also caught a sign placed over open floor | Pass after fix |
+| 55 | Mission 4 end to end, Chrome, Safari and a phone | The mission plays and scores correctly everywhere | Browser test 103 / 103 (Lab warnings, animation, group table, flagged racks, an empty rack brings a guard, Scanner tab in the Brain panel, debrief "Archive match (F1) 100%", Heist Complete with 4 missions); score scenarios 56 / 56 (good, unscaled, k = 3 alarm, replay; AI score equals an independently computed F1); phone 16 / 16 (Lab fits at 390 px); Safari 27 / 27 | Pass |
 
 ## Failures found during development and what changed
-See `docs/challenges.md`: 35 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.
+See `docs/challenges.md`: 36 entries, including the Node 25 test-runner quirk, the hot-reload test race, camera occlusion, overconfident k-NN confidence, the "Mr." sentence-splitting bug that broke retrieval, bloom washing out cones, and the slow-motion bug at low frame rates.

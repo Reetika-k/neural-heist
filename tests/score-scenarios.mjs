@@ -17,7 +17,7 @@ const press = async (k, code) => { await send("Input.dispatchKeyEvent", { type: 
 const rows = []; const check = (n, ok, d = "") => { rows.push(ok); console.log(`${ok ? "PASS" : "FAIL"}  ${n}${d ? " — " + d : ""}`); };
 const S = "window.__heist.state";
 const park = (x, z) => js(`${S}.guards.forEach(g => { g.patrol = [{ x: ${x}, z: ${z} }]; g.pos = { x: ${x + 0.5}, z: ${z + 0.5} }; g.path = []; g.state = "patrol"; g.suspicion = 0; g.sees = false; })`);
-const PAR = { 1: 35, 2: 45, 3: 50 }; // 2026-10-24: tighter pars; time bonus 10/s capped at 300
+const PAR = { 1: 35, 2: 45, 3: 50, 4: 45 }; // 2026-10-24: tighter pars; time bonus 10/s capped at 300 (Mission 4 added 2026-10-26)
 
 /** Reach the exit with the drive at a chosen mission time; returns the debrief as shown, plus the inputs used. */
 async function finish(mission, { time, chased = false, exit }) {
@@ -39,12 +39,12 @@ const verify = (name, mission, d, prevBest) => {
   check(`${name}: best score ${d.score > prevBest ? "raised" : "kept"} (${prevBest} → ${Math.max(prevBest, d.score)})`, d.best === Math.max(prevBest, d.score) && d.newBest === d.score > prevBest);
   return Math.max(prevBest, d.score);
 };
-const best = { 1: 0, 2: 0, 3: 0 };
+const best = { 1: 0, 2: 0, 3: 0, 4: 0 };
 
 await send("Runtime.enable");
 await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
 await waitFor("!!window.__heist", 30000);
-await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1 }))`);
+await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1, 4: 1 }))`);
 await send("Page.reload"); await sleep(1500); await waitFor("!!window.__heist", 30000);
 
 try {
@@ -135,17 +135,61 @@ try {
   best[3] = verify("M3 weak index (k = 1, 2 of 3 clues)", 3, d, best[3]);
   check("M3 weak index: AI points from recall 67 % (333)", /\+ 333 AI$/.test(d.breakdown), d.breakdown);
 
+  // ---------- Mission 4: k-means server farm (2026-10-26) ----------
+  const { serverFarm } = await import("../src/lab/servers.js");
+  const { matchScore } = await import("../src/lab/kmeans.js");
+  const farm4 = serverFarm(4), m4Exit = { x: 1.5, z: 11.5 };
+  const startM4 = async (k, scaled) => {
+    await js(`window.__heist.openBriefing(3)`); await sleep(150); await js(`document.querySelector("#btn-brief-lab").click()`); await waitFor(`!!document.querySelector("#km-run")`);
+    await js(`(() => { const lab = ${S}.lab; lab.set({ k: ${k}, scaled: ${scaled} }); lab.run({ animate: false }); lab.pick(lab.quietestGroup()); document.querySelector("#km-go").click(); })()`);
+    await waitFor(`${S}.screen === "playing"`); await park(21, 10);
+    return js(`${S}.models.clusters.chosenIds`);
+  };
+  const openRack = async (id) => { const i = farm4.servers.findIndex((s) => s.id === id); const r = await js(`${S}.map.racks[${i}]`); await js(`${S}.pos = { x: ${r.x + 0.5}, z: ${r.z - 0.5} }`); await sleep(150); await press("e", "KeyE"); await sleep(150); };
+
+  let flagged = await startM4(4, true);
+  check("M4 scaled, k = 4: the scanner flags exactly the 5 archive servers", matchScore(flagged, farm4.archiveIds).f1 === 1, flagged.join(","));
+  await openRack(farm4.target);
+  check("M4 the drive's rack gives the drive", await js(`${S}.mission.hasDrive`));
+  d = await finish(4, { time: 25, exit: m4Exit });
+  best[4] = verify("M4 good grouping, straight to the drive", 4, d, best[4]);
+  check("M4 AI points = archive match F1 1.00 (500)", Math.abs(d.ai - 1) < 1e-9 && /\+ 500 AI$/.test(d.breakdown), d.breakdown);
+
+  flagged = await startM4(4, false);
+  const rawF1 = matchScore(flagged, farm4.archiveIds).f1;
+  check("M4 unscaled readings: the flagged group is mixed (F1 < 0.8)", rawF1 < 0.8, `F1 ${rawF1.toFixed(2)}, ${flagged.length} flagged`);
+  await openRack(farm4.target);
+  d = await finish(4, { time: 40, exit: m4Exit });
+  best[4] = verify("M4 unscaled grouping", 4, d, best[4]);
+  check("M4 unscaled: AI score equals the independently computed F1", Math.abs(d.ai - rawF1) < 1e-9, `${d.ai.toFixed(3)} vs ${rawF1.toFixed(3)}`);
+
+  flagged = await startM4(3, true);
+  check("M4 k = 3: the archive is merged into a big group (10+ racks)", flagged.length >= 10 && flagged.includes(farm4.target), `${flagged.length} flagged`);
+  const empties = flagged.filter((id) => id !== farm4.target).slice(0, 5);
+  for (let i = 0; i < 4; i++) await openRack(empties[i]);
+  check("M4 four empty racks: no alarm yet, guards sent to check", await js(`${S}.mission.alarm === null && ${S}.scanner.wrong === 4 && ${S}.guards.some(g => g.state !== "patrol")`));
+  await park(21, 10); // the guards walking over would otherwise catch the test player before the alarm check
+  await openRack(empties[4]); await park(21, 10);
+  check("M4 the fifth empty rack starts the alarm", await js(`${S}.mission.alarm !== null`));
+  await js(`${S}.mission.alarm = 0.05`); await waitFor(`${S}.screen === "caught"`, 10000);
+  check("M4 alarm runs out: LOCKDOWN, best unchanged", await js(`document.querySelector("#caught-title").textContent === "LOCKDOWN"`) && Number(await js(`localStorage.getItem("neural-heist.v2.best.m4")`)) === best[4]);
+
   // ---------- Heist complete and persistence ----------
+  await js(`window.__heist.openBriefing(3)`); await sleep(150); await js(`document.querySelector("#btn-brief-lab").click()`); await waitFor(`!!document.querySelector("#km-run")`);
+  await js(`(() => { const lab = ${S}.lab; lab.set({ k: 4, scaled: true }); lab.run({ animate: false }); lab.pick(lab.quietestGroup()); document.querySelector("#km-go").click(); })()`);
+  await waitFor(`${S}.screen === "playing"`); await park(21, 10); await openRack(farm4.target);
+  d = await finish(4, { time: 50, chased: true, exit: m4Exit });
+  best[4] = verify("M4 replay chased and over par (worse)", 4, d, best[4]);
   await js(`document.querySelector("#btn-next").click()`); await waitFor(`${S}.screen === "complete"`);
   const total = Number(await js(`document.querySelector("#complete-total").textContent`));
   const listed = await js(`[...document.querySelectorAll("#complete-list b")].map(b => Number(b.textContent))`);
-  check("Heist Complete lists each mission's best and the total is their sum", JSON.stringify(listed) === JSON.stringify([best[1], best[2], best[3]]) && total === best[1] + best[2] + best[3], `${listed.join(" + ")} = ${total}`);
+  check("Heist Complete lists each mission's best and the total is their sum", JSON.stringify(listed) === JSON.stringify([best[1], best[2], best[3], best[4]]) && total === best[1] + best[2] + best[3] + best[4], `${listed.join(" + ")} = ${total}`);
   await send("Page.reload"); await sleep(1500); await waitFor("!!window.__heist", 30000);
-  check("best scores survive a page reload", await js(`[1, 2, 3].map(i => Number(localStorage.getItem("neural-heist.v2.best.m" + i)))`).then((b) => JSON.stringify(b) === JSON.stringify([best[1], best[2], best[3]])));
+  check("best scores survive a page reload", await js(`[1, 2, 3, 4].map(i => Number(localStorage.getItem("neural-heist.v2.best.m" + i)))`).then((b) => JSON.stringify(b) === JSON.stringify([best[1], best[2], best[3], best[4]])));
   // mission select (2026-10-24): returning players get the list, every mission open, with best and stars
   await js(`document.querySelector("#btn-start").click()`); await waitFor(`${S}.screen === "missions"`);
   const cards = await js(`[...document.querySelectorAll("#mission-list .mission-item")].map(li => ({ done: li.classList.contains("done"), stats: li.querySelector(".mi-stats").textContent, play: !!li.querySelector("[data-mission]") }))`);
-  check("Start opens mission select for a returning player: 3 missions, all playable, each with its best and stars", cards.length === 3 && cards.every((c, i) => c.done && c.play && c.stats.startsWith(`Best ${best[i + 1]}`) && /★/.test(c.stats)), cards.map((c) => c.stats).join(" | "));
+  check("Start opens mission select for a returning player: 4 missions, all playable, each with its best and stars", cards.length === 4 && cards.every((c, i) => c.done && c.play && c.stats.startsWith(`Best ${best[i + 1]}`) && /★/.test(c.stats)), cards.map((c) => c.stats).join(" | "));
   await js(`document.querySelector('#mission-list [data-mission="2"]').click()`); await sleep(200);
   check("mission select opens Mission 3 directly", await js(`${S}.screen === "briefing" && ${S}.config.id === 3`));
 } catch (e) { check("scenario run completed without exception", false, e.message); }

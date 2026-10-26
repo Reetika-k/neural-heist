@@ -32,6 +32,10 @@ import { buildExport, eventsToCsv, download } from "./brain-panel/export.js";
 import { loadSettings, saveSettings, tuningFor, DIFFICULTY } from "./settings.js";
 import { createSound } from "./audio/sound.js";
 import { addDecor } from "./world/decor.js";
+import { mountKmeansLab } from "./screens/lab-kmeans.js";
+import { serverFarm } from "./lab/servers.js";
+import { createScanner, rackInReach, checkRack, scannerScore, nextFlaggedRack, SCANNER } from "./teammates/scanner.js";
+import { createRackView } from "./world/racks.js";
 
 let EMAILS = null;
 const loadEmails = async () => (EMAILS ??= await (await fetch("data/emails.json")).json());
@@ -72,7 +76,7 @@ const playerMesh = createPlayerMesh(scene);
 const state = {
   screen: "start", missionIndex: 0, config: null, map: null, level: null,
   pos: { x: 1.5, z: 1.5 }, facing: 0, guards: [], civilians: [], mission: null, drone: null,
-  models: { classifier: null, agent: null, rag: null }, assist: null, attempts: 0, doorOpen: false, labReports: {}, caughtBy: null, result: null, runLog: [], lab: null,
+  models: { classifier: null, agent: null, rag: null, clusters: null }, assist: null, attempts: 0, doorOpen: false, labReports: {}, caughtBy: null, result: null, runLog: [], lab: null,
   dog: null, failTimer: null, failReason: null,
 };
 const log = (type, detail = {}) => state.runLog.push({ t: Number((state.mission?.time ?? 0).toFixed(2)), mission: state.config?.id ?? 0, type, ...detail });
@@ -93,9 +97,10 @@ function buildLevel(config) {
   const droneView = config.teammate === "drone" ? createDroneView(root, DRONE.scanRadius) : null;
   const vaultView = config.teammate === "dog" ? createVaultView(root, config.vaultOrigin, map.console, state.models.agent?.env, { touch: IS_TOUCH }) : null; // the vault the dog trained on
   const terminalView = config.teammate === "assistant" ? createTerminalView(root, map, { touch: IS_TOUCH }) : null;
+  const rackView = map.racks.length ? createRackView(root, map, serverFarm(config.farmSeed ?? 4).servers) : null;
   state.map = map;
   state.level = {
-    root, map, props, guardViews, civViews, droneView, vaultView, terminalView, decor, tags,
+    root, map, props, guardViews, civViews, droneView, vaultView, terminalView, rackView, decor, tags,
     tagFor(id) { if (!tags.has(id)) tags.set(id, createDetectionTag(overlay)); return tags.get(id); },
     dispose() { guardViews.forEach((v) => v.dispose()); civViews.forEach((v) => v.dispose()); tags.forEach((t) => t.dispose()); root.traverse((o) => { o.geometry?.dispose?.(); }); },
   };
@@ -120,6 +125,7 @@ function resetMission() {
   state.mission = createMission(state.map, cfg.rules);
   state.drone = cfg.teammate === "drone" ? createDrone(state.pos) : null;
   state.dog = cfg.teammate === "dog" ? createDog(state.models.agent, cfg.vaultOrigin) : null;
+  state.scanner = cfg.teammate === "scanner" ? createScanner(serverFarm(cfg.farmSeed), state.models.clusters) : null;
   state.failTimer = null; state.failReason = null; state.tip = null;
   state.assist = null; assistRequest = null; state.attempts = 0; state.doorOpen = false; state.dogChimed = false;
   sound.siren(false);
@@ -190,6 +196,27 @@ const near = (cell, r = 1.3) => cell && Math.hypot(state.pos.x - (cell.x + 0.5),
 function interact() {
   if (state.dog && near(state.map.console) && state.dog.status === "idle") { sound.play("dog"); deployDog(state.dog); log("dog_deployed", { outcome: state.dog.plan.outcome, steps: state.dog.plan.path.length - 1 }); flashTip("A guard patrols past this console · step away and hide while the dog crosses", 6); }
   if (state.config.teammate === "assistant" && near(state.map.terminal) && !state.doorOpen) openTerminal();
+  if (state.scanner && !state.mission.hasDrive) checkNearestRack();
+}
+
+// ---------- Mission 4 server racks ----------
+function checkNearestRack() {
+  const i = rackInReach(state.map, state.pos); if (i === null) return;
+  const sc = state.scanner, id = sc.farm.servers[i].id, result = checkRack(sc, i);
+  if (result === "already") return;
+  log("rack_checked", { rack: id, result, flagged: sc.flagged.has(id) });
+  if (result === "found") {
+    state.mission.hasDrive = true; sound.play("pickup");
+    flashTip(`Found it: the records are on ${id} · now reach the exit`, 5);
+    return;
+  }
+  sound.play("denied");
+  // a wrong check is logged by the server farm: the nearest patrolling guard comes to look
+  const r = state.map.racks[i], spot = { x: r.x + 0.5, z: r.z + 0.5 };
+  const g = state.guards.filter((x) => x.state === "patrol").sort((a, b) => Math.hypot(a.pos.x - spot.x, a.pos.z - spot.z) - Math.hypot(b.pos.x - spot.x, b.pos.z - spot.z))[0];
+  if (g) investigate(g, state.map, spot);
+  if (sc.wrong >= SCANNER.maxWrong) { triggerAlarm(state.mission); flashTip(`${id} is empty · ${SCANNER.maxWrong} wrong checks: ALARM`, 5); }
+  else flashTip(`${id} is empty · access logged, a guard is coming to check (${sc.wrong} of ${SCANNER.maxWrong})`, 5);
 }
 
 // ---------- Mission 3 terminal ----------
@@ -308,6 +335,9 @@ async function openLab() {
   if (c.lab === "qlearning") {
     state.lab = mountQLab(root, { onBack, prev: state.models.agent, onDone: ({ agent, report }) => { state.models.agent = agent; state.labReports[c.id] = report; log("lab_trained", { lab: "qlearning", ...report }); startMission(); } });
   }
+  if (c.lab === "kmeans") {
+    state.lab = mountKmeansLab(root, { onBack, seed: c.farmSeed, prev: state.models.clusters, onDone: ({ clusters, report }) => { state.models.clusters = clusters; state.labReports[c.id] = report; log("lab_trained", { lab: "kmeans", ...report }); startMission(); } });
+  }
   if (c.lab === "classifier") {
     state.lab = mountClassifierLab(root, { onBack, onDone: ({ model, report }) => { state.models.classifier = model; state.labReports[c.id] = report; log("lab_trained", { lab: "classifier", ...report, warnings: undefined }); startMission(); } });
   }
@@ -328,7 +358,7 @@ function showMissions() {
     const best = getBest(m.id), stars = getStars(m.id);
     return `<li class="mission-item${best ? " done" : ""}${i === next ? " next" : ""}">
       <span class="mi-num">${m.id}</span>
-      <div class="mi-body"><b>${m.name}</b><span class="mi-ai">${m.concept} · ${{ drone: "drone", dog: "robot dog", assistant: "hacking assistant" }[m.teammate]}</span>
+      <div class="mi-body"><b>${m.name}</b><span class="mi-ai">${m.concept} · ${{ drone: "drone", dog: "robot dog", assistant: "hacking assistant", scanner: "network scanner" }[m.teammate]}</span>
         <span class="mi-stats">${best ? `Best ${best} · ${"★".repeat(stars)}${"☆".repeat(3 - stars)}` : i === next ? "Next up" : "Not played yet"}</span></div>
       <button class="btn-primary mi-play" data-mission="${i}">${best ? "Replay" : "Play"}</button></li>`;
   }).join("");
@@ -416,6 +446,7 @@ function aiScore() {
   if (state.config.teammate === "drone") return modelAccuracy(state.models.classifier, [...state.guards, ...state.civilians]);
   if (state.config.teammate === "dog") return dogScore(state.dog);
   if (state.config.teammate === "assistant") return state.assist?.recall ?? 0;
+  if (state.config.teammate === "scanner") return state.scanner ? scannerScore(state.scanner) : 0;
   return 0;
 }
 
@@ -455,7 +486,7 @@ function endMission(outcome) {
   $("#deb-time").textContent = fmtTime(m.time);
   $("#deb-par").textContent = `par ${fmtTime(m.parTime)}`;
   $("#deb-ai").textContent = `${Math.round(ai * 100)}%`;
-  $("#deb-ai-label").textContent = { drone: "Drone accuracy", dog: "Dog path quality", assistant: "Retrieval recall" }[cfg.teammate] ?? "AI";
+  $("#deb-ai-label").textContent = { drone: "Drone accuracy", dog: "Dog path quality", assistant: "Retrieval recall", scanner: "Archive match (F1)" }[cfg.teammate] ?? "AI";
   $("#deb-best").textContent = Math.max(prev, r.score);
   $("#deb-newbest").classList.toggle("hidden", !isBest);
   const last = state.missionIndex + 1 >= MISSIONS.length;
@@ -501,7 +532,15 @@ function updateHud() {
     tm.textContent = state.doorOpen ? "Assistant: door open" : state.models.rag ? `Assistant: index ready (k=${state.models.rag.k}, ${state.models.rag.hops ?? 2} hop${(state.models.rag.hops ?? 2) > 1 ? "s" : ""})` : "Assistant: no index";
     tm.classList.remove("hidden");
   }
-  $("#hud-hint").classList.toggle("hidden", !((state.dog && state.dog.status === "idle" && near(state.map.console)) || (cfg.teammate === "assistant" && !state.doorOpen && near(state.map.terminal))));
+  if (state.scanner) {
+    const sc = state.scanner;
+    tm.textContent = state.models.clusters ? `Scanner: ${sc.flagged.size} rack${sc.flagged.size === 1 ? "" : "s"} flagged · ${sc.checked.size} checked · ${sc.wrong}/${SCANNER.maxWrong} wrong` : "Scanner: no groups (nothing flagged)";
+    tm.classList.remove("hidden");
+  }
+  const rackHere = state.scanner && !m.hasDrive ? rackInReach(state.map, state.pos) : null;
+  const canCheck = rackHere !== null && !state.scanner.checked.has(state.scanner.farm.servers[rackHere].id);
+  // RETIRED 2026-10-26: no Mission 4 racks. $("#hud-hint").classList.toggle("hidden", !((state.dog && state.dog.status === "idle" && near(state.map.console)) || (cfg.teammate === "assistant" && !state.doorOpen && near(state.map.terminal))));
+  $("#hud-hint").classList.toggle("hidden", !((state.dog && state.dog.status === "idle" && near(state.map.console)) || (cfg.teammate === "assistant" && !state.doorOpen && near(state.map.terminal)) || canCheck));
   // Players walked up to the vault expecting to go in: say who crosses and where to go instead.
   const atVault = state.dog?.status === "idle" && !near(state.map.console) && nearVaultWall();
   // RETIRED 2026-10-24: the tip line only knew the vault-wall message; timed tips (flashTip) now take priority.
@@ -524,6 +563,7 @@ function currentObjectiveKind() {
   if (m.hasDrive) return "exit";
   if (cfg.teammate === "dog") return null;                         // the dog fetches the drive; the console has its own beacon
   if (cfg.teammate === "assistant" && !state.doorOpen) return null; // the terminal has its own beacon
+  if (cfg.teammate === "scanner") return null;                     // the flagged racks glow and carry their names
   return "drive";
 }
 function objectiveTarget() {
@@ -532,6 +572,7 @@ function objectiveTarget() {
   if (m.hasDrive) return { cell: state.map.exit, label: "EXIT", kind: "exit" };
   if (cfg.teammate === "dog") return state.dog?.status === "idle" ? { cell: state.map.console, label: "CONSOLE", kind: "use" } : null;
   if (cfg.teammate === "assistant" && !state.doorOpen) return { cell: state.map.terminal, label: "TERMINAL", kind: "use" };
+  if (cfg.teammate === "scanner") { const r = state.scanner && nextFlaggedRack(state.scanner, state.map, state.pos); return r ? { cell: r, label: "FLAGGED RACK", kind: "use" } : null; }
   return state.map.drive ? { cell: state.map.drive, label: "DATA DRIVE", kind: "drive" } : null;
 }
 function updateNavArrow() {
@@ -581,6 +622,11 @@ const GUIDE = {
     () => `The <b class="gold">drive</b> is locked in the CEO's room. Follow the <b class="green">arrow</b> to the <b>terminal</b> and ${K("press <kbd>E</kbd>", "tap the <b>HACK TERMINAL</b> button that appears there")}.`,
     () => `Your <b>hacking assistant</b> searches the leaked emails with the index you built, and works out the password. Type it in. <b class="red">3 wrong passwords</b> start the alarm.`,
     () => `Then grab the <b class="gold">drive</b> and reach the <b class="green">exit</b>.`,
+  ],
+  4: [
+    () => `Your <b>network scanner</b> lights up the racks of the group you called "archive" in the Lab: they glow <b class="cyan">cyan</b> and show their names.`,
+    () => `Walk up to a rack and ${K("press <kbd>E</kbd>", "tap <b>CHECK RACK</b>")} to look inside. An empty rack logs your access: <b class="red">a guard comes to check</b>, and <b class="red">5 empty racks</b> start the alarm.`,
+    () => `The rack rows hide you from the guards. When you find the <b class="gold">drive</b>, reach the <b class="green">exit</b>.`,
   ],
 };
 const GUIDE_KEY = "neural-heist.guide";
@@ -658,6 +704,7 @@ function currentAction() {
   if (state.screen !== "playing" || guide.open || !state.config) return null;
   if (state.dog && state.dog.status === "idle" && near(state.map.console)) return "SEND DOG";
   if (state.config.teammate === "assistant" && !state.doorOpen && near(state.map.terminal)) return "HACK TERMINAL";
+  if (state.scanner && !state.mission.hasDrive && rackInReach(state.map, state.pos) !== null && !state.scanner.checked.has(state.scanner.farm.servers[rackInReach(state.map, state.pos)].id)) return "CHECK RACK";
   return null;
 }
 (() => {
@@ -789,6 +836,7 @@ function draw(dt) {
     if (L.droneView && state.drone) L.droneView.update(state.drone, t);
     L.decor.update(t);
     if (L.terminalView) L.terminalView.update(!state.doorOpen && near(state.map.terminal), state.doorOpen, t);
+    if (L.rackView) L.rackView.update(state.scanner, state.scanner && !state.mission?.hasDrive ? rackInReach(state.map, state.pos) : null, t);
     if (L.vaultView && state.mission) L.vaultView.update(state.dog, state.mission, state.dog?.status === "idle" && near(state.map.console), t);
   }
   brain.tick(dt);

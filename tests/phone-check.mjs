@@ -85,6 +85,12 @@ let msOk = false; // retried: the screen fades in, and a tap test during the fad
 for (let i = 0; i < 20 && !msOk; i++) { msOk = await js(`window.__heist.state.screen === "missions"`) && await js(fits) && await js(visible("#mission-list [data-mission='2']")); if (!msOk) await sleep(100); }
 check("mission select fits the phone; Mission 3 Play reachable", msOk);
 fs.writeFileSync("docs/screenshots/28-mission-select.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
+// ---------- Mission 4 Lab on a phone (2026-10-26) ----------
+await js(`window.__heist.openBriefing(3)`); await sleep(300); await js(`document.querySelector("#btn-brief-lab").click()`);
+for (let i = 0; i < 50 && !(await js(`!!document.querySelector("#km-run")`)); i++) await sleep(100);
+await js(`(() => { const lab = window.__heist.state.lab; lab.set({ k: 4, scaled: true }); lab.run({ animate: false }); lab.pick(lab.quietestGroup()); return true; })()`); await sleep(300);
+check("Mission 4 Lab fits the phone: plot, group table and Start mission reachable", await js(fits) && await js(visible("#km-go")) && await js(`document.querySelector("#km-plot").getBoundingClientRect().width <= innerWidth`));
+fs.writeFileSync("docs/screenshots/33-phone-m4-lab.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${results.filter(Boolean).length} / ${results.length} phone checks passed`);
 // close this test's tab: left open, finished test tabs kept playing the game's music in the background (2026-10-24)

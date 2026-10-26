@@ -80,9 +80,33 @@ export const MISSION_3_GUARDS = [
   { id: "G3", patrol: [{ x: 14, z: 12 }, { x: 20, z: 12 }, { x: 20, z: 6 }, { x: 14, z: 6 }] },
 ];
 
+// Mission 4: the server farm. 24 racks (R) in four rows; the racks block movement and sight like walls, so the
+// rows are cover. One rack holds the drive; which one is found by clustering the servers' readings in the Lab.
+export const MISSION_4 = [
+  "########################",
+  "#P.....................#",
+  "#......................#",
+  "#...RRRRRR..RRRRRR.....#",
+  "#......................#",
+  "#......................#",
+  "#...RRRRRR..RRRRRR.....#",
+  "#......................#",
+  "#......................#",
+  "#######......###########",
+  "#......................#",
+  "#E.....................#",
+  "########################",
+];
+export const MISSION_4_GUARDS = [
+  { id: "G1", patrol: [{ x: 2, z: 4 }, { x: 21, z: 4 }] },
+  { id: "G2", patrol: [{ x: 21, z: 7 }, { x: 2, z: 7 }] },
+  { id: "G3", patrol: [{ x: 8, z: 10 }, { x: 21, z: 10 }] },
+];
+
 export function parseMap(rows) {
   const walls = new Set(), vault = new Set(), locked = new Set(), unlocked = new Set();
   let start = { x: 1, z: 1 }, drive = null, exit = null, console = null, terminal = null;
+  const racks = [], rackSet = new Set(); // server racks, in reading order (row by row): rack i holds server i
   const width = rows[0].length;
   rows.forEach((row, z) => {
     if (row.length !== width) throw new Error(`Map row ${z} has ${row.length} cells, expected ${width}`);
@@ -96,14 +120,18 @@ export function parseMap(rows) {
       if (ch === "E") exit = { x, z };
       if (ch === "C") console = { x, z };
       if (ch === "T") terminal = { x, z };
+      if (ch === "R") { racks.push({ x, z }); rackSet.add(k); }
     });
   });
   return {
-    width, depth: rows.length, walls, vault, locked, unlocked, start, drive, exit, console, terminal,
-    /** Walls block movement and sight. */
-    isWall: (x, z) => walls.has(`${x},${z}`),
-    /** What walkers (player, guards, civilians) cannot enter: walls, the vault floor, locked doors. */
-    isBlocked: (x, z) => { const k = `${x},${z}`; return walls.has(k) || vault.has(k) || (locked.has(k) && !unlocked.has(k)); },
+    width, depth: rows.length, walls, vault, locked, unlocked, start, drive, exit, console, terminal, racks,
+    // RETIRED 2026-10-26: walls only; server racks (Mission 4) now block sight and movement too.
+    // isWall: (x, z) => walls.has(`${x},${z}`),
+    // isBlocked: (x, z) => { const k = `${x},${z}`; return walls.has(k) || vault.has(k) || (locked.has(k) && !unlocked.has(k)); },
+    /** Walls (and server racks) block movement and sight. */
+    isWall: (x, z) => { const k = `${x},${z}`; return walls.has(k) || rackSet.has(k); },
+    /** What walkers (player, guards, civilians) cannot enter: walls, racks, the vault floor, locked doors. */
+    isBlocked: (x, z) => { const k = `${x},${z}`; return walls.has(k) || rackSet.has(k) || vault.has(k) || (locked.has(k) && !unlocked.has(k)); },
     unlockAll() { for (const k of locked) unlocked.add(k); },
     isLockedDoor: (x, z) => { const k = `${x},${z}`; return locked.has(k) && !unlocked.has(k); },
   };

@@ -21,6 +21,9 @@ import { GUARD } from "../src/guards/guard.js";
 import { DIFFICULTY } from "../src/settings.js";
 import { makeSnapshot, labDataset } from "../src/lab/snapshots.js";
 import { createClassifier, fit, accuracy, confusion } from "../src/lab/classifier.js";
+import { kmeans, standardize, silhouette, elbow, matchScore } from "../src/lab/kmeans.js";
+import { serverFarm, featureRows, SERVER_FEATURES } from "../src/lab/servers.js";
+import { SCANNER } from "../src/teammates/scanner.js";
 import { createAgent, trainEpisodes, greedyPath, shortestSafe, movingAverage, DEFAULT_REWARDS, HYPER, makeEnv, CLASSIC, evaluatePolicy, trainWithMilestone } from "../src/lab/qlearning.js";
 import { buildIndex, multiHop, recall, VAULT_QUESTION, RELEVANT } from "../src/lab/rag.js";
 import { mulberry32 } from "../src/lab/rng.js";
@@ -160,17 +163,18 @@ parts.push(`<h1>Neural Heist — Project dashboard</h1><p class="sub">IIT Patna 
 
 const def = qRuns[0];
 parts.push(`<div class="grid">${[
-  ["missions", MISSIONS.length], ["AI teammates you train", 3],
+  ["missions", MISSIONS.length], ["AI teammates you train", 4],
   ["drone accuracy, 30 labels", pct(labelCounts.at(-1).acc)], ["dog reaches goal (sensible rewards)", `${def.goal}/${SEEDS} seeds`],
   ["assistant retrieval recall (k = 3)", pct(recall(trace.context, RELEVANT))], ["unit tests", unit ? `${unit.pass}/${unit.tests}` : "not recorded"],
 ].map(([k, v]) => `<div class="card stat"><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join("")}</div>`);
 
 // 0 AI techniques (2026-10-23: "which AI techniques do we use? I can't see it")
-parts.push(`<h2>AI techniques used in Neural Heist</h2><p>Eight kinds of AI, each doing a real job in the game. The three marked <b>trained by you</b> are machine-learning models the player trains in a Lab before the mission; the rest run the world. Sections below measure each one.</p>`
+parts.push(`<h2>AI techniques used in Neural Heist</h2><p>Nine kinds of AI, each doing a real job in the game. The four marked <b>trained by you</b> are machine-learning models the player trains in a Lab before the mission; the rest run the world. Sections below measure each one.</p>`
   + table(["AI technique", "family", "where in the game", "what it does", "measured in", "code"], [
     ["<b>k-nearest neighbours image classifier</b> (k = 3, distance-weighted vote on 105 colour features of 32 × 32 CCTV snapshots)", "supervised machine learning · <b>trained by you</b>", "Mission 1 · drone", "learns guard vs civilian from the photos you label; the drone reveals the guards it recognises", "section 3", "<code>src/lab/classifier.js</code>, <code>snapshots.js</code>"],
     ["<b>Tabular Q-learning</b> (ε-greedy, α 0.2, γ 0.95; puddles add random slips, batteries and blinking lasers extend the state)", "reinforcement learning · <b>trained by you</b>", "Mission 2 · robot dog", "learns a route through the laser vault from the rewards you design", "section 4", "<code>src/lab/qlearning.js</code>"],
     ["<b>Retrieval-augmented generation</b>: TF-IDF embeddings, cosine similarity, two-hop retrieval", "information retrieval / NLP · <b>built by you</b>", "Mission 3 · hacking assistant", "finds the emails that hold the password clues, using the index you build", "section 5", "<code>src/lab/rag.js</code>"],
+    ["<b>k-means clustering</b> (k-means++ start, best of 8 starts; optional standardisation; elbow chart and silhouette score to choose k)", "unsupervised machine learning · <b>trained by you</b>", "Mission 4 · network scanner", "groups the 24 servers by their readings with no labels; you name the group that behaves like an archive, and the scanner flags its racks", "section 5b", "<code>src/lab/kmeans.js</code>"],
     ["<b>Large language model</b> (Gemini via a Cloudflare Worker, Groq as backup; Ollama qwen2:7b in testing)", "generative AI", "Mission 3 · terminal", "reads only the retrieved emails and answers with the password and its reasons", "section 5, test report", "<code>src/teammates/assistant.js</code>, <code>worker/</code>"],
     ["<b>Rule-based reasoning</b> over the retrieved emails", "symbolic AI", "Mission 3 · when no model is connected", "combines the rule, the robot's name and the floor; says which clue is missing", "section 5", "<code>src/teammates/reasoner.js</code>"],
     ["<b>A* pathfinding</b> (Manhattan heuristic; breadth-first search as the baseline)", "search", "all missions · guards", "chase the player along the shortest route, re-planned every 0.3 s", "section 2", "<code>src/guards/astar.js</code>"],
@@ -216,6 +220,26 @@ parts.push(`<h2>5. Mission 3 — hacking assistant (two-hop retrieval + language
   + table(["hop", "chunk", "subject", "similarity", "clue email?"], [...trace.hop1.map((r) => ["1", r]), ...trace.hop2.map((r) => ["2", r])].map(([h, r]) => [h, esc(r.chunk.id), esc(r.chunk.subject), r.score.toFixed(2), RELEVANT.includes(r.chunk.emailId) ? `<span class="ok">yes</span>` : ""]))
   + `<div class="row"><div>${bars(recallByK.map((x) => ({ label: `k = ${x.k}`, value: x.r })), { max: 1, fmt: pct })}<p class="muted">Recall of the 3 clue emails by k (chunk size 2).</p></div><div>${bars(recallByChunk.map((x) => ({ label: `${x.c} sent.`, value: x.r, colour: "#b26bff" })), { max: 1, fmt: pct })}<p class="muted">Recall by chunk size (k = 3).</p></div><div>${bars(recallByHops.map((x) => ({ label: `${x.h} hop${x.h > 1 ? "s" : ""}`, value: x.r, colour: "#3dff9a" })), { max: 1, fmt: pct })}<p class="muted">One hop vs two (chunk 2, k = 3; one hop finds 1 of 3 at every chunk size and k).</p></div></div>`
   + `<p>Recorded with a local model (Ollama): full recall gave the right password, KESTREL37; with k = 1 (recall 67 %) the model invented ROBOTX37. That is why the debrief scores the assistant on retrieval recall.</p>`);
+
+// 5b Mission 4 (2026-10-26)
+{
+  const farm = serverFarm(4), KEYS = SERVER_FEATURES.map((f) => f.key);
+  const pick = (labels, k) => { let b = 0, bv = Infinity; for (let j = 0; j < k; j++) { const m = farm.servers.filter((_, i) => labels[i] === j); const v = m.reduce((a, x) => a + x.requests, 0) / (m.length || 1); if (m.length && v < bv) { bv = v; b = j; } } return farm.servers.filter((_, i) => labels[i] === b).map((x) => x.id); };
+  const trial = (name, keys, k, scaled) => { const raw = featureRows(farm.servers, keys), rows = scaled ? standardize(raw).rows : raw, r = kmeans(rows, k, { seed: 1 }), chosen = pick(r.labels, k), m = matchScore(chosen, farm.archiveIds); return [esc(name), keys.length, String(k), scaled ? "yes" : "no", chosen.length, pct(m.precision), pct(m.recall), `<b>${m.f1.toFixed(2)}</b>`, chosen.includes(farm.target) ? "yes" : "<span class=\"bad\">no</span>", silhouette(rows, r.labels).toFixed(2)]; };
+  const scaledRows = standardize(featureRows(farm.servers, KEYS)).rows;
+  const el = elbow(scaledRows, 7, { seed: 1 }), sil = [2, 3, 4, 5, 6].map((k) => ({ k, s: silhouette(scaledRows, kmeans(scaledRows, k, { seed: 1 }).labels) }));
+  parts.push(`<h2>5b. Mission 4 — server farm (k-means clustering, unsupervised)</h2><p>${farm.servers.length} servers of four hidden kinds (web, database, monitoring, archive; ${farm.archiveIds.length} archives, one holds the drive), each with four readings: requests per minute, data stored, outgoing traffic and CPU load. No labels are given. The player picks the readings, scaling and k, runs k-means, and names the group that behaves like an archive. The scanner then flags that group's racks; each empty rack opened brings a guard, and ${SCANNER.maxWrong} empty racks start the alarm. AI score = F1 of the flagged racks against the real archive servers. Below, the group a careful player would choose (fewest requests per minute) for each setting.</p>`
+    + table(["setting", "readings", "k", "scaled", "racks flagged", "precision", "recall", "F1", "drive's rack flagged", "silhouette"], [
+      trial("recommended: all readings, scaled, k = 4", KEYS, 4, true),
+      trial("not scaled (data stored dominates)", KEYS, 4, false),
+      trial("too few groups", KEYS, 3, true),
+      trial("more groups than kinds", KEYS, 5, true),
+      trial("weak readings only (stored + outgoing)", ["storage", "outbound"], 4, true),
+      trial("requests + stored, scaled", ["requests", "storage"], 4, true),
+    ])
+    + `<div class="row"><div>${line(el.map((e) => e.inertia), { width: 420, height: 180, colour: "#29e6ff" })}<p class="muted">Elbow chart (all readings, scaled): inertia for k = 1 … 7: ${el.map((e) => e.inertia.toFixed(1)).join(" · ")}. The drop flattens after k = 4.</p></div><div>${bars(sil.map((x) => ({ label: `k = ${x.k}`, value: x.s, colour: x.k === 4 ? "#ffd23d" : "#29e6ff" })), { max: 1, fmt: (v) => v.toFixed(2) })}<p class="muted">Silhouette score by k: highest at k = 4.</p></div></div>`
+    + `<p>Why ${SCANNER.maxWrong} empty racks, not 3: even a perfect group flags ${farm.archiveIds.length} look-alike archive racks, so up to ${farm.archiveIds.length - 1} empty ones may come first. With ${SCANNER.maxWrong}, good clustering never sets off the alarm; a merged group (k = 3) or an unscaled one usually does.</p>`);
+}
 
 // 6 unit tests
 parts.push(`<h2>6. Unit tests (no browser)</h2>`);

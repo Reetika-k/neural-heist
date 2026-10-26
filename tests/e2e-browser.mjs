@@ -28,7 +28,7 @@ const park = `${S}.guards.forEach(g => { g.patrol = [g.patrol[0]]; g.pos = { x: 
 await send("Runtime.enable"); await send("Page.enable");
 await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
 await waitFor("!!window.__heist", 30000);
-await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1 }))`);
+await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1, 4: 1 }))`);
 
 try {
   // ---------- settings, how to play, mute ----------
@@ -49,7 +49,7 @@ try {
   await press("m", "KeyM"); await sleep(100);
   check("M toggles mute", await js(`!window.__heist.sound.state.muted && document.querySelector("#btn-mute").textContent === "🔊"`));
   check("M says so on screen (sound on / off message)", await js(`!document.querySelector("#sound-toast").classList.contains("hidden") && /Sound on/.test(document.querySelector("#sound-toast").textContent)`));
-  await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1 }))`); await send("Page.reload"); await sleep(1500); await waitFor("!!window.__heist");
+  await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1, 4: 1 }))`); await send("Page.reload"); await sleep(1500); await waitFor("!!window.__heist");
   check("cleared storage → default settings (normal, high quality)", await js(`window.__heist.settings.difficulty === "normal" && window.__heist.settings.quality === "high"`));
 
   // ---------- start → briefing → lab ----------
@@ -256,8 +256,38 @@ try {
   check("drive inside the opened room can be picked up", await js(`${S}.mission.hasDrive`));
   await js(`${S}.pos = { x: 1.5, z: 12.5 }`); await waitFor(`${S}.screen === "debrief"`, 8000);
   check("exit → Mission 3 debrief with retrieval recall 100%", await js(`${S}.screen === "debrief" && document.querySelector("#deb-ai-label").textContent === "Retrieval recall" && document.querySelector("#deb-ai").textContent === "100%"`));
+  // ---------- Mission 4: k-means server farm (2026-10-26) ----------
   await js(`document.querySelector("#btn-next").click()`); await sleep(300);
-  check("Finish → HEIST COMPLETE with a total of all best scores", await js(`${S}.screen === "complete" && Number(document.querySelector("#complete-total").textContent) > 0 && document.querySelectorAll("#complete-list li").length === 3`));
+  check("Next → Mission 4 briefing: SERVER FARM", await js(`${S}.screen === "briefing" && document.querySelector("#brief-title").textContent === "SERVER FARM"`));
+  await js(`document.querySelector("#btn-brief-lab").click()`); await waitFor(`!!document.querySelector("#km-run")`);
+  check("k-means Lab: 24 servers plotted, 4 readings, scaling on, Start disabled before grouping", await js(`/24/.test(document.querySelector(".lab-counts").textContent) && document.querySelectorAll('input[name="feat"]:checked').length === 4 && document.querySelector("#km-scale").checked && document.querySelector("#km-go").disabled`));
+  await js(`${S}.lab.set({ k: 4, scaled: false })`);
+  check("scaling off: the Lab warns that data stored outweighs the other readings", await js(`/outweighs/.test(document.querySelector("#h-scale").textContent) && document.querySelector("#h-scale").dataset.kind === "bad"`));
+  await js(`${S}.lab.set({ k: 4, scaled: true })`); await js(`document.querySelector("#km-run").click()`);
+  check("Group with k-means animates its steps, then shows a silhouette score and the group table", await waitFor(`/Done: settled/.test(document.querySelector("#km-step").textContent) && document.querySelectorAll(".km-table tr[data-group]").length === 4`, 20000), await js(`document.querySelector("#km-sil").textContent`));
+  await js(`document.querySelector('input[name="km-arch"][value="' + ${S}.lab.quietestGroup() + '"]').click()`); await sleep(200);
+  check("choosing the quietest group as the archive flags 5 racks and enables Start", await js(`/flag its 5 racks/.test(document.querySelector("#km-pick-note").textContent) && !document.querySelector("#km-go").disabled`));
+  await shot("31-m4-lab.png");
+  await js(`document.querySelector("#km-go").click()`); await waitFor(`${S}.screen === "playing"`, 10000);
+  check("Mission 4: the scanner flags 5 racks; the arrow points to a flagged rack", await waitFor(`/5 racks flagged/.test(document.querySelector("#hud-teammate").textContent) && document.querySelector("#nav-text").textContent === "FLAGGED RACK" || /5 racks flagged/.test(document.querySelector("#hud-teammate").textContent) && document.querySelector("#nav-arrow").classList.contains("hidden")`, 5000));
+  await js(parkAt(21, 10));
+  const m4 = await js(`(() => { const sc = ${S}.scanner, i = sc.farm.servers.findIndex(s => s.id === sc.farm.target), w = sc.farm.servers.findIndex(s => s.kind !== "archive"); return { t: ${S}.map.racks[i], w: ${S}.map.racks[w] }; })()`);
+  await js(`${S}.pos = { x: ${m4.w.x + 0.5}, z: ${m4.w.z - 0.5} }`); await sleep(300);
+  check("next to a rack: the Press E hint shows", await waitFor(`!document.querySelector("#hud-hint").classList.contains("hidden")`, 3000));
+  await press("e", "KeyE"); await sleep(300);
+  check("an empty rack turns red, is logged, and sends a guard to check", await js(`${S}.scanner.wrong === 1 && /empty/.test(document.querySelector("#hud-tip").textContent) && ${S}.guards.some(g => g.state === "search")`));
+  await js(parkAt(21, 10));
+  await js(`window.__heist.brain.toggle(true); window.__heist.brain.setTab("scanner")`); await sleep(200);
+  check("Brain panel, Scanner tab: k-means settings, flagged racks and the racks checked", await js(`/k-means clustering, k = 4/.test(document.querySelector(".bp-body").textContent) && /empty/.test(document.querySelector(".bp-body").textContent)`));
+  await js(`window.__heist.brain.toggle(false)`);
+  await js(`${S}.pos = { x: ${m4.t.x + 0.5}, z: ${m4.t.z - 0.5} }`); await sleep(300); await press("e", "KeyE"); await sleep(300);
+  check("the right rack gives the drive", await js(`${S}.mission.hasDrive && /Found it/.test(document.querySelector("#hud-tip").textContent)`));
+  await shot("32-m4-racks.png");
+  await js(`${S}.pos = { x: 1.5, z: 11.5 }`); await waitFor(`${S}.screen === "debrief"`, 8000);
+  check("exit → Mission 4 debrief with archive match 100%", await js(`document.querySelector("#deb-ai-label").textContent === "Archive match (F1)" && document.querySelector("#deb-ai").textContent === "100%"`));
+  await js(`document.querySelector("#btn-next").click()`); await sleep(300);
+  // RETIRED 2026-10-26: three missions. check("Finish → HEIST COMPLETE …", … length === 3);
+  check("Finish → HEIST COMPLETE with a total of all best scores", await js(`${S}.screen === "complete" && Number(document.querySelector("#complete-total").textContent) > 0 && document.querySelectorAll("#complete-list li").length === 4`));
   await shot("14-complete.png");
   // three wrong passwords → alarm
   await js(`window.__heist.openBriefing(2)`); await sleep(200); await js(`window.__heist.restart()`); await sleep(200);

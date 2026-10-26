@@ -1,5 +1,5 @@
 // Mission registry: map, guards, rules, the Lab you train in, and the story shown in the briefing.
-import { MISSION_1, MISSION_1_GUARDS, MISSION_1_CIVILIANS, MISSION_2, MISSION_2_GUARDS, MISSION_3, MISSION_3_GUARDS } from "./map.js";
+import { MISSION_1, MISSION_1_GUARDS, MISSION_1_CIVILIANS, MISSION_2, MISSION_2_GUARDS, MISSION_3, MISSION_3_GUARDS, MISSION_4, MISSION_4_GUARDS } from "./map.js";
 
 export const MISSIONS = [
   {
@@ -31,6 +31,16 @@ export const MISSIONS = [
     briefing: "The last drive is locked in the CEO's room on the executive floor. We leaked 40 internal emails; somewhere in them is the new vault password, but nobody wrote it down in one place. Build a search index for your hacking assistant. At the terminal (E), it retrieves the most relevant emails and asks a language model to work out the password. Three wrong passwords set off the alarm.",
     objective: { find: "Hack the terminal (E)", unlocked: "Grab the data drive", exit: "Reach the exit" },
     signs: [[3.5, 3.5, 0xb26bff, "EXECUTIVE"], [6.5, 9.5, 0x29e6ff, "VELORA"], [17.5, 7.5, 0xffd23d, "PRIVATE"]],
+  },
+  {
+    // 2026-10-26: unsupervised learning (k-means clustering)
+    id: 4, key: "serverfarm", name: "Server Farm", rows: MISSION_4, guards: MISSION_4_GUARDS, civilians: [],
+    rules: { parTime: 45, alarmTime: 25 }, // fastest route ~7 s of walking; checking all flagged racks and hiding takes longer
+    lab: "kmeans", teammate: "scanner", farmSeed: 4,
+    concept: "Unsupervised learning (clustering)",
+    briefing: "VeloraTech copied the records onto one of 24 identical server racks, and nobody labelled them. Each server reports four readings: requests per minute, data stored, outgoing traffic and CPU load. Group the servers with k-means clustering in the Lab, then decide which group behaves like an archive. Your network scanner lights up that group in the mission. Check racks with E: every empty rack you open is logged and brings a guard over, and five empty racks set off the alarm. The scanner cannot tell archive servers apart, so a tight, correct group is what keeps the search short.",
+    objective: { find: "Check the flagged racks (E) to find the drive", exit: "Reach the exit" },
+    signs: [[11.5, 0.5, 0x29e6ff, "SERVER FARM"], [3.5, 9.5, 0xff3d9a, "डेटा · DATA"], [17.5, 9.5, 0xb26bff, "NO TAILGATING"]],
   },
 ];
 

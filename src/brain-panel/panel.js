@@ -2,12 +2,14 @@
 import { GUARD } from "../guards/guard.js";
 import { movingAverage, HYPER } from "../lab/qlearning.js";
 import { droneAccuracy } from "../teammates/drone.js";
+import { SCANNER } from "../teammates/scanner.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const pct = (x) => `${Math.round((x ?? 0) * 100)}%`;
 const bar = (x, cls = "") => `<span class="mini-bar ${cls}"><i style="width:${Math.round(Math.max(0, Math.min(1, x)) * 100)}%"></i></span>`;
-export const TABS = ["guards", "drone", "dog", "assistant", "run"];
-const TITLES = { guards: "Guards", drone: "Drone", dog: "Robot Dog", assistant: "Assistant", run: "Run" };
+// export const TABS = ["guards", "drone", "dog", "assistant", "run"]; // RETIRED 2026-10-26: Mission 4 scanner tab added
+export const TABS = ["guards", "drone", "dog", "assistant", "scanner", "run"];
+const TITLES = { guards: "Guards", drone: "Drone", dog: "Robot Dog", assistant: "Assistant", scanner: "Scanner", run: "Run" };
 
 export function createBrainPanel(el, { getState, onExport }) {
   let tab = "guards", open = false, timer = 0;
@@ -52,6 +54,16 @@ export function createBrainPanel(el, { getState, onExport }) {
       <table class="bp-table"><tr><th>Hop</th><th>Chunk</th><th>Similarity</th></tr>${[...a.hop1.map((h) => [1, h]), ...a.hop2.map((h) => [2, h])].map(([n, h]) => `<tr><td>${n}</td><td>${esc(h.chunk.subject)}</td><td>${bar(h.score / (a.hop1[0]?.score || 1))} ${h.score.toFixed(3)}</td></tr>`).join("")}</table>
       <pre class="bp-pre">${esc(a.answer)}</pre>`;
   }
+  // Mission 4: the k-means grouping the player chose, and the racks checked so far
+  function scanner(s) {
+    const c = s.models.clusters, rep = s.labReports[4];
+    if (!c) return "<p class='fine'>Not trained yet (Mission 4 Lab).</p>";
+    const head = `<dl class="bp-kv"><dt>Algorithm</dt><dd>k-means clustering, k = ${c.k}, ${c.scaled ? "scaled readings" : "raw readings (not scaled)"}</dd><dt>Readings</dt><dd>${c.features.map(esc).join(", ")}</dd>${rep ? `<dt>Silhouette</dt><dd>${rep.silhouette}</dd><dt>Group sizes</dt><dd>${rep.groupSizes.join(" · ")}</dd>` : ""}<dt>Flagged racks</dt><dd>${c.chosenIds.join(", ") || "none"}</dd></dl>`;
+    const sc = s.scanner;
+    if (!sc) return head;
+    const rows = [...sc.checked.entries()].map(([id, r]) => `<tr><td>${id}</td><td>${sc.flagged.has(id) ? "flagged" : "not flagged"}</td><td>${r === "found" ? "✓ drive" : "✗ empty (guard alerted)"}</td></tr>`).join("");
+    return head + `<table class="bp-table"><tr><th>Rack</th><th>Scanner</th><th>Result</th></tr>${rows || "<tr><td colspan=3>No racks checked yet.</td></tr>"}</table><p class="fine">Empty racks opened: ${sc.wrong} (${SCANNER.maxWrong} = alarm).</p>`;
+  }
   function run(s) {
     const m = s.mission;
     const ev = s.runLog.slice(-14).reverse();
@@ -59,7 +71,7 @@ export function createBrainPanel(el, { getState, onExport }) {
       <div class="bp-export"><button class="btn-primary" data-export="json">Export JSON</button><button class="btn-ghost" data-export="csv">Export CSV</button></div>
       <table class="bp-table bp-log"><tr><th>t</th><th>Event</th><th>Details</th></tr>${ev.map((e) => { const { t, mission, type, ...rest } = e; return `<tr><td>${t}</td><td>${esc(type)}</td><td>${esc(JSON.stringify(rest).slice(0, 90))}</td></tr>`; }).join("")}</table>`;
   }
-  const VIEWS = { guards, drone, dog, assistant, run };
+  const VIEWS = { guards, drone, dog, assistant, scanner, run };
 
   function drawChart() {
     const c = body.querySelector("[data-chart=dog]"), a = getState().models.agent;
