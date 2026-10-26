@@ -57,13 +57,14 @@ The first time you play each mission, a short guide explains what to do (the gam
 ## Tests
 
 ```bash
-npm test                 # 90 unit tests (Node, no browser)
+npm test                 # 95 unit tests (Node, no browser)
 # browser tests: start the dev server, then Chrome with
 #   --headless=new --mute-audio --remote-debugging-port=9337 --remote-allow-origins=*   (--mute-audio: test runs stay silent)
-npm run test:e2e         # 103 checks: every screen, pause menu, all four missions, Brain panel, export, settings
+npm run test:e2e         # 110 checks: every screen, pause menu, all four missions, Brain panel, export, settings
 npm run test:scores      # 56 score checks: every debrief, stars, best scores, mission select and the Heist Complete total
-npm run test:phone       # 16 checks at 390 px width
+npm run test:phone       # 17 checks at 390 px width
 npm run test:safari      # 27 checks in real Safari (safaridriver -p 4444; Safari → Develop → Allow Remote Automation)
+# leaderboard locally: node tools/scores-dev.mjs  then  VITE_SCORES_URL=http://localhost:8788/scores npm run dev
 ```
 
 Results: [docs/test-report.md](docs/test-report.md). All 12 README scenarios pass.
@@ -100,4 +101,4 @@ docs/                    concept · architecture · report · prompts log · cha
 
 ## Deviations from the original plan
 
-TensorFlow.js MobileNet, Transformers.js MiniLM, Howler.js and the Kenney/Quaternius packs were replaced by plain-JS k-NN, TF-IDF retrieval, Web Audio synthesis and procedural models. Reasons: the game stays offline-capable for demos, every ML component is unit-testable, and nothing needs a manual download. The LLM path is real (Worker for Gemini; tested locally through Ollama). Stage 2 items (missions 4–7, adaptive company AI, leaderboard) are listed under Future Enhancements in the report.
+TensorFlow.js MobileNet, Transformers.js MiniLM, Howler.js and the Kenney/Quaternius packs were replaced by plain-JS k-NN, TF-IDF retrieval, Web Audio synthesis and procedural models. Reasons: the game stays offline-capable for demos, every ML component is unit-testable, and nothing needs a manual download. The LLM path is real (Worker for Gemini; tested locally through Ollama). Mission 4 and an online leaderboard were added on 2026-10-26; further missions and the adaptive company AI are listed under Future Enhancements in the report.

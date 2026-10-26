@@ -5,6 +5,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 const base = process.argv[2] || "http://localhost:5173/";
+// 2026-10-26: the leaderboard checks only submit scores locally (tools/scores-dev.mjs), never to the live leaderboard
+const LOCAL = /localhost|127\.0\.0\.1/.test(base);
+if (LOCAL) await fetch("http://localhost:8788/scores", { method: "DELETE" }).catch(() => {});
 const target = await (await fetch(`http://localhost:9337/json/new?${encodeURIComponent(base)}`, { method: "PUT" })).json();
 const ws = new WebSocket(target.webSocketDebuggerUrl); await new Promise((r) => (ws.onopen = r));
 let id = 0; const pending = new Map(); const errors = [];
@@ -145,6 +148,16 @@ try {
   await js(`${S}.pos = { x: 1.5, z: 11.5 }`); await waitFor(`${S}.screen === "debrief"`, 8000);
   const deb = await js(`({ screen: ${S}.screen, stars: document.querySelectorAll("#deb-stars .star.on").length, score: Number(document.querySelector("#deb-score").textContent), ai: document.querySelector("#deb-ai").textContent, best: localStorage.getItem("neural-heist.v2.best.m1") })`);
   check("exit with the drive → debrief with stars, score and drone accuracy", deb.screen === "debrief" && deb.stars >= 2 && /\d+%/.test(deb.ai), JSON.stringify(deb));
+  // ---------- online leaderboard (2026-10-26) ----------
+  const lbOn = await js(`!document.querySelector("#lb-form").classList.contains("hidden")`);
+  check("debrief offers 'Add your score to the online leaderboard' with a public-nickname note", lbOn && /shown publicly/.test(await js(`document.querySelector("#lb-note").textContent`)));
+  if (LOCAL && lbOn) {
+    await js(`(() => { document.querySelector("#lb-name").value = "<b>"; document.querySelector("#lb-form").requestSubmit(); })()`);
+    check("a bad nickname is refused with a reason", await waitFor(`/Not saved: nickname/.test(document.querySelector("#lb-msg").textContent)`, 5000), await js(`document.querySelector("#lb-msg").textContent`));
+    await js(`(() => { document.querySelector("#lb-name").value = "Asha"; document.querySelector("#lb-form").requestSubmit(); })()`);
+    check("a nickname saves the score: rank #1 and the mission's top list", await waitFor(`/Saved: you are #1 on Rooftop/.test(document.querySelector("#lb-msg").textContent) && document.querySelectorAll("#lb-msg .lb-table tr.lb-me").length === 1`, 5000), await js(`document.querySelector("#lb-msg").textContent.slice(0, 80)`));
+    check("the nickname is remembered for next time", await js(`JSON.parse(localStorage.getItem("neural-heist.nickname")) === "Asha"`));
+  }
   check("best score saved in localStorage", Number(deb.best) === deb.score);
   await shot("06-debrief.png");
   await js(`document.querySelector("#btn-retry").click()`); await sleep(200);
@@ -337,6 +350,16 @@ try {
   await js(`window.__heist.restart()`); await waitFor(`${S}.screen === "playing"`); await press("Escape", "Escape"); await sleep(150);
   await js(`document.querySelector("#btn-pause-quit").click()`); await sleep(200);
   check("Pause → Quit returns to the start screen", await js(`${S}.screen === "start"`));
+  // leaderboard screen from the start menu (2026-10-26)
+  await js(`document.querySelector("#btn-leaderboard").click()`);
+  check("Leaderboard screen: Overall plus one tab per mission", await waitFor(`${S}.screen === "leaderboard" && document.querySelectorAll("#lb-tabs [data-lb]").length === window.__heist.MISSIONS.length + 1`, 5000));
+  if (LOCAL) {
+    check("Overall lists the saved player with their total", await waitFor(`/Asha/.test(document.querySelector("#lb-body").textContent) && document.querySelectorAll("#lb-body tr.lb-me").length === 1`, 8000), await js(`document.querySelector("#lb-body").textContent.slice(0, 100)`));
+    await js(`document.querySelector('#lb-tabs [data-lb="1"]').click()`); await sleep(200);
+    check("Mission tab shows that mission's top scores", await js(`/Asha/.test(document.querySelector("#lb-body").textContent) && /Top 10 shown/.test(document.querySelector("#lb-body").textContent)`));
+    await shot("34-leaderboard.png");
+  } else check("the live leaderboard loads", await waitFor(`!/Loading/.test(document.querySelector("#lb-body").textContent)`, 10000), await js(`document.querySelector("#lb-body").textContent.slice(0, 80)`));
+  await js(`document.querySelector("#screen-leaderboard [data-back]").click()`); await sleep(150);
 } catch (e) { check("flow completed without exception", false, e.message); }
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${results.filter(Boolean).length} / ${results.length} checks passed`);

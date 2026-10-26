@@ -36,6 +36,7 @@ import { mountKmeansLab } from "./screens/lab-kmeans.js";
 import { serverFarm } from "./lab/servers.js";
 import { createScanner, rackInReach, checkRack, scannerScore, nextFlaggedRack, SCANNER } from "./teammates/scanner.js";
 import { createRackView } from "./world/racks.js";
+import { leaderboardEnabled, fetchBoards, submitScore } from "./leaderboard.js";
 
 let EMAILS = null;
 const loadEmails = async () => (EMAILS ??= await (await fetch("data/emails.json")).json());
@@ -292,7 +293,7 @@ $("#term-form").addEventListener("submit", (e) => { e.preventDefault(); submitPa
 $("#term-close").addEventListener("click", () => show("playing"));
 
 // ---------- screens ----------
-const SCREENS = ["start", "briefing", "lab", "caught", "debrief", "complete", "terminal", "settings", "howto", "missions", "paused"];
+const SCREENS = ["start", "briefing", "lab", "caught", "debrief", "complete", "terminal", "settings", "howto", "missions", "paused", "leaderboard"];
 function show(name) {
   state.screen = name;
   document.body.dataset.screen = name; // lets CSS place the 🔊 button per screen
@@ -489,10 +490,52 @@ function endMission(outcome) {
   $("#deb-ai-label").textContent = { drone: "Drone accuracy", dog: "Dog path quality", assistant: "Retrieval recall", scanner: "Archive match (F1)" }[cfg.teammate] ?? "AI";
   $("#deb-best").textContent = Math.max(prev, r.score);
   $("#deb-newbest").classList.toggle("hidden", !isBest);
+  // online leaderboard: offer to add this win under a nickname (remembered in this browser)
+  $("#lb-form").classList.toggle("hidden", !leaderboardEnabled());
+  $("#lb-name").value = store.get(NICK_KEY, ""); $("#lb-send").disabled = false; $("#lb-msg").textContent = ""; $("#lb-msg").dataset.kind = "";
   const last = state.missionIndex + 1 >= MISSIONS.length;
   $("#btn-next").textContent = last ? "Finish" : "Next mission";
   show("debrief");
 }
+
+// ---------- online leaderboard (2026-10-26) ----------
+const NICK_KEY = "neural-heist.nickname";
+const escHtml = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const lbRows = (list, mine = null) => list.length ? `<table class="lb-table"><tr><th>#</th><th>Player</th><th>Score</th><th>Stars</th><th>Time</th><th>Date</th></tr>${list.map((e, i) => `<tr class="${mine && e.name.toLowerCase() === mine.toLowerCase() ? "lb-me" : ""}"><td>${i + 1}</td><td>${escHtml(e.name)}</td><td><b>${e.score}</b></td><td>${"★".repeat(e.stars)}${"☆".repeat(3 - e.stars)}</td><td>${fmtTime(e.seconds)}</td><td>${e.at}</td></tr>`).join("")}</table>` : `<p class="fine">No scores yet. Win this mission and be the first.</p>`;
+$("#lb-form").addEventListener("submit", async () => {
+  const name = $("#lb-name").value.trim(), cfg = state.config, r = state.result;
+  if (!name) { $("#lb-msg").textContent = "Type a nickname first."; $("#lb-msg").dataset.kind = "bad"; return; }
+  $("#lb-send").disabled = true; $("#lb-msg").textContent = "Saving…"; $("#lb-msg").dataset.kind = "";
+  try {
+    const out = await submitScore({ mission: cfg.id, name, result: r, seconds: r.time });
+    store.set(NICK_KEY, name); log("leaderboard_submit", { mission: cfg.id, rank: out.rank, improved: out.improved });
+    $("#lb-msg").dataset.kind = "good";
+    $("#lb-msg").innerHTML = (out.improved ? `Saved: you are <b>#${out.rank}</b> on ${escHtml(cfg.name)}.` : `Your earlier score on ${escHtml(cfg.name)} is higher, so it stays: you are <b>#${out.rank}</b>.`) + lbRows(out.list.slice(0, 5), name);
+  } catch (e) {
+    $("#lb-send").disabled = false; $("#lb-msg").dataset.kind = "bad";
+    $("#lb-msg").textContent = `Not saved: ${e.message}.`;
+  }
+});
+let lbTab = "overall", lbData = null;
+async function openLeaderboard() {
+  show("leaderboard");
+  const tabs = [["overall", "Overall"], ...MISSIONS.map((m) => [String(m.id), `${m.id}. ${m.name}`])];
+  $("#lb-tabs").innerHTML = tabs.map(([k, label]) => `<button role="tab" data-lb="${k}" aria-selected="${k === lbTab}">${escHtml(label)}</button>`).join("");
+  $("#lb-tabs").querySelectorAll("[data-lb]").forEach((b) => b.addEventListener("click", () => { lbTab = b.dataset.lb; $("#lb-tabs").querySelectorAll("[data-lb]").forEach((x) => x.setAttribute("aria-selected", String(x === b))); renderLeaderboard(); }));
+  if (!leaderboardEnabled()) { $("#lb-body").innerHTML = `<p class="fine">The online leaderboard works on the live site. Your own best scores are on the Missions screen.</p>`; return; }
+  $("#lb-body").innerHTML = `<p class="fine">Loading…</p>`;
+  try { lbData = await fetchBoards(); renderLeaderboard(); }
+  catch (e) { $("#lb-body").innerHTML = `<p class="fine">Could not load the leaderboard (${escHtml(e.message)}). Try again in a moment.</p>`; }
+}
+function renderLeaderboard() {
+  if (!lbData) return;
+  const me = store.get(NICK_KEY, "");
+  if (lbTab === "overall") {
+    const o = lbData.overall;
+    $("#lb-body").innerHTML = o.length ? `<table class="lb-table"><tr><th>#</th><th>Player</th><th>Total</th><th>Missions won</th><th>Stars</th></tr>${o.slice(0, 20).map((p, i) => `<tr class="${me && p.name.toLowerCase() === me.toLowerCase() ? "lb-me" : ""}"><td>${i + 1}</td><td>${escHtml(p.name)}</td><td><b>${p.total}</b></td><td>${p.missions} of ${MISSIONS.length}</td><td>${p.stars}</td></tr>`).join("")}</table><p class="fine">Total = each player's best score on every mission they have won. ${o.length} player${o.length === 1 ? "" : "s"} so far.</p>` : `<p class="fine">No scores yet. Win a mission and add yours from the debrief.</p>`;
+  } else $("#lb-body").innerHTML = lbRows((lbData.lists[lbTab] ?? []).slice(0, 10), me) + `<p class="fine">Top 10 shown; each player's best score counts once.</p>`;
+}
+$("#btn-leaderboard").addEventListener("click", () => { sound.unlock(); openLeaderboard(); });
 
 function showComplete() {
   const total = MISSIONS.reduce((a, m) => a + getBest(m.id), 0);
@@ -743,7 +786,7 @@ show("start");
 // Fixed-size simulation steps: each step is at most 0.05 s (no tunnelling through walls), but a slow
 // frame runs several steps, so the game stays real-time at low frame rates instead of slowing down.
 const MAX_STEP = 0.05, MAX_FRAME = 0.25;
-const OPAQUE_SCREENS = new Set(["start", "settings", "howto", "briefing", "lab", "missions"]);
+const OPAQUE_SCREENS = new Set(["start", "settings", "howto", "briefing", "lab", "missions", "leaderboard"]);
 function frame(now) {
   const frameDt = Math.min((now - last) / 1000, MAX_FRAME); last = now; t += frameDt;
   const steps = Math.max(1, Math.ceil(frameDt / MAX_STEP));

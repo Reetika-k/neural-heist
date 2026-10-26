@@ -4,4 +4,6 @@
 export const CONFIG = {
   llmUrl: (import.meta.env?.VITE_LLM_URL ?? "").trim(),
   llmTimeoutMs: 45000,
+  // 2026-10-26: online leaderboard on the same Worker (/scores); VITE_SCORES_URL overrides it (local test server)
+  scoresUrl: (import.meta.env?.VITE_SCORES_URL ?? "").trim() || ((import.meta.env?.VITE_LLM_URL ?? "").trim() ? `${(import.meta.env?.VITE_LLM_URL ?? "").trim().replace(/\/(ask)?\/?$/, "")}/scores` : ""),
 };

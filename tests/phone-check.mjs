@@ -91,6 +91,9 @@ for (let i = 0; i < 50 && !(await js(`!!document.querySelector("#km-run")`)); i+
 await js(`(() => { const lab = window.__heist.state.lab; lab.set({ k: 4, scaled: true }); lab.run({ animate: false }); lab.pick(lab.quietestGroup()); return true; })()`); await sleep(300);
 check("Mission 4 Lab fits the phone: plot, group table and Start mission reachable", await js(fits) && await js(visible("#km-go")) && await js(`document.querySelector("#km-plot").getBoundingClientRect().width <= innerWidth`));
 fs.writeFileSync("docs/screenshots/33-phone-m4-lab.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
+// leaderboard on a phone (2026-10-26)
+await js(`window.__heist.openBriefing(0)`); await sleep(100); await js(`(() => { document.querySelectorAll(".screen").forEach(x => x.classList.add("hidden")); document.querySelector("#btn-leaderboard").click(); return true; })()`); await sleep(1500);
+check("Leaderboard fits the phone; tabs and Back reachable", await js(`window.__heist.state.screen === "leaderboard"`) && await js(fits) && await js(visible("#screen-leaderboard [data-back]")));
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${results.filter(Boolean).length} / ${results.length} phone checks passed`);
 // close this test's tab: left open, finished test tabs kept playing the game's music in the background (2026-10-24)

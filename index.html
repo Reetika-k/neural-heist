@@ -70,7 +70,7 @@
         </ol>
       </div>
       <button id="btn-start" class="btn-primary">Start</button>
-      <div class="start-links"><button id="btn-missions" class="btn-ghost">Missions</button><button id="btn-howto" class="btn-ghost">How to play</button><button id="btn-settings" class="btn-ghost">Settings</button></div>
+      <div class="start-links"><button id="btn-missions" class="btn-ghost">Missions</button><button id="btn-leaderboard" class="btn-ghost">Leaderboard</button><button id="btn-howto" class="btn-ghost">How to play</button><button id="btn-settings" class="btn-ghost">Settings</button></div>
       <!-- 2026-10-26: Mission 4 added. <p class="fine">3 missions · each one needs an AI skill you train yourself</p> -->
       <p class="fine">4 missions · each one needs an AI skill you train yourself</p>
     </div>
@@ -185,6 +185,15 @@
       <button class="btn-link" data-back="start">Back to the main menu</button>
     </div>
   </section>
+  <section id="screen-leaderboard" class="screen hidden">
+    <div class="start-card lb-card">
+      <p class="eyebrow">How everyone is playing</p>
+      <h1 class="title brief-title">LEADERBOARD</h1>
+      <div class="lb-tabs" role="tablist" id="lb-tabs"></div>
+      <div id="lb-body" class="lb-body" aria-live="polite"><p class="fine">Loading…</p></div>
+      <button class="btn-link" data-back="start">Back to the main menu</button>
+    </div>
+  </section>
   <section id="screen-paused" class="screen screen-paused hidden">
     <div class="start-card caught-card">
       <p class="eyebrow" id="pause-eyebrow">Mission paused</p>
@@ -227,6 +236,13 @@
       </dl>
       <p class="fine" id="deb-break"></p>
       <p class="new-best hidden" id="deb-newbest">New best score!</p>
+      <!-- 2026-10-26: online leaderboard -->
+      <form class="lb-submit hidden" id="lb-form" onsubmit="return false">
+        <label for="lb-name">Add your score to the online leaderboard</label>
+        <div class="lb-row"><input id="lb-name" maxlength="16" autocomplete="nickname" placeholder="Your nickname" aria-describedby="lb-note"><button type="submit" class="btn-ghost" id="lb-send">Add my score</button></div>
+        <p class="fine" id="lb-note">Your nickname and score are shown publicly. A nickname is enough; no real name needed.</p>
+        <p class="lb-msg" id="lb-msg" aria-live="polite"></p>
+      </form>
       <div class="deb-actions">
         <button id="btn-next" class="btn-primary">Next mission</button>
         <button id="btn-retry" class="btn-ghost">Retry</button>

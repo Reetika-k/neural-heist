@@ -8,6 +8,8 @@ Model names change: Google shut down `gemini-2.0-flash` (the Worker then got HTT
 
 The Worker is pinned to `[placement] region = "gcp:us-central1"`: without it, Cloudflare sometimes ran it in a region where Gemini answers 400 "User location is not supported". To see Google's reason for any failure, run `npx wrangler tail` in `worker/` (the key is never logged).
 
+**Online leaderboard (2026-10-26).** The same Worker serves `GET /scores` and `POST /scores`, stored in Workers KV (binding `SCORES` in `wrangler.toml`; created once with `npx wrangler kv namespace create SCORES`). The game finds it automatically from `VITE_LLM_URL` (base URL + `/scores`); `VITE_SCORES_URL` overrides it. Rules: `worker/leaderboard.js` (scores must add up under the scoring rules, 1–16 character nicknames with a word filter, one line per nickname per mission, top 20 kept, 10 submissions per visitor per hour). To remove an entry, edit the `scores:m<mission>` key with `npx wrangler kv key get/put --binding SCORES`.
+
 Verified locally: `npm run build` produces `dist/` (relative asset paths, `data/emails.json` included) and the full browser test passes 66/66 against `vite preview` of that build (2026-10-22).
 
 ## 1. Alternative: game on Cloudflare Pages

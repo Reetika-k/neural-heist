@@ -203,3 +203,9 @@ What broke: the first version of Mission 4 started the alarm after three empty r
 Error: a design rule that did not follow the AI's quality.
 How AI helped: measured shortest routes with the game's A* for good and poor groupings, and the archive match (F1) for every Lab setting before choosing the rule. A unit test that checks every neon sign also caught a Mission 4 sign placed over open floor.
 Fix: five empty racks start the alarm. Perfect clustering can open at most four (each still brings a guard over, which costs stealth); a merged group (k = 3) or an unscaled one usually reaches five. The briefing, guide and Brain panel say so, and the score scenarios test the fifth-rack alarm.
+
+## Nobody could see how other people played
+What broke: reported after 3–4 people played: "there is no best score showing; we have to showcase how others are playing this game".
+Error: best scores were saved only in each player's own browser (localStorage), so every player saw only their own, and nothing ever left their device.
+How AI helped: designed a shared leaderboard on the Cloudflare Worker the game already used, wrote its rules as a pure module tested with a fake store, and a local test server with the same rules so browser tests never write to the real leaderboard. The tests caught one bug: Hindi nicknames such as रीतिका were refused, because Devanagari vowel signs are Unicode "marks", not "letters"; the nickname rule now accepts marks.
+Fix: after a win the debrief offers "Add my score" with a nickname (shown publicly, so no real name is needed); a Leaderboard screen on the start menu shows the top 10 per mission and an overall ranking. The server accepts only scores that add up under the game's scoring rules, keeps each nickname's best per mission, limits submissions per visitor, and refuses other websites. A determined cheat could still fake a valid score, because the game runs in the browser; that limit is stated in the code and the report.

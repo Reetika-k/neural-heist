@@ -56,7 +56,7 @@ The proposed solution is Neural Heist. Before each mission the player trains one
 4. **Live language model, safely:** the Gemini key lives only on Cloudflare as a secret; the Worker accepts requests only from the game's site, limits each visitor to 20 requests an hour and rebuilds the prompt server-side.
 5. **Scoring:** finish 1000 + stealth 500 + 10 points per second under par (at most 300) + up to 500 for the AI's measured quality; 3 stars; best score and stars per mission; total on the Heist Complete screen.
 6. **Win and lose:** win with the drive at the exit; lose when caught, when the alarm runs out, when the dog trips a laser or gets lost, or after 3 wrong passwords. Restart or retrain in the Lab.
-7. **Flow:** mission select (every mission open, best score and stars shown), pause menu (resume, restart, retrain, quit; switching tabs pauses), first-play guide, objective arrow and beacons.
+7. **Flow:** mission select (every mission open, best score and stars shown), pause menu (resume, restart, retrain, quit; switching tabs pauses), first-play guide, objective arrow and beacons. Online leaderboard: after a win, add your score under a nickname; the Leaderboard screen shows how everyone is playing (top 10 per mission and an overall ranking).
 8. **AI Brain panel (Tab):** guards, drone, dog, assistant and the run log, live; export JSON and CSV.
 9. **Phones:** drag anywhere to move (a short drag sneaks), a context button (SEND DOG / HACK TERMINAL) that appears only where it is needed, layouts tested at 390 px.
 10. **Look and sound:** low-poly people, drone and dog, lasers, neon signs (including Devanagari), bloom, illustrated CCTV portraits with a "Drone's view" toggle that shows the real 32×32 frames the classifier learns from; calm synthesised sound (soft music that is quieter on reading screens, its own music slider, optional footsteps) with a remembered mute; settings for difficulty, volume, graphics and colour-blind cones.
@@ -176,7 +176,7 @@ Why each line is there: "ONLY the emails below" keeps the answer grounded in ret
 
 ## 11. Testing report
 
-Main test scenarios (all run in a real browser or as automated tests; the full list of 55 is in `docs/test-report.md`):
+Main test scenarios (all run in a real browser or as automated tests; the full list of 57 is in `docs/test-report.md`):
 
 | # | User action | Expected result | Actual result | Status |
 |---|---|---|---|---|
@@ -196,15 +196,16 @@ Main test scenarios (all run in a real browser or as automated tests; the full l
 | 14 | Mute (M or 🔊), then reload | Sound stays off | Muted state and all settings survive a reload | Pass |
 | 15 | Play on a phone (390 px) | Menus, Labs and gameplay usable | Drag to move; SEND DOG appears at the console; 15 / 15 phone checks | Pass |
 | 16 | Group the servers without scaling, then with scaling and k = 4 (Mission 4) | Without scaling the archive is mixed up; scaled, k = 4 finds it | Unscaled: archive match F1 0.67; scaled, k = 4: exactly the 5 archive servers (F1 1.00), silhouette 0.77, the highest of k = 2…6; k = 3 merges the archive into an 11-rack group and five empty racks start the alarm | Pass |
+| 17 | Win a mission, add the score under a nickname, open the Leaderboard | The score appears with its rank; other players' scores are visible | "Saved: you are #1 on Rooftop"; a bad nickname is refused with a reason; the Leaderboard shows the top 10 per mission and an overall ranking; scores that do not add up under the scoring rules are refused by the server | Pass |
 
 Automated test suites, current runs (2026-10-24):
 
 | Suite | Result |
 |---|---|
-| Unit tests (`npm test`): game rules, guards, A*, classifier, Q-learning, retrieval, k-means, Worker, sound | 90 / 90 pass |
-| Browser test (`npm run test:e2e`): every screen, all four missions, Labs, Brain panel, export, settings, pause, sound | 103 / 103 pass on the dev server; 88 / 88 on the live site with the language model connected (before the 4 sound checks were added) |
+| Unit tests (`npm test`): game rules, guards, A*, classifier, Q-learning, retrieval, k-means, Worker, sound | 95 / 95 pass |
+| Browser test (`npm run test:e2e`): every screen, all four missions, Labs, Brain panel, export, settings, pause, sound | 110 / 110 pass on the dev server (with Mission 4 and the leaderboard); 88 / 88 on the live site with the language model connected (before the 4 sound checks were added) |
 | Score scenarios (`npm run test:scores`): every debrief checked against the scoring rules | 56 / 56 pass (dev, with Mission 4); 38 / 38 on the live site before Mission 4 |
-| Phone check (`npm run test:phone`), 390 × 844 | 16 / 16 pass (dev, with the Mission 4 Lab) |
+| Phone check (`npm run test:phone`), 390 × 844 | 17 / 17 pass (dev, with the Mission 4 Lab and the leaderboard) |
 | Second browser: Safari 26.6 on macOS (`npm run test:safari`) | 27 / 27 pass: all four missions, the live language model, and leaving the game silences it |
 
 Key measured results (all reproducible with fixed seeds, collected in the dashboard):
@@ -222,7 +223,7 @@ Key measured results (all reproducible with fixed seeds, collected in the dashbo
 
 ## 12. Challenges and solutions
 
-`docs/challenges.md` lists 36 problems and fixes, each with what broke, the cause, how AI helped and the fix. A selection:
+`docs/challenges.md` lists 37 problems and fixes, each with what broke, the cause, how AI helped and the fix. A selection:
 
 | Problem | Cause | Fix |
 |---|---|---|
@@ -243,7 +244,7 @@ Key learnings: build game logic as pure, testable modules; measure ML behaviour 
 
 ## 14. Future enhancements
 
-New missions: regression (guard patrol timing), a small neural network (a sound lock) and a final mission against a company AI that adapts security to the player's style. Also: TensorFlow.js MobileNet and neural embeddings as an optional mode, a leaderboard, recorded audio and modelled assets, and a strict global rate limit with Workers KV.
+New missions: regression (guard patrol timing), a small neural network (a sound lock) and a final mission against a company AI that adapts security to the player's style. Also: TensorFlow.js MobileNet and neural embeddings as an optional mode, accounts so leaderboard nicknames cannot be reused by others, recorded audio and modelled assets, and a strict global rate limit with Workers KV.
 
 ## 15. Project demo
 
