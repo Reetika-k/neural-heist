@@ -253,8 +253,18 @@ try {
   await js(`document.querySelector("#btn-brief-lab").click()`);
   await waitFor(`${S}.screen === "lab" && !!document.querySelector("#rag-build")`);
   check("RAG Lab: 40 emails, chunk and k sliders, Start disabled before building", await js(`document.querySelectorAll(".rag-emails p").length === 40 && document.querySelector("#rag-go").disabled`));
+  // guided Lab (2026-11-01)
+  check("guided Mission 3 Lab: 3 steps, extra options hidden until the first build, one action bar", await js(`document.querySelectorAll("#r-steps li").length === 3 && document.querySelector(".lab").classList.contains("r-first") && getComputedStyle(document.querySelector("#r-choices")).display === "none" && /Meet your assistant/.test(document.querySelector("#r-next").textContent)`));
+  await js(`document.querySelector("#r-meet").click()`); await sleep(200);
+  check("Meet your assistant: with no index it skims 3 random emails, finds 0 of 3 clues and answers UNKNOWN", await js(`document.querySelectorAll("#r-status .hit").length === 3 && /Clues found: 0 of 3/.test(document.querySelector("#r-status").textContent) && /UNKNOWN/.test(document.querySelector("#r-status").textContent)`));
   await js(`document.querySelector("#rag-build").click()`); await sleep(100);
   await js(`document.querySelector("#rag-search").click()`); await sleep(200);
+  check("the search is visible: each result lists its matching words and highlights them", await js(`/Matching words: vault password/.test(document.querySelector("#rag-results .hit-why").textContent) && document.querySelectorAll("#rag-results mark").length >= 5 && /follows that lead/.test(document.querySelector("#rag-results").textContent)`));
+  check("first build done: search choices, experiments and Advanced Lab unlock; the choices show the current settings", await js(`getComputedStyle(document.querySelector("#r-choices")).display !== "none" && document.querySelector('[data-search="k"][data-value="3"]').getAttribute("aria-checked") === "true" && localStorage.getItem("neural-heist.raglab.guided") === "1"`));
+  await js(`document.querySelector('[data-rexp="sentence"]').click()`); await sleep(100); await js(`document.querySelector('[data-rguess="1"]').click()`); await sleep(300);
+  check("experiment 'single sentences': guess 'only 1', it finds 1 of 3: well predicted", await js(`/found 1 of 3/.test(document.querySelector(".q-exp-result").textContent) && /Well predicted/.test(document.querySelector("#r-next").textContent)`), await js(`document.querySelector(".q-exp-result")?.textContent ?? ""`));
+  await js(`document.querySelector(".r-exp-reset").click(); document.querySelector("#rag-build").click()`); await sleep(200);
+  check("'Back to the recommended search' restores two sentences, 3 emails, second search on: 3 of 3", await js(`document.querySelector("#r-chunk").value === "2" && document.querySelector("#r-k").value === "3" && /Clues found: 3 of 3/.test(document.querySelector("#rag-summary").textContent)`));
   const hits = await js(`[...document.querySelectorAll("#rag-results .hit-head span")].map(s => s.textContent)`);
   check("RAG Lab explains itself: no password typed here; clues found 3 of 3; the assistant would answer KESTREL37", await js(`/You don't type the password here/.test(document.querySelector(".lab-sub").textContent) && /Clues found: 3 of 3/.test(document.querySelector("#rag-summary").textContent) && /KESTREL37/.test(document.querySelector("#rag-summary").textContent) && document.querySelectorAll("#rag-results .clue-badge").length === 3`));
   check("search shows two hops with similarity scores; the rotation email ranks first", hits[0] === "Vault access rotation" && hits.length >= 4, hits.slice(0, 6).join(" | "));
@@ -270,6 +280,7 @@ try {
   await waitFor(`document.querySelector("#terminal").dataset.state === "ready"`, 180000);
   const term = await js(`({ screen: ${S}.screen, status: document.querySelector("#term-status").textContent, hits: document.querySelectorAll("#term-hits .hit").length, prompt: document.querySelector("#term-prompt").textContent.includes("PASSWORD:"), answer: document.querySelector("#term-answer").textContent.slice(0, 160) })`);
   check("E opens the terminal: retrieved emails, exact prompt and an answer", term.screen === "terminal" && term.hits >= 4 && term.prompt && term.answer.length > 10, `${term.status} · ${term.answer}`);
+  check("terminal clue board: 3 of 3 pieces with key words highlighted; E did not type into the password box", await js(`document.querySelectorAll(".clue-card.on").length === 3 && document.querySelectorAll(".clue-card mark").length >= 6 && document.querySelector("#term-input").value === ""`));
   const expectLlm = await js(`!!window.__heist.CONFIG.llmUrl`);
   check(expectLlm ? "LLM configured: answer comes from the model" : "no LLM configured: the assistant reasons offline and finds the password", expectLlm ? /answered by/.test(term.status) : /offline reasoning/.test(term.status) && /PASSWORD: KESTREL37/.test(term.answer) && /How I worked it out/.test(term.answer));
   await shot("13-terminal.png");

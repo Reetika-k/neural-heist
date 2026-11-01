@@ -17,6 +17,7 @@ const press = async (k, code) => { await send("Input.dispatchKeyEvent", { type: 
 const rows = []; const check = (n, ok, d = "") => { rows.push(ok); console.log(`${ok ? "PASS" : "FAIL"}  ${n}${d ? " — " + d : ""}`); };
 const S = "window.__heist.state";
 const park = (x, z) => js(`${S}.guards.forEach(g => { g.patrol = [{ x: ${x}, z: ${z} }]; g.pos = { x: ${x + 0.5}, z: ${z + 0.5} }; g.path = []; g.state = "patrol"; g.suspicion = 0; g.sees = false; })`);
+let lastBoard = null;
 const PAR = { 1: 35, 2: 45, 3: 50, 4: 45 }; // 2026-10-24: tighter pars; time bonus 10/s capped at 300 (Mission 4 added 2026-10-26)
 
 /** Reach the exit with the drive at a chosen mission time; returns the debrief as shown, plus the inputs used. */
@@ -119,6 +120,7 @@ try {
     await js(`${S}.pos = { x: 8.5, z: 8.5 }`); await sleep(300); await press("e", "KeyE");
     await waitFor(`document.querySelector("#terminal").dataset.state === "ready"`, 60000);
     const relab = await js(`!document.querySelector("#term-relab").classList.contains("hidden")`);
+    lastBoard = await js(`({ on: document.querySelectorAll(".clue-card.on").length, missing: [...document.querySelectorAll(".clue-card.missing .clue-what")].map(e => e.textContent) })`);
     await js(`(() => { const i = document.querySelector("#term-input"); i.value = "KESTREL37"; document.querySelector("#term-form").requestSubmit(); })()`);
     await waitFor(`${S}.screen === "playing" && ${S}.doorOpen`, 10000);
     await js(`${S}.pos = { x: 19.5, z: 8.5 }`); await waitFor(`${S}.mission.hasDrive`);
@@ -131,6 +133,7 @@ try {
   check("M3 AI points = retrieval recall 100 %", Math.abs(d.ai - 1) < 1e-9);
 
   check("M3 weak index: the terminal offers 'Improve the search index (back to the Lab)'", (await startM3(2, 1)) === true);
+  check("M3 weak index: the clue board shows 2 pieces and a '?' card for the robot's name", lastBoard.on === 2 && /robot/.test(lastBoard.missing.join()), JSON.stringify(lastBoard));
   d = await finish(3, { time: 30, exit: m3Exit });
   best[3] = verify("M3 weak index (k = 1, 2 of 3 clues)", 3, d, best[3]);
   check("M3 weak index: AI points from recall 67 % (333)", /\+ 333 AI$/.test(d.breakdown), d.breakdown);

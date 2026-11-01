@@ -90,6 +90,12 @@ let msOk = false; // retried: the screen fades in, and a tap test during the fad
 for (let i = 0; i < 20 && !msOk; i++) { msOk = await js(`window.__heist.state.screen === "missions"`) && await js(fits) && await js(visible("#mission-list [data-mission='2']")); if (!msOk) await sleep(100); }
 check("mission select fits the phone; Mission 3 Play reachable", msOk);
 fs.writeFileSync("docs/screenshots/28-mission-select.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
+// guided Mission 3 Lab on a phone (2026-11-01)
+await js(`window.__heist.openBriefing(2)`); await sleep(300); await js(`document.querySelector("#btn-brief-lab").click()`);
+for (let i = 0; i < 50 && !(await js(`!!document.querySelector("#rag-build")`)); i++) await sleep(100);
+await js(`document.querySelector("#rag-build").click()`); await sleep(500);
+check("guided Mission 3 Lab fits the phone; Build and Start mission reachable in the bottom bar", await js(fits) && await js(visible("#rag-go")) && await js(visible("#rag-build")));
+fs.writeFileSync("docs/screenshots/36-phone-rag-lab.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
 // ---------- Mission 4 Lab on a phone (2026-10-26) ----------
 await js(`window.__heist.openBriefing(3)`); await sleep(300); await js(`document.querySelector("#btn-brief-lab").click()`);
 for (let i = 0; i < 50 && !(await js(`!!document.querySelector("#km-run")`)); i++) await sleep(100);

@@ -22,7 +22,8 @@ import { mountQLab } from "./screens/lab-qlearning.js";
 import { createDog, deployDog, updateDog, dogScore } from "./teammates/dog.js";
 import { createVaultView } from "./world/vault.js";
 import { triggerAlarm } from "./world/mission.js";
-import { mountRagLab, renderHits } from "./screens/lab-rag.js";
+import { mountRagLab, renderHits, CLUES, highlight } from "./screens/lab-rag.js";
+import { tokenize } from "./lab/rag.js";
 import { askAssistant, extractPassword } from "./teammates/assistant.js";
 import { createTerminalView } from "./world/terminal.js";
 import { normalisePassword } from "./lab/rag.js";
@@ -183,7 +184,8 @@ addEventListener("keydown", (e) => {
   if (e.key === "Escape" && state.screen === "playing") { pause(); return; }
   else if (e.key === "Escape" && state.screen === "terminal") show("playing");
   if (e.key === "Enter" && state.screen === "caught") restart();
-  if ((e.key === "e" || e.key === "E") && state.screen === "playing") interact();
+  // 2026-11-01: preventDefault, or the same key press typed an "E" into the terminal's password box it had just opened
+  if ((e.key === "e" || e.key === "E") && state.screen === "playing") { e.preventDefault(); interact(); }
 });
 addEventListener("keyup", (e) => {
   const dir = KEY_TO_DIR[e.key.toLowerCase()];
@@ -228,6 +230,18 @@ function showAttempts() {
   $("#term-attempts").textContent = locked() ? "Terminal locked" : `${MAX_ATTEMPTS - state.attempts} attempts left`;
   $("#term-input").disabled = locked();
 }
+/** The three pieces of the password, as the assistant's index found them (a "?" card where a clue email was missed). */
+const CLUE_WORDS = { e17: "password robot capitals floor", e05: "varma robot kestrel", e29: "server room floor 37" };
+function clueBoard(context) {
+  const cards = Object.entries(CLUES).map(([id, what]) => {
+    const hit = context.find((h) => h.chunk.emailId === id);
+    return hit
+      ? `<div class="clue-card on"><span class="clue-what">✓ ${what}</span><b>${escHtml(hit.chunk.subject)}</b><p>${highlight(hit.chunk.text, new Set(tokenize(CLUE_WORDS[id])))}</p></div>`
+      : `<div class="clue-card missing"><span class="clue-what">? ${what}</span><b>Not found</b><p>Your index did not bring this email in, so this piece of the password is missing.</p></div>`;
+  }).join("");
+  const n = Object.keys(CLUES).filter((id) => context.some((h) => h.chunk.emailId === id)).length;
+  return `<p class="hop-label">Clue board · ${n} of 3 pieces found</p><div class="clue-board">${cards}</div>`;
+}
 async function openTerminal() {
   show("terminal");
   const panel = $("#terminal");
@@ -260,7 +274,11 @@ async function openTerminal() {
   $("#term-status").textContent = a.source === "llm" ? `Assistant: answered by ${a.model ?? "LLM"} in ${(a.latencyMs / 1000).toFixed(1)} s${a.tokens ? ` · ${a.tokens} tokens` : ""}`
     : a.error === "no LLM configured" ? "Assistant: offline reasoning over the retrieved emails (no language model connected)"
     : `Assistant: language model unavailable (${a.error}) · offline reasoning over the retrieved emails`;
-  $("#term-hits").innerHTML = renderHits(a.hop1, "Hop 1 · question", { markClues: true }) + ((state.models.rag.hops ?? 2) < 2 ? `<p class="fine">One hop only: the second search is switched off in the Lab.</p>` : renderHits(a.hop2, "Hop 2 · following the lead", { markClues: true }));
+  // RETIRED 2026-11-01: a long list of every retrieved email. Now a clue board (the three pieces of the password, or "?"
+  // where the index missed one), with the full list one click away.
+  // $("#term-hits").innerHTML = renderHits(a.hop1, "Hop 1 · question", { markClues: true }) + (…hop 2…);
+  const allHits = renderHits(a.hop1, "Search 1 · with the question", { markClues: true }) + ((state.models.rag.hops ?? 2) < 2 ? `<p class="fine">One search only: following the lead is switched off in the Lab.</p>` : renderHits(a.hop2, "Search 2 · following the lead", { markClues: true }));
+  $("#term-hits").innerHTML = clueBoard(a.context) + `<details class="term-all"><summary>All ${a.context.length} emails your index retrieved</summary>${allHits}</details>`;
   $("#term-prompt").textContent = a.prompt;
   $("#term-answer").textContent = a.source === "llm" || !a.steps?.length ? a.answer : `${a.answer}\n\nHow I worked it out:\n${a.steps.map((s) => `• ${s}`).join("\n")}`;
   panel.dataset.state = "ready";

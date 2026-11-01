@@ -472,3 +472,30 @@ body:not([data-screen="playing"]) .btn-mute { top: 12px; bottom: auto; right: 12
   .q-actions .btn-primary, .q-actions .btn-ghost { padding: 9px 6px; font-size: 13px; letter-spacing: .02em; }
   .q-actions #q-back { grid-column: 1 / -1; order: 5; font-size: 12px; justify-self: center; padding: 0; }
 }
+
+/* ---------- Mission 3 Lab, guided + terminal clue board (2026-11-01) ---------- */
+.raglab .rag-main { min-width: 0; }
+.r-first #r-choices, .r-first #r-experiments, .r-first #r-advanced { display: none; }
+.r-first .q-side::before { content: "Build the index once and more options unlock here: how your assistant searches, experiments, and the Advanced Lab."; font-size: 13px; color: var(--dim); border: 1px dashed rgba(255,255,255,.2); border-radius: 12px; padding: 12px; }
+.r-status p { margin: 6px 0; }
+.r-skim { display: grid; gap: 6px; margin: 6px 0; }
+.clue-badge.off { background: rgba(255,255,255,.08); color: var(--dim); }
+.hit { animation: hit-in .35s ease both; animation-delay: calc(var(--i, 0) * 140ms); }
+@keyframes hit-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .hit { animation: none; } }
+.hit mark { background: rgba(255,210,61,.28); color: #fff; border-radius: 3px; padding: 0 2px; }
+.hit-why { font-size: 12px; color: var(--dim); margin: 4px 0 0; } .hit-why code { color: #ffd23d; }
+.clue-board { display: grid; gap: 8px; margin-bottom: 10px; }
+.clue-card { border-radius: 10px; padding: 8px 10px; border: 1px solid rgba(61,255,154,.45); background: rgba(61,255,154,.06); font-size: 13px; }
+.clue-card b { display: block; margin: 2px 0; } .clue-card p { margin: 2px 0 0; color: var(--dim); line-height: 1.45; }
+.clue-card mark { background: rgba(255,210,61,.28); color: #fff; border-radius: 3px; padding: 0 2px; }
+.clue-card.missing { border: 1px dashed rgba(255,157,176,.6); background: rgba(255,45,85,.06); }
+.clue-what { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #8fe9b8; } .clue-card.missing .clue-what { color: #ff9db0; }
+.term-all summary { cursor: pointer; color: var(--dim); font-size: 13px; margin: 4px 0; }
+.r-status:empty { display: none; }
+@media (max-width: 720px) {
+  /* one row of equal buttons (2 or 3), the Back link on its own small line below */
+  .q-actions { display: flex; flex-wrap: wrap; }
+  .q-actions .btn-primary, .q-actions .btn-ghost { flex: 1 1 0; min-width: 0; }
+  .q-actions .btn-link { flex-basis: 100%; order: 5; font-size: 12px; text-align: center; padding: 0; }
+}
