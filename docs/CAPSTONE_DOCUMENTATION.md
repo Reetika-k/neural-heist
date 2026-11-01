@@ -101,7 +101,7 @@ Every piece of game and AI logic is a pure JavaScript module with no Three.js or
 ## 9. Working prototype
 
 - **Play online:** https://reetika-k.github.io/neural-heist/ · **Dashboard:** https://reetika-k.github.io/neural-heist/dashboard.html
-- **Gameplay walkthrough video:** https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough.mp4 (all three Labs and missions on the live site, including the live Gemini answer; recorded by `tools/record-walkthrough.mjs`, which plays the real game through the browser and cuts out long walks).
+- **Gameplay walkthrough video:** https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough-v2.mp4 (version 2: all four Labs and missions on the live site, including the live Gemini answer; recorded by `tools/record-walkthrough.mjs`, which plays the real game through the browser and cuts out long walks).
 - **Run locally:** `npm install && npm run dev` → http://localhost:5173.
 - **Mission 3 online** uses the live language model: the terminal shows "answered by gemini-3.5-flash-lite in … s". If the model is unreachable it reasons offline over the same emails, so the mission always works.
 
@@ -254,7 +254,8 @@ New missions: regression (guard patrol timing), a small neural network (a sound 
 
 ## 15. Project demo
 
-- Gameplay walkthrough video (2 min 23 s, captioned, recorded on the live site): https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough.mp4
+- Gameplay walkthrough video, version 2 (2 min 54 s, captioned, all four missions, recorded on the live site): https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough-v2.mp4
+- Walkthrough as submitted (v1, three missions): https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough.mp4
 - Five-minute demo script for a live demonstration: `docs/DEMO_SCRIPT.md`.
 - The version as submitted (v1, three missions): https://reetika-k.github.io/neural-heist/v1/ · its dashboard: https://reetika-k.github.io/neural-heist/v1/dashboard.html · its source: tag `v1.0-submission`.
 - Play online: https://reetika-k.github.io/neural-heist/
