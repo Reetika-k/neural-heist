@@ -5,7 +5,7 @@ Built for the IIT Patna capstone, Project 2: *Build and Host a Video Game*, usin
 
 > **Play online:** https://reetika-k.github.io/neural-heist/ · **Project dashboard:** https://reetika-k.github.io/neural-heist/dashboard.html · **Repository:** https://github.com/Reetika-k/neural-heist
 >
-> **Gameplay walkthrough (video, 2 min):** https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough.mp4
+> **Gameplay walkthrough (video, 3 min, version 2):** https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough-v2.mp4 · as submitted: https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough.mp4
 >
 > **Submission report (PDF):** [docs/Neural_Heist_Capstone_Submission.pdf](docs/Neural_Heist_Capstone_Submission.pdf), built from [docs/CAPSTONE_DOCUMENTATION.md](docs/CAPSTONE_DOCUMENTATION.md) with `npm run submission`.
 >
