@@ -14,10 +14,12 @@ Follows the 15-section *Project Submission Report template* of the IIT Patna B3 
 | **Play online** | https://reetika-k.github.io/neural-heist/ |
 | **Project dashboard** | https://reetika-k.github.io/neural-heist/dashboard.html |
 | **Repository** | https://github.com/Reetika-k/neural-heist |
+| **Version** | 2, updated after submission (November 2026): Mission 4, online leaderboard, guided Labs |
+| **As submitted (v1)** | https://reetika-k.github.io/neural-heist/v1/ · source tag `v1.0-submission` · report `docs/submitted/Neural_Heist_Capstone_Submission_v1.pdf` |
 
 ## 2. Project overview
 
-Neural Heist is a 3D browser stealth game set in a neon Indian city. Each of its three missions needs one AI skill that the player trains in a **Lab** before playing: an image classifier for a scouting drone, a reinforcement-learning policy for a robot dog, and a search index for a hacking assistant backed by a real language model (Gemini). In the **Mission**, the teammate performs exactly as well as it was trained, and the guards are AI too (vision cones, suspicion, a state machine, A* pathfinding). An **AI Brain panel** shows every agent's real numbers live and exports them. The objective was to build a complete, tested, publicly hosted game with AI coding assistance, and to make AI/ML concepts tangible through play.
+Neural Heist is a 3D browser stealth game set in a neon Indian city. Each of its four missions needs one AI skill that the player trains in a **Lab** before playing: an image classifier for a scouting drone, a reinforcement-learning policy for a robot dog, a search index for a hacking assistant backed by a real language model (Gemini), and a k-means clustering of server readings for a network scanner. In the **Mission**, the teammate performs exactly as well as it was trained, and the guards are AI too (vision cones, suspicion, a state machine, A* pathfinding). An **AI Brain panel** shows every agent's real numbers live and exports them. The objective was to build a complete, tested, publicly hosted game with AI coding assistance, and to make AI/ML concepts tangible through play.
 
 ## 3. Problem statement
 
@@ -42,20 +44,21 @@ The proposed solution is Neural Heist. Before each mission the player trains one
 |---|---|
 | Feel what labels and data quantity do | Mission 1 Lab: label 30 CCTV snapshots, train a k-nearest-neighbour classifier, compare training accuracy with accuracy on 40 held-back photos, get an overfitting warning with too few labels; the drone then uses that exact model |
 | Feel precision vs recall | A "how sure before calling someone a guard" slider and a table of guards spotted, guards missed, false alarms and civilians cleared. In the mission a missed guard has no visible cone, and a false alarm draws a real guard over to check |
-| Feel what rewards do | Mission 2 Lab: reward sliders (goal, laser, step), an episode count and ready-made settings; Q-learning trains live with a reward curve and policy arrows; the robot dog follows that exact policy. Vault extras: new random vaults, bonus batteries, blinking lasers, slippery puddles, a training challenge, and maps of what the dog learned and where it explored |
-| Feel why retrieval matters for language models | Mission 3 Lab: chunk size, results per search (k) and a one-hop / two-hop switch; a "clues found" meter and a preview of the assistant's answer. In the mission, the retrieved emails go to Gemini, which works out the password; the player types it in |
+| Feel what rewards do | Mission 2 Lab, guided: 1. meet an untrained dog that moves at random and gets zapped; 2. train it and watch its attempts play out, with a live count of how they end (zapped, lost, reached the drive); 3. test-run its learned route, then start the mission. Rewards are plain choices (🦴 reaching the drive: no / small / big treat; ⚡ touching a laser: treat / doesn't matter / hurts; 🐾 each step: free / costs a little / costs a lot), and "guess, then test" experiments ask the player to predict what a reward design will do before training. Exact sliders, new random vaults, batteries, blinking lasers, puddles and the learned-value maps are in an Advanced Lab |
+| Feel what unsupervised learning does | Mission 4 Lab: 24 unlabelled servers; choose the readings, scaling and the number of groups (k), watch k-means move its centres, judge k with an elbow chart and a silhouette score, and name the group that behaves like an archive. In the mission the scanner flags that group's racks; every empty rack opened brings a guard |
+| Feel why retrieval matters for language models | Mission 3 Lab, guided: 1. meet the assistant with no index (it skims 3 random emails, finds 0 of 3 clues and answers UNKNOWN); 2. build the index and watch the search: each email found lists and highlights the words it shares with the question, and the second search shows the new lead words it follows; 3. send it. Plain search choices (how much of each email to keep together; emails to read per search; follow the lead on/off) and "guess, then test" experiments (single sentences → 1 clue, 1 email per search → 2, no second search → 1). In the mission the terminal shows a clue board: the three pieces of the password, or a "?" card for a missing one, then the language model's answer |
 | A real game | Stealth missions with a data drive, exit, timer, alarm, 3 stars, debrief, best scores, mission select, pause menu, restart, sound, settings, phone controls |
 | Transparency | AI Brain panel with live values and JSON / CSV export; a project dashboard with every measurement |
 
 ## 6. Key features
 
-1. **Three missions, each with a Lab:** image classification (Rooftop), reinforcement learning (Laser Vault), retrieval-augmented generation (Executive Floor).
+1. **Four missions, each with a Lab:** image classification (Rooftop), reinforcement learning (Laser Vault), retrieval-augmented generation (Executive Floor), unsupervised clustering (Server Farm).
 2. **AI guards:** 60° vision cones clipped by walls, suspicion meters, Patrol → Suspicious → Search → Chase state machine, A* pathfinding on the map grid; a guard walks over to investigate a false alarm.
-3. **Teammates that use the player's real models:** drone (k-NN with the player's threshold), robot dog (greedy policy from the Q-table), hacking assistant (two-hop TF-IDF retrieval + Gemini 3.5 Flash-Lite through a Cloudflare Worker, with an offline fallback).
+3. **Teammates that use the player's real models:** drone (k-NN with the player's threshold), robot dog (greedy policy from the Q-table), hacking assistant (two-hop TF-IDF retrieval + Gemini 3.5 Flash-Lite through a Cloudflare Worker, with an offline fallback), network scanner (flags the racks of the k-means group the player chose).
 4. **Live language model, safely:** the Gemini key lives only on Cloudflare as a secret; the Worker accepts requests only from the game's site, limits each visitor to 20 requests an hour and rebuilds the prompt server-side.
 5. **Scoring:** finish 1000 + stealth 500 + 10 points per second under par (at most 300) + up to 500 for the AI's measured quality; 3 stars; best score and stars per mission; total on the Heist Complete screen.
 6. **Win and lose:** win with the drive at the exit; lose when caught, when the alarm runs out, when the dog trips a laser or gets lost, or after 3 wrong passwords. Restart or retrain in the Lab.
-7. **Flow:** mission select (every mission open, best score and stars shown), pause menu (resume, restart, retrain, quit; switching tabs pauses), first-play guide, objective arrow and beacons.
+7. **Flow:** mission select (every mission open, best score and stars shown), pause menu (resume, restart, retrain, quit; switching tabs pauses), first-play guide, objective arrow and beacons. Online leaderboard: after a win, add your score under a nickname; the Leaderboard screen shows how everyone is playing (top 10 per mission and an overall ranking).
 8. **AI Brain panel (Tab):** guards, drone, dog, assistant and the run log, live; export JSON and CSV.
 9. **Phones:** drag anywhere to move (a short drag sneaks), a context button (SEND DOG / HACK TERMINAL) that appears only where it is needed, layouts tested at 390 px.
 10. **Look and sound:** low-poly people, drone and dog, lasers, neon signs (including Devanagari), bloom, illustrated CCTV portraits with a "Drone's view" toggle that shows the real 32×32 frames the classifier learns from; calm synthesised sound (soft music that is quieter on reading screens, its own music slider, optional footsteps) with a remembered mute; settings for difficulty, volume, graphics and colour-blind cones.
@@ -85,6 +88,7 @@ Every piece of game and AI logic is a pure JavaScript module with no Three.js or
 | 3D | Three.js 0.186 (orthographic camera, instanced walls, bloom) | |
 | Image classifier | k-NN (k = 3, distance-weighted vote, adjustable threshold) in plain JavaScript on 32×32 snapshots | the suggested TensorFlow.js MobileNet was replaced to avoid a 16 MB download and keep it testable |
 | Reinforcement learning | Tabular Q-learning in plain JavaScript | as planned |
+| Clustering | k-means in plain JavaScript (k-means++ start, best of 8 starts, optional standardisation, elbow chart, silhouette score) | unsupervised learning; no labels |
 | Embeddings / retrieval | TF-IDF vectors, cosine similarity, two-hop retrieval | the suggested Transformers.js MiniLM was replaced for the same reasons |
 | Language model | Gemini 3.5 Flash-Lite through a Cloudflare Worker (live); Ollama qwen2:7b locally | Groq as an optional backup in the Worker |
 | Pathfinding and decisions | A* search, finite state machine, ray-cast vision | |
@@ -114,13 +118,19 @@ Every piece of game and AI logic is a pure JavaScript module with no Three.js or
 *Mission 1: the drone tags the people it classified; guards it recognised show their vision cones.*
 
 ![Mission 2 Lab](screenshots/10-qlab.png)
-*Mission 2 Lab: reward sliders, live Q-learning, the learned route.*
+*Mission 2 Lab (guided): three steps, plain treats-and-zaps choices, the learned route, and one action bar with the next step.*
 
 ![Robot dog](screenshots/11-dog.png)
 *Mission 2: the robot dog crosses the laser vault with the policy it learned.*
 
 ![Mission 3 Lab](screenshots/12-raglab.png)
-*Mission 3 Lab: build the index, clues found 3 of 3, one-hop / two-hop switch, the answer the assistant would give.*
+*Mission 3 Lab (guided): clues found 3 of 3, each result's matching words highlighted, plain search choices, and the answer the assistant would give.*
+
+![Mission 4 Lab](screenshots/31-m4-lab.png)
+*Mission 4 Lab: k-means groups 24 unlabelled servers; the elbow chart and silhouette score help choose k; the player names the archive group.*
+
+![Mission 4 racks](screenshots/32-m4-racks.png)
+*Mission 4: the scanner flags the chosen group's racks (cyan, with names); an empty rack turns red and brings a guard; the right rack gives the drive.*
 
 ![Live Gemini answer](screenshots/30-terminal-gemini-live.png)
 *Mission 3 on the live site: retrieved emails with clue badges, and the answer from Gemini 3.5 Flash-Lite.*
@@ -168,7 +178,7 @@ Why each line is there: "ONLY the emails below" keeps the answer grounded in ret
 
 ## 11. Testing report
 
-Main test scenarios (all run in a real browser or as automated tests; the full list of 52 is in `docs/test-report.md`):
+Main test scenarios (all run in a real browser or as automated tests; the full list of 62 is in `docs/test-report.md`):
 
 | # | User action | Expected result | Actual result | Status |
 |---|---|---|---|---|
@@ -187,16 +197,22 @@ Main test scenarios (all run in a real browser or as automated tests; the full l
 | 13 | Press Esc during a mission | The game pauses; nothing is lost | Pause menu; player and clock frozen; Esc resumes | Pass |
 | 14 | Mute (M or 🔊), then reload | Sound stays off | Muted state and all settings survive a reload | Pass |
 | 15 | Play on a phone (390 px) | Menus, Labs and gameplay usable | Drag to move; SEND DOG appears at the console; 15 / 15 phone checks | Pass |
+| 16 | Group the servers without scaling, then with scaling and k = 4 (Mission 4) | Without scaling the archive is mixed up; scaled, k = 4 finds it | Unscaled: archive match F1 0.67; scaled, k = 4: exactly the 5 archive servers (F1 1.00), silhouette 0.77, the highest of k = 2…6; k = 3 merges the archive into an 11-rack group and five empty racks start the alarm | Pass |
+| 17 | Win a mission, add the score under a nickname, open the Leaderboard | The score appears with its rank; other players' scores are visible | "Saved: you are #1 on Rooftop"; a bad nickname is refused with a reason; the Leaderboard shows the top 10 per mission and an overall ranking; scores that do not add up under the scoring rules are refused by the server | Pass |
+| 18 | First visit to the Mission 2 Lab: meet the dog, train it, test-run it | A new player knows what to do at every moment | Three steps with one action at a time; the untrained dog walks at random and is zapped; while training the bar counts attempts and how they end; the Test run walks the learned route ("Reached the drive in 22 steps"); extra options unlock after the first training | Pass |
+| 19 | Experiment "What if touching a laser gives the dog a treat?": guess, then train | The guess is compared with what the dog really learns | Guessed "reaches the drive"; the dog ran into a laser: "Not quite", with the reason. Measured on 10 vaults × 2 seeds: each experiment gives the same outcome 20 / 20 (laser treat → laser, free steps → lost, costly steps → laser, 300 runs → lost) | Pass |
+| 20 | Mission 3 Lab, first visit: meet the assistant, build the index, try an experiment | The player sees why the search finds each email | With no index the assistant skims 3 random emails: 0 of 3 clues, UNKNOWN. After building, each result shows "Matching words: vault password" with the words highlighted, and the lead words of the second search. Experiment "single sentences": guessed only 1, found 1 of 3: "Well predicted" | Pass |
+| 21 | Terminal with a weak index (1 email per search) | The player sees which piece of the password is missing | Clue board: 2 of 3 pieces, a "?" card for the robot's name, the assistant answers UNKNOWN, and "Improve the search index (back to the Lab)" is offered. Pressing E to open the terminal no longer types an "E" into the password box | Pass after fix |
 
 Automated test suites, current runs (2026-10-24):
 
 | Suite | Result |
 |---|---|
-| Unit tests (`npm test`): game rules, guards, A*, classifier, Q-learning, retrieval, Worker, sound | 81 / 81 pass |
-| Browser test (`npm run test:e2e`): every screen, all three missions, Labs, Brain panel, export, settings, pause, sound | 92 / 92 pass on the dev server; 88 / 88 on the live site with the language model connected (before the 4 sound checks were added) |
-| Score scenarios (`npm run test:scores`): every debrief checked against the scoring rules | 38 / 38 pass (dev and live) |
-| Phone check (`npm run test:phone`), 390 × 844 | 15 / 15 pass (dev and live) |
-| Second browser: Safari 26.6 on macOS (`npm run test:safari`) | 24 / 24 pass: all three missions, the live language model, and leaving the game silences it |
+| Unit tests (`npm test`): game rules, guards, A*, classifier, Q-learning, retrieval, k-means, Worker, sound | 99 / 99 pass |
+| Browser test (`npm run test:e2e`): every screen, all four missions, Labs, Brain panel, export, settings, pause, sound | 125 / 125 pass on the dev server (with Mission 4, the leaderboard and both guided Labs); 88 / 88 on the live site with the language model connected (before the 4 sound checks were added) |
+| Score scenarios (`npm run test:scores`): every debrief checked against the scoring rules | 57 / 57 pass (dev, with Mission 4 and the clue board); 38 / 38 on the live site before Mission 4 |
+| Phone check (`npm run test:phone`), 390 × 844 | 20 / 20 pass (dev, with the Mission 4 Lab, the leaderboard and both guided Labs) |
+| Second browser: Safari 26.6 on macOS (`npm run test:safari`) | 27 / 27 pass: all four missions, the live language model, and leaving the game silences it |
 
 Key measured results (all reproducible with fixed seeds, collected in the dashboard):
 
@@ -206,13 +222,14 @@ Key measured results (all reproducible with fixed seeds, collected in the dashbo
 | Threshold trade-off (400 unseen) | 30 % sure: 0 guards missed, 67 false alarms · 50 %: 0 missed, 39 false alarms · 70 %: 11 missed, 22 false alarms |
 | Q-learning, sensible rewards | shortest 28-step safe route on 20 / 20 seeds; a positive laser reward hits a laser on 20 / 20; no step penalty gets lost on 20 / 20 |
 | Retrieval recall of the 3 clue emails | 3 / 3 with chunks of 2+ sentences, k ≥ 3 and two hops; 1 / 3 with one-sentence chunks; 1 / 3 with one hop at every setting |
+| k-means (Mission 4) | scaled, k = 4: archive found exactly (F1 1.00); unscaled: 0.67; k = 3: 0.63; elbow flattens after k = 4; silhouette highest at k = 4 (0.77) |
 | Live language model | answers KESTREL37 in 1.4–5.6 s; requests from other websites are refused (403) |
 
 `reports/dashboard.html` collects every measurement and is rebuilt from the game's own code by `npm run dashboard`. `docs/REQUIREMENT_MAPPING.md` maps every requirement to its implementation and test.
 
 ## 12. Challenges and solutions
 
-`docs/challenges.md` lists 35 problems and fixes, each with what broke, the cause, how AI helped and the fix. A selection:
+`docs/challenges.md` lists 39 problems and fixes, each with what broke, the cause, how AI helped and the fix. A selection:
 
 | Problem | Cause | Fix |
 |---|---|---|
@@ -227,18 +244,19 @@ Key measured results (all reproducible with fixed seeds, collected in the dashbo
 
 ## 13. Final outcome
 
-A complete, publicly hosted three-mission game with real, player-trained AI and a live language model, tested end to end in a real browser on the development build and on the live site, on desktop and phone sizes. The player trains a classifier, a reinforcement-learning agent and a retrieval index, and sees each one succeed or fail in play, with the numbers to explain why.
+A complete, publicly hosted four-mission game with real, player-trained AI and a live language model, tested end to end in a real browser on the development build and on the live site, on desktop and phone sizes. The player trains a classifier, a reinforcement-learning agent, a retrieval index and a clustering, and sees each one succeed or fail in play, with the numbers to explain why.
 
 Key learnings: build game logic as pure, testable modules; measure ML behaviour before building UI around it; read the data when a metric looks wrong; keep secrets on a server, never in a public web page; never let the language model make the decision that matters (the player types the password, the code checks it); and test the live site, not only the dev server.
 
 ## 14. Future enhancements
 
-New missions: clustering (a server farm), regression (guard patrol timing), a small neural network (a sound lock) and a final mission against a company AI that adapts security to the player's style. Also: TensorFlow.js MobileNet and neural embeddings as an optional mode, a leaderboard, recorded audio and modelled assets, and a strict global rate limit with Workers KV.
+New missions: regression (guard patrol timing), a small neural network (a sound lock) and a final mission against a company AI that adapts security to the player's style. Also: TensorFlow.js MobileNet and neural embeddings as an optional mode, accounts so leaderboard nicknames cannot be reused by others, recorded audio and modelled assets, and a strict global rate limit with Workers KV.
 
 ## 15. Project demo
 
 - Gameplay walkthrough video (2 min 23 s, captioned, recorded on the live site): https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough.mp4
 - Five-minute demo script for a live demonstration: `docs/DEMO_SCRIPT.md`.
+- The version as submitted (v1, three missions): https://reetika-k.github.io/neural-heist/v1/ · its dashboard: https://reetika-k.github.io/neural-heist/v1/dashboard.html · its source: tag `v1.0-submission`.
 - Play online: https://reetika-k.github.io/neural-heist/
 - Project dashboard: https://reetika-k.github.io/neural-heist/dashboard.html
 - Repository: https://github.com/Reetika-k/neural-heist

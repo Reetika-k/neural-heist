@@ -70,8 +70,11 @@
         </ol>
       </div>
       <button id="btn-start" class="btn-primary">Start</button>
-      <div class="start-links"><button id="btn-missions" class="btn-ghost">Missions</button><button id="btn-howto" class="btn-ghost">How to play</button><button id="btn-settings" class="btn-ghost">Settings</button></div>
-      <p class="fine">3 missions · each one needs an AI skill you train yourself</p>
+      <div class="start-links"><button id="btn-missions" class="btn-ghost">Missions</button><button id="btn-leaderboard" class="btn-ghost">Leaderboard</button><button id="btn-howto" class="btn-ghost">How to play</button><button id="btn-settings" class="btn-ghost">Settings</button></div>
+      <!-- 2026-10-26: Mission 4 added. <p class="fine">3 missions · each one needs an AI skill you train yourself</p> -->
+      <p class="fine">4 missions · each one needs an AI skill you train yourself</p>
+      <!-- 2026-11-01: released after the capstone submission; the submitted version stays at v1/ -->
+      <p class="fine whats-new">New since submission: Mission 4, an online leaderboard and guided Labs · <a href="v1/">play the submitted version</a></p>
     </div>
   </section>
 
@@ -124,7 +127,7 @@
     <div class="start-card howto-card">
       <p class="eyebrow">How to play</p>
       <h1 class="title brief-title">THE JOB</h1>
-      <p class="brief-text">Three missions. In each one you <b>train an AI teammate</b>, then you <b>sneak in and use it</b>. It helps you exactly as well as you trained it.</p>
+      <p class="brief-text">Four missions. In each one you <b>train an AI teammate</b>, then you <b>sneak in and use it</b>. It helps you exactly as well as you trained it.</p>
       <ol class="howto-steps">
         <li><span class="hs-num">1</span><div><b>Briefing</b><p>Read what the mission needs.</p></div></li>
         <li><span class="hs-num">2</span><div><b>Lab: train your AI</b><p>Label camera photos (drone) · set rewards (robot dog) · build a search index (hacking assistant).</p></div></li>
@@ -164,7 +167,7 @@
       <header class="term-head"><span class="term-title">VELORA//VAULT-ACCESS</span><button id="term-close" class="btn-link" aria-label="Close terminal">close [Esc]</button></header>
       <p class="term-status" id="term-status">Assistant: retrieving emails…</p>
       <div class="term-body">
-        <div class="term-col"><h3>Retrieved emails</h3><div id="term-hits" class="rag-results"></div></div>
+        <div class="term-col"><h3>What your assistant found</h3><div id="term-hits" class="rag-results"></div></div>
         <div class="term-col">
           <h3>Assistant's answer</h3><pre id="term-answer" class="term-answer"></pre>
           <details><summary>Behind the scenes: the prompt a language model receives</summary><pre id="term-prompt" class="term-prompt"></pre></details>
@@ -181,6 +184,15 @@
       <h1 class="title brief-title">MISSIONS</h1>
       <p class="brief-text">Each mission needs one AI skill. Play them in order, or jump to any mission.</p>
       <ol class="mission-list" id="mission-list"></ol>
+      <button class="btn-link" data-back="start">Back to the main menu</button>
+    </div>
+  </section>
+  <section id="screen-leaderboard" class="screen hidden">
+    <div class="start-card lb-card">
+      <p class="eyebrow">How everyone is playing</p>
+      <h1 class="title brief-title">LEADERBOARD</h1>
+      <div class="lb-tabs" role="tablist" id="lb-tabs"></div>
+      <div id="lb-body" class="lb-body" aria-live="polite"><p class="fine">Loading…</p></div>
       <button class="btn-link" data-back="start">Back to the main menu</button>
     </div>
   </section>
@@ -226,6 +238,13 @@
       </dl>
       <p class="fine" id="deb-break"></p>
       <p class="new-best hidden" id="deb-newbest">New best score!</p>
+      <!-- 2026-10-26: online leaderboard -->
+      <form class="lb-submit hidden" id="lb-form" onsubmit="return false">
+        <label for="lb-name">Add your score to the online leaderboard</label>
+        <div class="lb-row"><input id="lb-name" maxlength="16" autocomplete="nickname" placeholder="Your nickname" aria-describedby="lb-note"><button type="submit" class="btn-ghost" id="lb-send">Add my score</button></div>
+        <p class="fine" id="lb-note">Your nickname and score are shown publicly. A nickname is enough; no real name needed.</p>
+        <p class="lb-msg" id="lb-msg" aria-live="polite"></p>
+      </form>
       <div class="deb-actions">
         <button id="btn-next" class="btn-primary">Next mission</button>
         <button id="btn-retry" class="btn-ghost">Retry</button>

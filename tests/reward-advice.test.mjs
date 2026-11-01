@@ -33,3 +33,30 @@ test("slider hints agree with real training at the measured thresholds", () => {
   for (const v of [0, -0.8, -1, -2]) check("step", v, { step: v });
   for (const v of [300, 500, 700, 1500]) check("episodes", v, { episodes: v });
 });
+
+// 2026-11-01: guided Lab ("so confusing to train the dog") — plain choices and "guess, then test" experiments
+import { REWARD_CHOICES, EXPERIMENTS, GUESSES } from "../src/screens/lab-qlearning.js";
+import { createAgent as mkAgent, trainWithMilestone as trainAll, greedyPath as route, makeEnv as mkEnv } from "../src/lab/qlearning.js";
+
+test("plain reward choices include the recommended values and each lesson's value", () => {
+  const vals = (k) => REWARD_CHOICES.find((g) => g.key === k).options.map((o) => o.v);
+  assert.ok(vals("goal").includes(RECOMMENDED.goal) && vals("laser").includes(RECOMMENDED.laser) && vals("step").includes(RECOMMENDED.step));
+  for (const id of ["reckless", "lazy", "rushed"]) {
+    const p = PRESETS.find((x) => x.id === id);
+    assert.ok(vals("laser").includes(p.laser) && vals("step").includes(p.step), `${id} can be built from the plain choices`);
+  }
+});
+
+test("experiments (measured): each one's setting produces the same outcome on every vault tried", () => {
+  const expected = { reckless: "laser", lazy: "loop", rushed: "laser", untrained: "loop" };
+  const vaults = [mkEnv(), mkEnv({ layout: "random", seed: 2000 }), mkEnv({ layout: "random", seed: 2074 })];
+  for (const x of EXPERIMENTS) {
+    const p = PRESETS.find((q) => q.id === x.preset);
+    for (const env of vaults) {
+      const a = mkAgent({ rewards: { goal: p.goal, laser: p.laser, step: p.step, battery: 1 }, episodes: p.episodes, seed: 1, env });
+      trainAll(a, 25);
+      assert.equal(route(a).outcome, expected[x.id], `${x.id} on ${env.label}`);
+    }
+  }
+  assert.deepEqual(GUESSES.map((g) => g.id).sort(), ["goal", "laser", "loop"]);
+});

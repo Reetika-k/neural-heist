@@ -5,6 +5,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 const base = process.argv[2] || "http://localhost:5173/";
+// 2026-10-26: the leaderboard checks only submit scores locally (tools/scores-dev.mjs), never to the live leaderboard
+const LOCAL = /localhost|127\.0\.0\.1/.test(base);
+if (LOCAL) await fetch("http://localhost:8788/scores", { method: "DELETE" }).catch(() => {});
 const target = await (await fetch(`http://localhost:9337/json/new?${encodeURIComponent(base)}`, { method: "PUT" })).json();
 const ws = new WebSocket(target.webSocketDebuggerUrl); await new Promise((r) => (ws.onopen = r));
 let id = 0; const pending = new Map(); const errors = [];
@@ -28,7 +31,7 @@ const park = `${S}.guards.forEach(g => { g.patrol = [g.patrol[0]]; g.pos = { x: 
 await send("Runtime.enable"); await send("Page.enable");
 await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
 await waitFor("!!window.__heist", 30000);
-await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1 }))`);
+await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1, 4: 1 }))`);
 
 try {
   // ---------- settings, how to play, mute ----------
@@ -49,7 +52,7 @@ try {
   await press("m", "KeyM"); await sleep(100);
   check("M toggles mute", await js(`!window.__heist.sound.state.muted && document.querySelector("#btn-mute").textContent === "🔊"`));
   check("M says so on screen (sound on / off message)", await js(`!document.querySelector("#sound-toast").classList.contains("hidden") && /Sound on/.test(document.querySelector("#sound-toast").textContent)`));
-  await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1 }))`); await send("Page.reload"); await sleep(1500); await waitFor("!!window.__heist");
+  await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1, 4: 1 }))`); await send("Page.reload"); await sleep(1500); await waitFor("!!window.__heist");
   check("cleared storage → default settings (normal, high quality)", await js(`window.__heist.settings.difficulty === "normal" && window.__heist.settings.quality === "high"`));
 
   // ---------- start → briefing → lab ----------
@@ -145,6 +148,16 @@ try {
   await js(`${S}.pos = { x: 1.5, z: 11.5 }`); await waitFor(`${S}.screen === "debrief"`, 8000);
   const deb = await js(`({ screen: ${S}.screen, stars: document.querySelectorAll("#deb-stars .star.on").length, score: Number(document.querySelector("#deb-score").textContent), ai: document.querySelector("#deb-ai").textContent, best: localStorage.getItem("neural-heist.v2.best.m1") })`);
   check("exit with the drive → debrief with stars, score and drone accuracy", deb.screen === "debrief" && deb.stars >= 2 && /\d+%/.test(deb.ai), JSON.stringify(deb));
+  // ---------- online leaderboard (2026-10-26) ----------
+  const lbOn = await js(`!document.querySelector("#lb-form").classList.contains("hidden")`);
+  check("debrief offers 'Add your score to the online leaderboard' with a public-nickname note", lbOn && /shown publicly/.test(await js(`document.querySelector("#lb-note").textContent`)));
+  if (LOCAL && lbOn) {
+    await js(`(() => { document.querySelector("#lb-name").value = "<b>"; document.querySelector("#lb-form").requestSubmit(); })()`);
+    check("a bad nickname is refused with a reason", await waitFor(`/Not saved: nickname/.test(document.querySelector("#lb-msg").textContent)`, 5000), await js(`document.querySelector("#lb-msg").textContent`));
+    await js(`(() => { document.querySelector("#lb-name").value = "Asha"; document.querySelector("#lb-form").requestSubmit(); })()`);
+    check("a nickname saves the score: rank #1 and the mission's top list", await waitFor(`/Saved: you are #1 on Rooftop/.test(document.querySelector("#lb-msg").textContent) && document.querySelectorAll("#lb-msg .lb-table tr.lb-me").length === 1`, 5000), await js(`document.querySelector("#lb-msg").textContent.slice(0, 80)`));
+    check("the nickname is remembered for next time", await js(`JSON.parse(localStorage.getItem("neural-heist.nickname")) === "Asha"`));
+  }
   check("best score saved in localStorage", Number(deb.best) === deb.score);
   await shot("06-debrief.png");
   await js(`document.querySelector("#btn-retry").click()`); await sleep(200);
@@ -165,13 +178,30 @@ try {
   check("Q-learning Lab: grid, three reward sliders, chart", await js(`${S}.screen === "lab" && !!document.querySelector("#q-grid") && document.querySelectorAll(".slider input").length >= 4 && !!document.querySelector("#q-chart")`));
   // a first visit gets a fresh random vault; the checks below use the Classic vault, whose numbers are known (28 steps)
   check("first visit to the Lab: a fresh random vault with its shortest route shown", await js(`/^Vault #\\d+$/.test(document.querySelector("#q-vault-label").textContent) && Number(document.querySelector("#q-shortest").textContent) >= 22`), await js(`document.querySelector("#q-vault-label").textContent`));
+  // guided Lab (2026-11-01: "so confusing to train the dog")
+  check("guided first visit: 3 steps, step 1 active, extra options hidden until the first training, one action bar", await js(`document.querySelectorAll("#q-steps li").length === 3 && document.querySelector('#q-steps li[data-step="1"]').classList.contains("active") && document.querySelector(".lab").classList.contains("q-first") && getComputedStyle(document.querySelector("#q-rewards")).display === "none" && /Meet your dog/.test(document.querySelector("#q-next").textContent)`));
+  await js(`document.querySelector("#q-meet").click()`);
+  check("Meet your dog: the untrained dog walks at random and the Lab says what happened", await waitFor(`/random steps|wandered|luck/.test(document.querySelector("#q-status").textContent) && /Train the dog/.test(document.querySelector("#q-next").textContent)`, 20000), await js(`document.querySelector("#q-status").textContent.slice(0, 90)`));
   await js(`${S}.lab.setVault("classic")`);
   check("Classic button: the original vault, shortest route 28", await js(`document.querySelector("#q-vault-label").textContent === "Classic vault" && document.querySelector("#q-shortest").textContent === "28"`));
   await js(`document.querySelector("#q-train").click()`); await waitFor(`Number(document.querySelector("#q-ep").textContent) > 0 && Number(document.querySelector("#q-eps").textContent) < 1`, 10000);
+  check("while training: attempt counter and how recent attempts ended, in the action bar", await waitFor(`/Attempt \\d/.test(document.querySelector("#q-next").textContent) && /zapped/.test(document.querySelector("#q-next").textContent)`, 5000), await js(`document.querySelector("#q-next").textContent`));
   const live = await js(`({ ep: Number(document.querySelector("#q-ep").textContent), eps: Number(document.querySelector("#q-eps").textContent) })`);
   check("Train runs Q-learning live (episodes rise, epsilon falls)", live.ep > 0 && live.eps < 1, JSON.stringify(live));
   await waitFor(`!document.querySelector("#q-verdict").classList.contains("hidden")`, 15000);
   await shot("10-qlab.png");
+  // after the first training: the options unlock; plain choices mirror the numbers; test run; experiment
+  await waitFor(`!document.querySelector(".lab").classList.contains("q-first")`, 60000);
+  check("first training done: treats-and-zaps choices, experiments and Advanced Lab unlock; the choices show the current rewards", await js(`getComputedStyle(document.querySelector("#q-rewards")).display !== "none" && document.querySelector('[data-reward="laser"][data-value="-10"]').getAttribute("aria-checked") === "true" && localStorage.getItem("neural-heist.qlab.guided") === "1"`));
+  await js(`document.querySelector("#q-test").click()`);
+  check("Test run: the dog walks its learned route and the Lab reports the result", await waitFor(`/Reached the drive|ran into a laser|circles/.test(document.querySelector("#q-status").textContent)`, 20000), await js(`document.querySelector("#q-status").textContent.slice(0, 80)`));
+  await js(`document.querySelector('[data-reward="step"][data-value="0"]').click()`); await sleep(100);
+  check("plain choice 'Each step: Free' sets the exact reward and its warning", await js(`document.querySelector("#r-step").value === "0" && /no reason to hurry|wander/i.test(document.querySelector('[data-hint="step"]').textContent)`), await js(`document.querySelector('[data-hint="step"]').textContent`));
+  await js(`document.querySelector('[data-exp="reckless"]').click()`); await sleep(100);
+  await js(`document.querySelector('[data-guess="goal"]').click()`);
+  check("experiment 'lasers give a treat': guess, train, compare: the dog ran into a laser, the guess is marked wrong", await waitFor(`!!document.querySelector(".q-exp-result") && /ran into a laser/.test(document.querySelector(".q-exp-result").textContent) && /Not quite/.test(document.querySelector("#q-next").textContent)`, 60000), await js(`document.querySelector(".q-exp-result")?.textContent ?? ""`));
+  await js(`document.querySelector(".q-exp-reset").click()`); await sleep(100);
+  check("'Back to the recommended treats and zaps' restores +10 / −10 / −0.1", await js(`document.querySelector("#r-goal").value === "10" && document.querySelector("#r-laser").value === "-10" && document.querySelector("#r-step").value === "-0.1"`));
   // README scenario 6: positive reward for lasers
   await js(`${S}.lab.setRewards({ goal: 10, laser: 5, step: -0.1 })`);
   const badV = await js(`${S}.lab.trainNow(1).outcome`);
@@ -223,8 +253,18 @@ try {
   await js(`document.querySelector("#btn-brief-lab").click()`);
   await waitFor(`${S}.screen === "lab" && !!document.querySelector("#rag-build")`);
   check("RAG Lab: 40 emails, chunk and k sliders, Start disabled before building", await js(`document.querySelectorAll(".rag-emails p").length === 40 && document.querySelector("#rag-go").disabled`));
+  // guided Lab (2026-11-01)
+  check("guided Mission 3 Lab: 3 steps, extra options hidden until the first build, one action bar", await js(`document.querySelectorAll("#r-steps li").length === 3 && document.querySelector(".lab").classList.contains("r-first") && getComputedStyle(document.querySelector("#r-choices")).display === "none" && /Meet your assistant/.test(document.querySelector("#r-next").textContent)`));
+  await js(`document.querySelector("#r-meet").click()`); await sleep(200);
+  check("Meet your assistant: with no index it skims 3 random emails, finds 0 of 3 clues and answers UNKNOWN", await js(`document.querySelectorAll("#r-status .hit").length === 3 && /Clues found: 0 of 3/.test(document.querySelector("#r-status").textContent) && /UNKNOWN/.test(document.querySelector("#r-status").textContent)`));
   await js(`document.querySelector("#rag-build").click()`); await sleep(100);
   await js(`document.querySelector("#rag-search").click()`); await sleep(200);
+  check("the search is visible: each result lists its matching words and highlights them", await js(`/Matching words: vault password/.test(document.querySelector("#rag-results .hit-why").textContent) && document.querySelectorAll("#rag-results mark").length >= 5 && /follows that lead/.test(document.querySelector("#rag-results").textContent)`));
+  check("first build done: search choices, experiments and Advanced Lab unlock; the choices show the current settings", await js(`getComputedStyle(document.querySelector("#r-choices")).display !== "none" && document.querySelector('[data-search="k"][data-value="3"]').getAttribute("aria-checked") === "true" && localStorage.getItem("neural-heist.raglab.guided") === "1"`));
+  await js(`document.querySelector('[data-rexp="sentence"]').click()`); await sleep(100); await js(`document.querySelector('[data-rguess="1"]').click()`); await sleep(300);
+  check("experiment 'single sentences': guess 'only 1', it finds 1 of 3: well predicted", await js(`/found 1 of 3/.test(document.querySelector(".q-exp-result").textContent) && /Well predicted/.test(document.querySelector("#r-next").textContent)`), await js(`document.querySelector(".q-exp-result")?.textContent ?? ""`));
+  await js(`document.querySelector(".r-exp-reset").click(); document.querySelector("#rag-build").click()`); await sleep(200);
+  check("'Back to the recommended search' restores two sentences, 3 emails, second search on: 3 of 3", await js(`document.querySelector("#r-chunk").value === "2" && document.querySelector("#r-k").value === "3" && /Clues found: 3 of 3/.test(document.querySelector("#rag-summary").textContent)`));
   const hits = await js(`[...document.querySelectorAll("#rag-results .hit-head span")].map(s => s.textContent)`);
   check("RAG Lab explains itself: no password typed here; clues found 3 of 3; the assistant would answer KESTREL37", await js(`/You don't type the password here/.test(document.querySelector(".lab-sub").textContent) && /Clues found: 3 of 3/.test(document.querySelector("#rag-summary").textContent) && /KESTREL37/.test(document.querySelector("#rag-summary").textContent) && document.querySelectorAll("#rag-results .clue-badge").length === 3`));
   check("search shows two hops with similarity scores; the rotation email ranks first", hits[0] === "Vault access rotation" && hits.length >= 4, hits.slice(0, 6).join(" | "));
@@ -240,6 +280,7 @@ try {
   await waitFor(`document.querySelector("#terminal").dataset.state === "ready"`, 180000);
   const term = await js(`({ screen: ${S}.screen, status: document.querySelector("#term-status").textContent, hits: document.querySelectorAll("#term-hits .hit").length, prompt: document.querySelector("#term-prompt").textContent.includes("PASSWORD:"), answer: document.querySelector("#term-answer").textContent.slice(0, 160) })`);
   check("E opens the terminal: retrieved emails, exact prompt and an answer", term.screen === "terminal" && term.hits >= 4 && term.prompt && term.answer.length > 10, `${term.status} · ${term.answer}`);
+  check("terminal clue board: 3 of 3 pieces with key words highlighted; E did not type into the password box", await js(`document.querySelectorAll(".clue-card.on").length === 3 && document.querySelectorAll(".clue-card mark").length >= 6 && document.querySelector("#term-input").value === ""`));
   const expectLlm = await js(`!!window.__heist.CONFIG.llmUrl`);
   check(expectLlm ? "LLM configured: answer comes from the model" : "no LLM configured: the assistant reasons offline and finds the password", expectLlm ? /answered by/.test(term.status) : /offline reasoning/.test(term.status) && /PASSWORD: KESTREL37/.test(term.answer) && /How I worked it out/.test(term.answer));
   await shot("13-terminal.png");
@@ -256,8 +297,38 @@ try {
   check("drive inside the opened room can be picked up", await js(`${S}.mission.hasDrive`));
   await js(`${S}.pos = { x: 1.5, z: 12.5 }`); await waitFor(`${S}.screen === "debrief"`, 8000);
   check("exit → Mission 3 debrief with retrieval recall 100%", await js(`${S}.screen === "debrief" && document.querySelector("#deb-ai-label").textContent === "Retrieval recall" && document.querySelector("#deb-ai").textContent === "100%"`));
+  // ---------- Mission 4: k-means server farm (2026-10-26) ----------
   await js(`document.querySelector("#btn-next").click()`); await sleep(300);
-  check("Finish → HEIST COMPLETE with a total of all best scores", await js(`${S}.screen === "complete" && Number(document.querySelector("#complete-total").textContent) > 0 && document.querySelectorAll("#complete-list li").length === 3`));
+  check("Next → Mission 4 briefing: SERVER FARM", await js(`${S}.screen === "briefing" && document.querySelector("#brief-title").textContent === "SERVER FARM"`));
+  await js(`document.querySelector("#btn-brief-lab").click()`); await waitFor(`!!document.querySelector("#km-run")`);
+  check("k-means Lab: 24 servers plotted, 4 readings, scaling on, Start disabled before grouping", await js(`/24/.test(document.querySelector(".lab-counts").textContent) && document.querySelectorAll('input[name="feat"]:checked').length === 4 && document.querySelector("#km-scale").checked && document.querySelector("#km-go").disabled`));
+  await js(`${S}.lab.set({ k: 4, scaled: false })`);
+  check("scaling off: the Lab warns that data stored outweighs the other readings", await js(`/outweighs/.test(document.querySelector("#h-scale").textContent) && document.querySelector("#h-scale").dataset.kind === "bad"`));
+  await js(`${S}.lab.set({ k: 4, scaled: true })`); await js(`document.querySelector("#km-run").click()`);
+  check("Group with k-means animates its steps, then shows a silhouette score and the group table", await waitFor(`/Done: settled/.test(document.querySelector("#km-step").textContent) && document.querySelectorAll(".km-table tr[data-group]").length === 4`, 20000), await js(`document.querySelector("#km-sil").textContent`));
+  await js(`document.querySelector('input[name="km-arch"][value="' + ${S}.lab.quietestGroup() + '"]').click()`); await sleep(200);
+  check("choosing the quietest group as the archive flags 5 racks and enables Start", await js(`/flag its 5 racks/.test(document.querySelector("#km-pick-note").textContent) && !document.querySelector("#km-go").disabled`));
+  await shot("31-m4-lab.png");
+  await js(`document.querySelector("#km-go").click()`); await waitFor(`${S}.screen === "playing"`, 10000);
+  check("Mission 4: the scanner flags 5 racks; the arrow points to a flagged rack", await waitFor(`/5 racks flagged/.test(document.querySelector("#hud-teammate").textContent) && document.querySelector("#nav-text").textContent === "FLAGGED RACK" || /5 racks flagged/.test(document.querySelector("#hud-teammate").textContent) && document.querySelector("#nav-arrow").classList.contains("hidden")`, 5000));
+  await js(parkAt(21, 10));
+  const m4 = await js(`(() => { const sc = ${S}.scanner, i = sc.farm.servers.findIndex(s => s.id === sc.farm.target), w = sc.farm.servers.findIndex(s => s.kind !== "archive"); return { t: ${S}.map.racks[i], w: ${S}.map.racks[w] }; })()`);
+  await js(`${S}.pos = { x: ${m4.w.x + 0.5}, z: ${m4.w.z - 0.5} }`); await sleep(300);
+  check("next to a rack: the Press E hint shows", await waitFor(`!document.querySelector("#hud-hint").classList.contains("hidden")`, 3000));
+  await press("e", "KeyE"); await sleep(300);
+  check("an empty rack turns red, is logged, and sends a guard to check", await js(`${S}.scanner.wrong === 1 && /empty/.test(document.querySelector("#hud-tip").textContent) && ${S}.guards.some(g => g.state === "search")`));
+  await js(parkAt(21, 10));
+  await js(`window.__heist.brain.toggle(true); window.__heist.brain.setTab("scanner")`); await sleep(200);
+  check("Brain panel, Scanner tab: k-means settings, flagged racks and the racks checked", await js(`/k-means clustering, k = 4/.test(document.querySelector(".bp-body").textContent) && /empty/.test(document.querySelector(".bp-body").textContent)`));
+  await js(`window.__heist.brain.toggle(false)`);
+  await js(`${S}.pos = { x: ${m4.t.x + 0.5}, z: ${m4.t.z - 0.5} }`); await sleep(300); await press("e", "KeyE"); await sleep(300);
+  check("the right rack gives the drive", await js(`${S}.mission.hasDrive && /Found it/.test(document.querySelector("#hud-tip").textContent)`));
+  await shot("32-m4-racks.png");
+  await js(`${S}.pos = { x: 1.5, z: 11.5 }`); await waitFor(`${S}.screen === "debrief"`, 8000);
+  check("exit → Mission 4 debrief with archive match 100%", await js(`document.querySelector("#deb-ai-label").textContent === "Archive match (F1)" && document.querySelector("#deb-ai").textContent === "100%"`));
+  await js(`document.querySelector("#btn-next").click()`); await sleep(300);
+  // RETIRED 2026-10-26: three missions. check("Finish → HEIST COMPLETE …", … length === 3);
+  check("Finish → HEIST COMPLETE with a total of all best scores", await js(`${S}.screen === "complete" && Number(document.querySelector("#complete-total").textContent) > 0 && document.querySelectorAll("#complete-list li").length === 4`));
   await shot("14-complete.png");
   // three wrong passwords → alarm
   await js(`window.__heist.openBriefing(2)`); await sleep(200); await js(`window.__heist.restart()`); await sleep(200);
@@ -307,6 +378,16 @@ try {
   await js(`window.__heist.restart()`); await waitFor(`${S}.screen === "playing"`); await press("Escape", "Escape"); await sleep(150);
   await js(`document.querySelector("#btn-pause-quit").click()`); await sleep(200);
   check("Pause → Quit returns to the start screen", await js(`${S}.screen === "start"`));
+  // leaderboard screen from the start menu (2026-10-26)
+  await js(`document.querySelector("#btn-leaderboard").click()`);
+  check("Leaderboard screen: Overall plus one tab per mission", await waitFor(`${S}.screen === "leaderboard" && document.querySelectorAll("#lb-tabs [data-lb]").length === window.__heist.MISSIONS.length + 1`, 5000));
+  if (LOCAL) {
+    check("Overall lists the saved player with their total", await waitFor(`/Asha/.test(document.querySelector("#lb-body").textContent) && document.querySelectorAll("#lb-body tr.lb-me").length === 1`, 8000), await js(`document.querySelector("#lb-body").textContent.slice(0, 100)`));
+    await js(`document.querySelector('#lb-tabs [data-lb="1"]').click()`); await sleep(200);
+    check("Mission tab shows that mission's top scores", await js(`/Asha/.test(document.querySelector("#lb-body").textContent) && /Top 10 shown/.test(document.querySelector("#lb-body").textContent)`));
+    await shot("34-leaderboard.png");
+  } else check("the live leaderboard loads", await waitFor(`!/Loading/.test(document.querySelector("#lb-body").textContent)`, 10000), await js(`document.querySelector("#lb-body").textContent.slice(0, 80)`));
+  await js(`document.querySelector("#screen-leaderboard [data-back]").click()`); await sleep(150);
 } catch (e) { check("flow completed without exception", false, e.message); }
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${results.filter(Boolean).length} / ${results.length} checks passed`);

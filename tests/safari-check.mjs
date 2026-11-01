@@ -27,7 +27,7 @@ try {
   await wd("POST", `${S_}/window/rect`, { width: 1280, height: 860 });
   await wd("POST", `${S_}/url`, { url: base });
   check("page loads in Safari; the game starts", await waitFor("!!window.__heist", 30000), await js("navigator.userAgent.match(/Version\\/[\\d.]+ Safari/)?.[0] || navigator.userAgent"));
-  await js(`(() => { window.__errs = []; addEventListener("error", e => window.__errs.push(e.message)); addEventListener("unhandledrejection", e => window.__errs.push(String(e.reason))); localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1 })); return true; })()`);
+  await js(`(() => { window.__errs = []; addEventListener("error", e => window.__errs.push(e.message)); addEventListener("unhandledrejection", e => window.__errs.push(String(e.reason))); localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1, 4: 1 })); return true; })()`);
   await wd("POST", `${S_}/refresh`, {}); await waitFor("!!window.__heist", 30000);
   if (!(await waitFor("!document.hidden", 10000))) { console.log("STOP  the Safari test window is hidden (covered, on another desktop, or the screen is locked). The game rightly pauses itself when hidden, so nothing can be tested. Keep the Safari window visible and run again."); await wd("DELETE", S_).catch(() => {}); process.exit(2); }
   await js(`(() => { window.__errs = []; addEventListener("error", e => window.__errs.push(e.message)); addEventListener("unhandledrejection", e => window.__errs.push(String(e.reason))); return true; })()`);
@@ -101,8 +101,22 @@ try {
   check("correct password opens the door", await waitFor(`${S}.screen === "playing" && ${S}.doorOpen`, 10000));
   await js(`${S}.pos = { x: 19.5, z: 8.5 }`); await waitFor(`${S}.mission.hasDrive`, 8000); await js(`${S}.pos = { x: 1.5, z: 12.5 }`);
   await waitFor(`${S}.screen === "debrief"`, 10000);
+
+  // Mission 4: k-means server farm (2026-10-26)
+  await front();
+  await js(`document.querySelector("#btn-next").click()`); await waitFor(`${S}.screen === "briefing"`);
+  await js(`document.querySelector("#btn-brief-lab").click()`); await waitFor(`!!document.querySelector("#km-run")`);
+  await js(`(() => { const lab = ${S}.lab; lab.set({ k: 4, scaled: true }); lab.run({ animate: false }); lab.pick(lab.quietestGroup()); return true; })()`);
+  check("Mission 4 Lab: k-means groups the servers; the archive group has 5 servers", await js(`${S}.lab.result.labels.filter(l => l === ${S}.lab.chosen).length === 5 && !document.querySelector("#km-go").disabled`));
+  await js(`document.querySelector("#km-go").click()`); await waitFor(`${S}.screen === "playing"`, 15000);
+  await park(21, 10);
+  const tr = await js(`(() => { const sc = ${S}.scanner; return ${S}.map.racks[sc.farm.servers.findIndex(s => s.id === sc.farm.target)]; })()`);
+  await js(`${S}.pos = { x: ${tr.x + 0.5}, z: ${tr.z - 0.5} }`); await sleep(400); await press("e");
+  check("Mission 4: E at the right rack gives the drive", await waitFor(`${S}.mission.hasDrive`, 5000));
+  await js(`${S}.pos = { x: 1.5, z: 11.5 }`);
+  check("Mission 4 debrief: archive match 100 %", await waitFor(`${S}.screen === "debrief" && document.querySelector("#deb-ai").textContent === "100%"`, 10000));
   await js(`document.querySelector("#btn-next").click()`);
-  check("Heist Complete with the total of the three bests", await waitFor(`${S}.screen === "complete" && +document.querySelector("#complete-total").textContent > 0`, 10000));
+  check("Heist Complete with the total of the four bests", await waitFor(`${S}.screen === "complete" && +document.querySelector("#complete-total").textContent > 0`, 10000));
 
   // phone width
   await wd("POST", `${S_}/window/rect`, { width: 400, height: 860 }); await sleep(600);

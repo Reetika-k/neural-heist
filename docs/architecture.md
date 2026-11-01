@@ -10,7 +10,8 @@ Browser game · Vite + Three.js  (src/main.js: screens, game loop with fixed 0.0
   ├── Lab (trains in the browser, pure JS, unit-tested)
   │     ├── Mission 1  src/lab/snapshots.js + classifier.js   k-NN image classifier on procedural CCTV snapshots
   │     ├── Mission 2  src/lab/qlearning.js                   tabular Q-learning, player-designed rewards
-  │     └── Mission 3  src/lab/rag.js                         chunking, TF-IDF embeddings, cosine, two-hop retrieval
+  │     ├── Mission 3  src/lab/rag.js                         chunking, TF-IDF embeddings, cosine, two-hop retrieval
+  │     └── Mission 4  src/lab/servers.js + kmeans.js         k-means clustering of 24 unlabelled servers (scaling, elbow, silhouette)
   │
   ├── Mission (pure logic modules, rendered by Three.js views)
   │     ├── src/player/movement.js     circle-vs-grid collision, axis-separated sliding
@@ -18,7 +19,8 @@ Browser game · Vite + Three.js  (src/main.js: screens, game loop with fixed 0.0
   │     ├── src/world/mission.js       objective, alarm, win/lose, score = finish + stealth + time + AI accuracy, 3 stars
   │     ├── src/teammates/drone.js     runs the player's classifier on every character it scans
   │     ├── src/teammates/dog.js       follows the greedy policy of the player's Q-table across the laser vault
-  │     └── src/teammates/assistant.js retrieves with the player's index, asks the LLM, or falls back
+  │     ├── src/teammates/assistant.js retrieves with the player's index, asks the LLM, or falls back
+  │     └── src/teammates/scanner.js   flags the racks of the player's chosen k-means group; empty racks bring guards
   │
   ├── AI Brain panel (Tab)  src/brain-panel/   live values from every AI · Export JSON / CSV
   │

@@ -154,3 +154,24 @@ test("one hop vs two hops (Lab switch): one hop finds only 1 of 3 clues at every
   assert.equal(recall(two.context, RELEVANT), 1);
   assert.equal(ragHint("hops", 1).kind, "bad"); assert.equal(ragHint("hops", 2).kind, "good");
 });
+
+// 2026-11-01: guided Mission 3 Lab — plain choices, experiments (measured), word highlighting
+import { SEARCH_CHOICES, RAG_EXPERIMENTS, highlight, sharedWords } from "../src/screens/lab-rag.js";
+
+test("guided Lab experiments (measured): single sentences → 1 clue, 1 email per search → 2, no second search → 1", () => {
+  const expected = { sentence: 1, one: 2, nolead: 1 };
+  for (const x of RAG_EXPERIMENTS) {
+    const r = multiHop(buildIndex(emails, { chunkSize: x.set.chunk }), VAULT_QUESTION, x.set.k, { hops: x.set.hops });
+    assert.equal(Math.round(recall(r.context, RELEVANT) * 3), expected[x.id], x.id);
+    assert.doesNotMatch(reasonOffline(r.context).answer, /KESTREL37/, `${x.id}: the assistant cannot answer`);
+  }
+  const ok = (key, v) => SEARCH_CHOICES.find((g) => g.key === key).options.some((o) => o.v === v);
+  assert.ok(ok("chunk", 2) && ok("k", 3) && ok("hops", 2), "the recommended search can be chosen in plain words");
+});
+
+test("highlighting marks exactly the words the search matched (same tokenizer, plurals included)", () => {
+  const terms = new Set(tokenize("What is the vault password?"));
+  assert.equal(highlight("Never share passwords over chat.", terms), "Never share <mark>passwords</mark> over chat.");
+  assert.deepEqual(sharedWords({ subject: "Vault access rotation", text: "The new password is…" }, terms).sort(), ["password", "vault"]);
+  assert.equal(highlight("<b>x</b>", terms), "&lt;b&gt;x&lt;/b&gt;", "text is escaped");
+});

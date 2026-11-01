@@ -379,3 +379,126 @@ body:not([data-screen="playing"]) .btn-mute { top: 12px; bottom: auto; right: 12
 /* 40 test snapshots: 8 per row */
 .test-grid { grid-template-columns: repeat(8, 1fr); gap: 4px; }
 .test-cell span { font-size: 10px; }
+
+/* ---------- Mission 4 Lab: k-means (2026-10-26) ---------- */
+.km-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.km-axes { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 13px; color: var(--dim); }
+.km-axes select { background: rgba(255,255,255,.06); color: var(--ink); border: 1px solid rgba(255,255,255,.18); border-radius: 8px; padding: 4px 6px; font: inherit; }
+.km-plot { width: 100%; height: auto; aspect-ratio: 16 / 10; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; }
+.km-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.km-table th, .km-table td { padding: 6px 6px; text-align: right; border-bottom: 1px solid rgba(255,255,255,.08); }
+.km-table th:first-child, .km-table td:first-child { text-align: left; }
+.km-table th { color: var(--dim); font-weight: 600; font-size: 12px; }
+.km-table tr.km-chosen td { background: rgba(255,210,61,.1); }
+.km-table input[type="radio"] { width: 18px; height: 18px; accent-color: #ffd23d; }
+.km-sw { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; }
+.km-feats { border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 8px 10px; display: grid; gap: 4px; font-size: 13px; }
+.km-feats legend { color: var(--dim); font-size: 12px; padding: 0 4px; }
+.km-scale { font-size: 13px; display: flex; gap: 6px; align-items: center; }
+.km-elbow canvas { width: 100%; height: auto; background: rgba(255,255,255,.03); border-radius: 8px; }
+.cyan { color: #29e6ff; }
+@media (max-width: 720px) { .km-table th:nth-child(n+3):nth-child(-n+6), .km-table td:nth-child(n+3):nth-child(-n+6) { font-size: 11px; padding: 4px 3px; } }
+
+/* ---------- online leaderboard (2026-10-26) ---------- */
+.lb-card { max-width: 720px; }
+.lb-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.lb-tabs button { background: rgba(255,255,255,.05); color: var(--dim); border: 1px solid rgba(255,255,255,.14); border-radius: 999px; padding: 6px 12px; font: 600 13px/1 Inter, sans-serif; cursor: pointer; }
+.lb-tabs button[aria-selected="true"] { background: var(--cyan); color: #04121a; border-color: var(--cyan); }
+.lb-body { min-height: 120px; }
+.lb-table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 6px 0; }
+.lb-table th, .lb-table td { padding: 7px 6px; border-bottom: 1px solid rgba(255,255,255,.08); text-align: left; }
+.lb-table th { color: var(--dim); font-size: 12px; font-weight: 600; }
+.lb-table td:nth-child(4) { color: #ffd23d; letter-spacing: 1px; }
+.lb-table tr.lb-me td { background: rgba(41,230,255,.12); }
+.lb-submit { margin: 12px 0 4px; text-align: left; border: 1px solid rgba(41,230,255,.25); border-radius: 12px; padding: 10px 12px; }
+.lb-submit label { font-size: 13px; color: var(--dim); }
+.lb-row { display: flex; gap: 8px; margin-top: 6px; }
+.lb-row input { flex: 1; min-width: 0; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.2); border-radius: 10px; color: var(--ink); padding: 9px 10px; font: 500 15px Inter, sans-serif; }
+.lb-msg { font-size: 13px; margin: 6px 0 0; } .lb-msg[data-kind="good"] { color: #8fe9b8; } .lb-msg[data-kind="bad"] { color: #ff9db0; }
+.lb-msg .lb-table { font-size: 12px; }
+@media (max-width: 520px) { .lb-table th:nth-child(6), .lb-table td:nth-child(6) { display: none; } }
+
+/* ---------- Mission 2 Lab, guided (2026-11-01: "so confusing to train the dog") ---------- */
+.qlab { padding-bottom: 0; }
+.q-steps { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0; margin: 4px 0 14px; }
+.q-steps li { display: flex; gap: 10px; align-items: center; padding: 7px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.03); opacity: .65; }
+.q-steps li.active { opacity: 1; border-color: var(--cyan); box-shadow: 0 0 16px rgba(41,230,255,.2); }
+.q-steps li.done { opacity: 1; } .q-steps li.done .hs-num { background: #3dff9a; }
+.q-steps b { font-size: 14px; } .q-steps p { margin: 1px 0 0; font-size: 12px; color: var(--dim); }
+.q-steps li > div { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; }
+.q-steps li > div p { flex-basis: 100%; }
+.q-step-btn { margin-top: 4px; }
+.q-step-btn { padding: 5px 12px; font-size: 13px; }
+.q-card { border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 10px 12px; background: rgba(255,255,255,.03); }
+.q-card h3 { margin: 0 0 8px; font: 700 14px/1.2 Orbitron, sans-serif; letter-spacing: .04em; color: var(--ink); }
+.q-choice { display: grid; gap: 5px; margin-bottom: 10px; }
+.q-choice-q { font-size: 13.5px; font-weight: 600; }
+.q-seg { display: flex; flex-wrap: wrap; gap: 5px; }
+.q-seg button { flex: 1 1 auto; background: rgba(255,255,255,.05); color: var(--ink); border: 1px solid rgba(255,255,255,.16); border-radius: 9px; padding: 7px 8px; font: 600 12.5px/1.2 Inter, sans-serif; cursor: pointer; }
+.q-seg button[aria-checked="true"] { background: rgba(41,230,255,.18); border-color: var(--cyan); color: #fff; }
+.q-seg button:hover { border-color: rgba(41,230,255,.6); }
+.q-choice-hint { font-size: 12px; }
+.q-exp-list { display: grid; gap: 6px; }
+.q-exp { text-align: left; background: rgba(178,107,255,.1); color: var(--ink); border: 1px solid rgba(178,107,255,.4); border-radius: 9px; padding: 8px 10px; font: 500 13px/1.35 Inter, sans-serif; cursor: pointer; }
+.q-exp::before { content: "🧪 "; }
+.q-exp-q { font-weight: 700; margin: 0 0 4px; }
+.q-exp-result { padding: 8px 10px; border-radius: 9px; margin: 0 0 8px; }
+.q-exp-result[data-kind="good"] { background: rgba(61,255,154,.12); } .q-exp-result[data-kind="bad"] { background: rgba(255,210,61,.12); }
+.q-advanced { border: 1px dashed rgba(255,255,255,.2); border-radius: 12px; padding: 8px 12px; display: block; }
+.q-advanced > summary { cursor: pointer; color: var(--dim); font-weight: 600; font-size: 13px; }
+.q-advanced[open] { display: flex; flex-direction: column; gap: 10px; }
+.q-vault-btns { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.q-first .q-rewards, .q-first .q-experiments, .q-first .q-advanced { display: none; }
+.q-first .q-side::before { content: "Train your dog once and more options unlock here: treats and zaps, experiments, and the Advanced Lab."; font-size: 13px; color: var(--dim); border: 1px dashed rgba(255,255,255,.2); border-radius: 12px; padding: 12px; }
+.q-status { width: min(420px, 100%); font-size: 13.5px; color: var(--dim); min-height: 40px; }
+.q-status p { margin: 6px 0; }
+.q-progress { position: relative; height: 22px; border-radius: 6px; background: rgba(255,255,255,.06); overflow: hidden; }
+.q-progress span { position: relative; z-index: 1; font-size: 12px; line-height: 22px; padding-left: 8px; color: #fff; }
+.q-progress i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, rgba(41,230,255,.35), rgba(41,230,255,.6)); }
+.q-tally { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: rgba(255,255,255,.06); }
+.q-tally .t-goal { background: #3dff9a; } .q-tally .t-laser { background: #ff2d55; } .q-tally .t-loop { background: #8a93b8; }
+.q-actionbar { position: sticky; bottom: 0; margin: 14px -22px -22px; padding: 12px 22px; border-radius: 0 0 18px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: rgba(8,12,34,.96); border-top: 1px solid rgba(41,230,255,.3); backdrop-filter: blur(6px); z-index: 5; }
+.q-next { margin: 0; font-size: 14px; color: var(--ink); flex: 1 1 260px; }
+.q-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.q-actions .btn-primary, .q-actions .btn-ghost { width: auto; padding: 10px 18px; }
+.q-actions button:disabled { opacity: .35; filter: saturate(.3); box-shadow: none; cursor: not-allowed; }
+.qlab .lab-head { margin-bottom: 6px; } .qlab .lab-sub { margin-bottom: 0; }
+@media (max-width: 720px) { .q-steps { grid-template-columns: 1fr; } .q-actionbar { margin: 12px -14px 0; padding: 10px 14px; } .q-actions { width: 100%; } .q-actions .btn-primary, .q-actions .btn-ghost { flex: 1 1 auto; } }
+.q-actions .btn-go.btn-ghost { background: transparent; color: var(--ink); box-shadow: none; border: 1px solid rgba(61,255,154,.5); }
+@media (max-width: 720px) {
+  .q-actionbar { gap: 6px; }
+  .q-next { font-size: 13px; flex-basis: 100%; }
+  .q-actions { display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 6px; }
+  .q-actions .btn-primary, .q-actions .btn-ghost { padding: 9px 6px; font-size: 13px; letter-spacing: .02em; }
+  .q-actions #q-back { grid-column: 1 / -1; order: 5; font-size: 12px; justify-self: center; padding: 0; }
+}
+
+/* ---------- Mission 3 Lab, guided + terminal clue board (2026-11-01) ---------- */
+.raglab .rag-main { min-width: 0; }
+.r-first #r-choices, .r-first #r-experiments, .r-first #r-advanced { display: none; }
+.r-first .q-side::before { content: "Build the index once and more options unlock here: how your assistant searches, experiments, and the Advanced Lab."; font-size: 13px; color: var(--dim); border: 1px dashed rgba(255,255,255,.2); border-radius: 12px; padding: 12px; }
+.r-status p { margin: 6px 0; }
+.r-skim { display: grid; gap: 6px; margin: 6px 0; }
+.clue-badge.off { background: rgba(255,255,255,.08); color: var(--dim); }
+.hit { animation: hit-in .35s ease both; animation-delay: calc(var(--i, 0) * 140ms); }
+@keyframes hit-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .hit { animation: none; } }
+.hit mark { background: rgba(255,210,61,.28); color: #fff; border-radius: 3px; padding: 0 2px; }
+.hit-why { font-size: 12px; color: var(--dim); margin: 4px 0 0; } .hit-why code { color: #ffd23d; }
+.clue-board { display: grid; gap: 8px; margin-bottom: 10px; }
+.clue-card { border-radius: 10px; padding: 8px 10px; border: 1px solid rgba(61,255,154,.45); background: rgba(61,255,154,.06); font-size: 13px; }
+.clue-card b { display: block; margin: 2px 0; } .clue-card p { margin: 2px 0 0; color: var(--dim); line-height: 1.45; }
+.clue-card mark { background: rgba(255,210,61,.28); color: #fff; border-radius: 3px; padding: 0 2px; }
+.clue-card.missing { border: 1px dashed rgba(255,157,176,.6); background: rgba(255,45,85,.06); }
+.clue-what { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #8fe9b8; } .clue-card.missing .clue-what { color: #ff9db0; }
+.term-all summary { cursor: pointer; color: var(--dim); font-size: 13px; margin: 4px 0; }
+.r-status:empty { display: none; }
+@media (max-width: 720px) {
+  /* one row of equal buttons (2 or 3), the Back link on its own small line below */
+  .q-actions { display: flex; flex-wrap: wrap; }
+  .q-actions .btn-primary, .q-actions .btn-ghost { flex: 1 1 0; min-width: 0; }
+  .q-actions .btn-link { flex-basis: 100%; order: 5; font-size: 12px; text-align: center; padding: 0; }
+}
+
+/* 2026-11-01: what changed since the capstone submission */
+.whats-new { margin-top: 6px; color: var(--dim); } .whats-new a { color: var(--cyan); }

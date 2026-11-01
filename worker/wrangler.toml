@@ -17,3 +17,8 @@ GEMINI_MODEL = "gemini-3.5-flash-lite"
 # Secrets (never in this file):
 #   npx wrangler secret put GEMINI_API_KEY
 #   npx wrangler secret put GROQ_API_KEY      (optional backup)
+
+# 2026-11-01: online leaderboard (GET/POST /scores), one key per mission: scores:m1 … scores:m4
+[[kv_namespaces]]
+binding = "SCORES"
+id = "022900820b4448539f071fea35a7d7f4"

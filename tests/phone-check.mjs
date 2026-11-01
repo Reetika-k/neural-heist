@@ -64,7 +64,12 @@ check("drag left anywhere: the player moves left on screen; the ring disappears 
 // the E key on a phone: a named button appears only next to the console
 await js(`window.__heist.openBriefing(1)`); await sleep(200);
 await js(`document.querySelector("#btn-brief-lab").click()`); for (let i = 0; i < 50 && !(await js(`!!document.querySelector("#q-go")`)); i++) await sleep(100);
-await js(`window.__heist.state.lab.trainNow(1); document.querySelector("#q-go").click()`); await sleep(800);
+// guided Mission 2 Lab on a phone (2026-11-01): fits, steps stacked, the action bar's buttons reachable at the bottom
+check("guided dog Lab fits the phone; Train the dog is reachable in the bottom bar", await js(fits) && await js(visible("#q-train")) && await js(`getComputedStyle(document.querySelector("#q-actionbar")).position === "sticky"`));
+await js(`window.__heist.state.lab.trainNow(1)`); await sleep(300);
+check("after training: Test run and Start mission reachable in the bar; treats and zaps fit", await js(visible("#q-test")) && await js(visible("#q-go")) && await js(fits));
+fs.writeFileSync("docs/screenshots/35-phone-dog-lab.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
+await js(`document.querySelector("#q-go").click()`); await sleep(800);
 for (let i = 0; i < 4; i++) { await js(`document.querySelector("#guide-next")?.click()`); await sleep(120); }
 await js(parkGuards.replace("x: 17, z: 1", "x: 21, z: 14").replace("x: 17.5, z: 1.5", "x: 21.5, z: 14.5"));
 const hiddenAway = await js(`document.querySelector("#t-use").classList.contains("hidden")`);
@@ -85,6 +90,21 @@ let msOk = false; // retried: the screen fades in, and a tap test during the fad
 for (let i = 0; i < 20 && !msOk; i++) { msOk = await js(`window.__heist.state.screen === "missions"`) && await js(fits) && await js(visible("#mission-list [data-mission='2']")); if (!msOk) await sleep(100); }
 check("mission select fits the phone; Mission 3 Play reachable", msOk);
 fs.writeFileSync("docs/screenshots/28-mission-select.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
+// guided Mission 3 Lab on a phone (2026-11-01)
+await js(`window.__heist.openBriefing(2)`); await sleep(300); await js(`document.querySelector("#btn-brief-lab").click()`);
+for (let i = 0; i < 50 && !(await js(`!!document.querySelector("#rag-build")`)); i++) await sleep(100);
+await js(`document.querySelector("#rag-build").click()`); await sleep(500);
+check("guided Mission 3 Lab fits the phone; Build and Start mission reachable in the bottom bar", await js(fits) && await js(visible("#rag-go")) && await js(visible("#rag-build")));
+fs.writeFileSync("docs/screenshots/36-phone-rag-lab.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
+// ---------- Mission 4 Lab on a phone (2026-10-26) ----------
+await js(`window.__heist.openBriefing(3)`); await sleep(300); await js(`document.querySelector("#btn-brief-lab").click()`);
+for (let i = 0; i < 50 && !(await js(`!!document.querySelector("#km-run")`)); i++) await sleep(100);
+await js(`(() => { const lab = window.__heist.state.lab; lab.set({ k: 4, scaled: true }); lab.run({ animate: false }); lab.pick(lab.quietestGroup()); return true; })()`); await sleep(300);
+check("Mission 4 Lab fits the phone: plot, group table and Start mission reachable", await js(fits) && await js(visible("#km-go")) && await js(`document.querySelector("#km-plot").getBoundingClientRect().width <= innerWidth`));
+fs.writeFileSync("docs/screenshots/33-phone-m4-lab.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
+// leaderboard on a phone (2026-10-26)
+await js(`window.__heist.openBriefing(0)`); await sleep(100); await js(`(() => { document.querySelectorAll(".screen").forEach(x => x.classList.add("hidden")); document.querySelector("#btn-leaderboard").click(); return true; })()`); await sleep(1500);
+check("Leaderboard fits the phone; tabs and Back reachable", await js(`window.__heist.state.screen === "leaderboard"`) && await js(fits) && await js(visible("#screen-leaderboard [data-back]")));
 check("no JavaScript errors", errors.length === 0, errors.join(" | "));
 console.log(`\n${results.filter(Boolean).length} / ${results.length} phone checks passed`);
 // close this test's tab: left open, finished test tabs kept playing the game's music in the background (2026-10-24)

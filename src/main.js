@@ -22,7 +22,8 @@ import { mountQLab } from "./screens/lab-qlearning.js";
 import { createDog, deployDog, updateDog, dogScore } from "./teammates/dog.js";
 import { createVaultView } from "./world/vault.js";
 import { triggerAlarm } from "./world/mission.js";
-import { mountRagLab, renderHits } from "./screens/lab-rag.js";
+import { mountRagLab, renderHits, CLUES, highlight } from "./screens/lab-rag.js";
+import { tokenize } from "./lab/rag.js";
 import { askAssistant, extractPassword } from "./teammates/assistant.js";
 import { createTerminalView } from "./world/terminal.js";
 import { normalisePassword } from "./lab/rag.js";
@@ -32,6 +33,11 @@ import { buildExport, eventsToCsv, download } from "./brain-panel/export.js";
 import { loadSettings, saveSettings, tuningFor, DIFFICULTY } from "./settings.js";
 import { createSound } from "./audio/sound.js";
 import { addDecor } from "./world/decor.js";
+import { mountKmeansLab } from "./screens/lab-kmeans.js";
+import { serverFarm } from "./lab/servers.js";
+import { createScanner, rackInReach, checkRack, scannerScore, nextFlaggedRack, SCANNER } from "./teammates/scanner.js";
+import { createRackView } from "./world/racks.js";
+import { leaderboardEnabled, fetchBoards, submitScore } from "./leaderboard.js";
 
 let EMAILS = null;
 const loadEmails = async () => (EMAILS ??= await (await fetch("data/emails.json")).json());
@@ -72,7 +78,7 @@ const playerMesh = createPlayerMesh(scene);
 const state = {
   screen: "start", missionIndex: 0, config: null, map: null, level: null,
   pos: { x: 1.5, z: 1.5 }, facing: 0, guards: [], civilians: [], mission: null, drone: null,
-  models: { classifier: null, agent: null, rag: null }, assist: null, attempts: 0, doorOpen: false, labReports: {}, caughtBy: null, result: null, runLog: [], lab: null,
+  models: { classifier: null, agent: null, rag: null, clusters: null }, assist: null, attempts: 0, doorOpen: false, labReports: {}, caughtBy: null, result: null, runLog: [], lab: null,
   dog: null, failTimer: null, failReason: null,
 };
 const log = (type, detail = {}) => state.runLog.push({ t: Number((state.mission?.time ?? 0).toFixed(2)), mission: state.config?.id ?? 0, type, ...detail });
@@ -93,9 +99,10 @@ function buildLevel(config) {
   const droneView = config.teammate === "drone" ? createDroneView(root, DRONE.scanRadius) : null;
   const vaultView = config.teammate === "dog" ? createVaultView(root, config.vaultOrigin, map.console, state.models.agent?.env, { touch: IS_TOUCH }) : null; // the vault the dog trained on
   const terminalView = config.teammate === "assistant" ? createTerminalView(root, map, { touch: IS_TOUCH }) : null;
+  const rackView = map.racks.length ? createRackView(root, map, serverFarm(config.farmSeed ?? 4).servers) : null;
   state.map = map;
   state.level = {
-    root, map, props, guardViews, civViews, droneView, vaultView, terminalView, decor, tags,
+    root, map, props, guardViews, civViews, droneView, vaultView, terminalView, rackView, decor, tags,
     tagFor(id) { if (!tags.has(id)) tags.set(id, createDetectionTag(overlay)); return tags.get(id); },
     dispose() { guardViews.forEach((v) => v.dispose()); civViews.forEach((v) => v.dispose()); tags.forEach((t) => t.dispose()); root.traverse((o) => { o.geometry?.dispose?.(); }); },
   };
@@ -120,6 +127,7 @@ function resetMission() {
   state.mission = createMission(state.map, cfg.rules);
   state.drone = cfg.teammate === "drone" ? createDrone(state.pos) : null;
   state.dog = cfg.teammate === "dog" ? createDog(state.models.agent, cfg.vaultOrigin) : null;
+  state.scanner = cfg.teammate === "scanner" ? createScanner(serverFarm(cfg.farmSeed), state.models.clusters) : null;
   state.failTimer = null; state.failReason = null; state.tip = null;
   state.assist = null; assistRequest = null; state.attempts = 0; state.doorOpen = false; state.dogChimed = false;
   sound.siren(false);
@@ -176,7 +184,8 @@ addEventListener("keydown", (e) => {
   if (e.key === "Escape" && state.screen === "playing") { pause(); return; }
   else if (e.key === "Escape" && state.screen === "terminal") show("playing");
   if (e.key === "Enter" && state.screen === "caught") restart();
-  if ((e.key === "e" || e.key === "E") && state.screen === "playing") interact();
+  // 2026-11-01: preventDefault, or the same key press typed an "E" into the terminal's password box it had just opened
+  if ((e.key === "e" || e.key === "E") && state.screen === "playing") { e.preventDefault(); interact(); }
 });
 addEventListener("keyup", (e) => {
   const dir = KEY_TO_DIR[e.key.toLowerCase()];
@@ -190,6 +199,27 @@ const near = (cell, r = 1.3) => cell && Math.hypot(state.pos.x - (cell.x + 0.5),
 function interact() {
   if (state.dog && near(state.map.console) && state.dog.status === "idle") { sound.play("dog"); deployDog(state.dog); log("dog_deployed", { outcome: state.dog.plan.outcome, steps: state.dog.plan.path.length - 1 }); flashTip("A guard patrols past this console · step away and hide while the dog crosses", 6); }
   if (state.config.teammate === "assistant" && near(state.map.terminal) && !state.doorOpen) openTerminal();
+  if (state.scanner && !state.mission.hasDrive) checkNearestRack();
+}
+
+// ---------- Mission 4 server racks ----------
+function checkNearestRack() {
+  const i = rackInReach(state.map, state.pos); if (i === null) return;
+  const sc = state.scanner, id = sc.farm.servers[i].id, result = checkRack(sc, i);
+  if (result === "already") return;
+  log("rack_checked", { rack: id, result, flagged: sc.flagged.has(id) });
+  if (result === "found") {
+    state.mission.hasDrive = true; sound.play("pickup");
+    flashTip(`Found it: the records are on ${id} · now reach the exit`, 5);
+    return;
+  }
+  sound.play("denied");
+  // a wrong check is logged by the server farm: the nearest patrolling guard comes to look
+  const r = state.map.racks[i], spot = { x: r.x + 0.5, z: r.z + 0.5 };
+  const g = state.guards.filter((x) => x.state === "patrol").sort((a, b) => Math.hypot(a.pos.x - spot.x, a.pos.z - spot.z) - Math.hypot(b.pos.x - spot.x, b.pos.z - spot.z))[0];
+  if (g) investigate(g, state.map, spot);
+  if (sc.wrong >= SCANNER.maxWrong) { triggerAlarm(state.mission); flashTip(`${id} is empty · ${SCANNER.maxWrong} wrong checks: ALARM`, 5); }
+  else flashTip(`${id} is empty · access logged, a guard is coming to check (${sc.wrong} of ${SCANNER.maxWrong})`, 5);
 }
 
 // ---------- Mission 3 terminal ----------
@@ -199,6 +229,18 @@ const locked = () => state.attempts >= MAX_ATTEMPTS;
 function showAttempts() {
   $("#term-attempts").textContent = locked() ? "Terminal locked" : `${MAX_ATTEMPTS - state.attempts} attempts left`;
   $("#term-input").disabled = locked();
+}
+/** The three pieces of the password, as the assistant's index found them (a "?" card where a clue email was missed). */
+const CLUE_WORDS = { e17: "password robot capitals floor", e05: "varma robot kestrel", e29: "server room floor 37" };
+function clueBoard(context) {
+  const cards = Object.entries(CLUES).map(([id, what]) => {
+    const hit = context.find((h) => h.chunk.emailId === id);
+    return hit
+      ? `<div class="clue-card on"><span class="clue-what">✓ ${what}</span><b>${escHtml(hit.chunk.subject)}</b><p>${highlight(hit.chunk.text, new Set(tokenize(CLUE_WORDS[id])))}</p></div>`
+      : `<div class="clue-card missing"><span class="clue-what">? ${what}</span><b>Not found</b><p>Your index did not bring this email in, so this piece of the password is missing.</p></div>`;
+  }).join("");
+  const n = Object.keys(CLUES).filter((id) => context.some((h) => h.chunk.emailId === id)).length;
+  return `<p class="hop-label">Clue board · ${n} of 3 pieces found</p><div class="clue-board">${cards}</div>`;
 }
 async function openTerminal() {
   show("terminal");
@@ -232,7 +274,11 @@ async function openTerminal() {
   $("#term-status").textContent = a.source === "llm" ? `Assistant: answered by ${a.model ?? "LLM"} in ${(a.latencyMs / 1000).toFixed(1)} s${a.tokens ? ` · ${a.tokens} tokens` : ""}`
     : a.error === "no LLM configured" ? "Assistant: offline reasoning over the retrieved emails (no language model connected)"
     : `Assistant: language model unavailable (${a.error}) · offline reasoning over the retrieved emails`;
-  $("#term-hits").innerHTML = renderHits(a.hop1, "Hop 1 · question", { markClues: true }) + ((state.models.rag.hops ?? 2) < 2 ? `<p class="fine">One hop only: the second search is switched off in the Lab.</p>` : renderHits(a.hop2, "Hop 2 · following the lead", { markClues: true }));
+  // RETIRED 2026-11-01: a long list of every retrieved email. Now a clue board (the three pieces of the password, or "?"
+  // where the index missed one), with the full list one click away.
+  // $("#term-hits").innerHTML = renderHits(a.hop1, "Hop 1 · question", { markClues: true }) + (…hop 2…);
+  const allHits = renderHits(a.hop1, "Search 1 · with the question", { markClues: true }) + ((state.models.rag.hops ?? 2) < 2 ? `<p class="fine">One search only: following the lead is switched off in the Lab.</p>` : renderHits(a.hop2, "Search 2 · following the lead", { markClues: true }));
+  $("#term-hits").innerHTML = clueBoard(a.context) + `<details class="term-all"><summary>All ${a.context.length} emails your index retrieved</summary>${allHits}</details>`;
   $("#term-prompt").textContent = a.prompt;
   $("#term-answer").textContent = a.source === "llm" || !a.steps?.length ? a.answer : `${a.answer}\n\nHow I worked it out:\n${a.steps.map((s) => `• ${s}`).join("\n")}`;
   panel.dataset.state = "ready";
@@ -265,7 +311,7 @@ $("#term-form").addEventListener("submit", (e) => { e.preventDefault(); submitPa
 $("#term-close").addEventListener("click", () => show("playing"));
 
 // ---------- screens ----------
-const SCREENS = ["start", "briefing", "lab", "caught", "debrief", "complete", "terminal", "settings", "howto", "missions", "paused"];
+const SCREENS = ["start", "briefing", "lab", "caught", "debrief", "complete", "terminal", "settings", "howto", "missions", "paused", "leaderboard"];
 function show(name) {
   state.screen = name;
   document.body.dataset.screen = name; // lets CSS place the 🔊 button per screen
@@ -308,6 +354,9 @@ async function openLab() {
   if (c.lab === "qlearning") {
     state.lab = mountQLab(root, { onBack, prev: state.models.agent, onDone: ({ agent, report }) => { state.models.agent = agent; state.labReports[c.id] = report; log("lab_trained", { lab: "qlearning", ...report }); startMission(); } });
   }
+  if (c.lab === "kmeans") {
+    state.lab = mountKmeansLab(root, { onBack, seed: c.farmSeed, prev: state.models.clusters, onDone: ({ clusters, report }) => { state.models.clusters = clusters; state.labReports[c.id] = report; log("lab_trained", { lab: "kmeans", ...report }); startMission(); } });
+  }
   if (c.lab === "classifier") {
     state.lab = mountClassifierLab(root, { onBack, onDone: ({ model, report }) => { state.models.classifier = model; state.labReports[c.id] = report; log("lab_trained", { lab: "classifier", ...report, warnings: undefined }); startMission(); } });
   }
@@ -328,7 +377,7 @@ function showMissions() {
     const best = getBest(m.id), stars = getStars(m.id);
     return `<li class="mission-item${best ? " done" : ""}${i === next ? " next" : ""}">
       <span class="mi-num">${m.id}</span>
-      <div class="mi-body"><b>${m.name}</b><span class="mi-ai">${m.concept} · ${{ drone: "drone", dog: "robot dog", assistant: "hacking assistant" }[m.teammate]}</span>
+      <div class="mi-body"><b>${m.name}</b><span class="mi-ai">${m.concept} · ${{ drone: "drone", dog: "robot dog", assistant: "hacking assistant", scanner: "network scanner" }[m.teammate]}</span>
         <span class="mi-stats">${best ? `Best ${best} · ${"★".repeat(stars)}${"☆".repeat(3 - stars)}` : i === next ? "Next up" : "Not played yet"}</span></div>
       <button class="btn-primary mi-play" data-mission="${i}">${best ? "Replay" : "Play"}</button></li>`;
   }).join("");
@@ -416,6 +465,7 @@ function aiScore() {
   if (state.config.teammate === "drone") return modelAccuracy(state.models.classifier, [...state.guards, ...state.civilians]);
   if (state.config.teammate === "dog") return dogScore(state.dog);
   if (state.config.teammate === "assistant") return state.assist?.recall ?? 0;
+  if (state.config.teammate === "scanner") return state.scanner ? scannerScore(state.scanner) : 0;
   return 0;
 }
 
@@ -455,13 +505,55 @@ function endMission(outcome) {
   $("#deb-time").textContent = fmtTime(m.time);
   $("#deb-par").textContent = `par ${fmtTime(m.parTime)}`;
   $("#deb-ai").textContent = `${Math.round(ai * 100)}%`;
-  $("#deb-ai-label").textContent = { drone: "Drone accuracy", dog: "Dog path quality", assistant: "Retrieval recall" }[cfg.teammate] ?? "AI";
+  $("#deb-ai-label").textContent = { drone: "Drone accuracy", dog: "Dog path quality", assistant: "Retrieval recall", scanner: "Archive match (F1)" }[cfg.teammate] ?? "AI";
   $("#deb-best").textContent = Math.max(prev, r.score);
   $("#deb-newbest").classList.toggle("hidden", !isBest);
+  // online leaderboard: offer to add this win under a nickname (remembered in this browser)
+  $("#lb-form").classList.toggle("hidden", !leaderboardEnabled());
+  $("#lb-name").value = store.get(NICK_KEY, ""); $("#lb-send").disabled = false; $("#lb-msg").textContent = ""; $("#lb-msg").dataset.kind = "";
   const last = state.missionIndex + 1 >= MISSIONS.length;
   $("#btn-next").textContent = last ? "Finish" : "Next mission";
   show("debrief");
 }
+
+// ---------- online leaderboard (2026-10-26) ----------
+const NICK_KEY = "neural-heist.nickname";
+const escHtml = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const lbRows = (list, mine = null) => list.length ? `<table class="lb-table"><tr><th>#</th><th>Player</th><th>Score</th><th>Stars</th><th>Time</th><th>Date</th></tr>${list.map((e, i) => `<tr class="${mine && e.name.toLowerCase() === mine.toLowerCase() ? "lb-me" : ""}"><td>${i + 1}</td><td>${escHtml(e.name)}</td><td><b>${e.score}</b></td><td>${"★".repeat(e.stars)}${"☆".repeat(3 - e.stars)}</td><td>${fmtTime(e.seconds)}</td><td>${e.at}</td></tr>`).join("")}</table>` : `<p class="fine">No scores yet. Win this mission and be the first.</p>`;
+$("#lb-form").addEventListener("submit", async () => {
+  const name = $("#lb-name").value.trim(), cfg = state.config, r = state.result;
+  if (!name) { $("#lb-msg").textContent = "Type a nickname first."; $("#lb-msg").dataset.kind = "bad"; return; }
+  $("#lb-send").disabled = true; $("#lb-msg").textContent = "Saving…"; $("#lb-msg").dataset.kind = "";
+  try {
+    const out = await submitScore({ mission: cfg.id, name, result: r, seconds: r.time });
+    store.set(NICK_KEY, name); log("leaderboard_submit", { mission: cfg.id, rank: out.rank, improved: out.improved });
+    $("#lb-msg").dataset.kind = "good";
+    $("#lb-msg").innerHTML = (out.improved ? `Saved: you are <b>#${out.rank}</b> on ${escHtml(cfg.name)}.` : `Your earlier score on ${escHtml(cfg.name)} is higher, so it stays: you are <b>#${out.rank}</b>.`) + lbRows(out.list.slice(0, 5), name);
+  } catch (e) {
+    $("#lb-send").disabled = false; $("#lb-msg").dataset.kind = "bad";
+    $("#lb-msg").textContent = `Not saved: ${e.message}.`;
+  }
+});
+let lbTab = "overall", lbData = null;
+async function openLeaderboard() {
+  show("leaderboard");
+  const tabs = [["overall", "Overall"], ...MISSIONS.map((m) => [String(m.id), `${m.id}. ${m.name}`])];
+  $("#lb-tabs").innerHTML = tabs.map(([k, label]) => `<button role="tab" data-lb="${k}" aria-selected="${k === lbTab}">${escHtml(label)}</button>`).join("");
+  $("#lb-tabs").querySelectorAll("[data-lb]").forEach((b) => b.addEventListener("click", () => { lbTab = b.dataset.lb; $("#lb-tabs").querySelectorAll("[data-lb]").forEach((x) => x.setAttribute("aria-selected", String(x === b))); renderLeaderboard(); }));
+  if (!leaderboardEnabled()) { $("#lb-body").innerHTML = `<p class="fine">The online leaderboard works on the live site. Your own best scores are on the Missions screen.</p>`; return; }
+  $("#lb-body").innerHTML = `<p class="fine">Loading…</p>`;
+  try { lbData = await fetchBoards(); renderLeaderboard(); }
+  catch (e) { $("#lb-body").innerHTML = `<p class="fine">Could not load the leaderboard (${escHtml(e.message)}). Try again in a moment.</p>`; }
+}
+function renderLeaderboard() {
+  if (!lbData) return;
+  const me = store.get(NICK_KEY, "");
+  if (lbTab === "overall") {
+    const o = lbData.overall;
+    $("#lb-body").innerHTML = o.length ? `<table class="lb-table"><tr><th>#</th><th>Player</th><th>Total</th><th>Missions won</th><th>Stars</th></tr>${o.slice(0, 20).map((p, i) => `<tr class="${me && p.name.toLowerCase() === me.toLowerCase() ? "lb-me" : ""}"><td>${i + 1}</td><td>${escHtml(p.name)}</td><td><b>${p.total}</b></td><td>${p.missions} of ${MISSIONS.length}</td><td>${p.stars}</td></tr>`).join("")}</table><p class="fine">Total = each player's best score on every mission they have won. ${o.length} player${o.length === 1 ? "" : "s"} so far.</p>` : `<p class="fine">No scores yet. Win a mission and add yours from the debrief.</p>`;
+  } else $("#lb-body").innerHTML = lbRows((lbData.lists[lbTab] ?? []).slice(0, 10), me) + `<p class="fine">Top 10 shown; each player's best score counts once.</p>`;
+}
+$("#btn-leaderboard").addEventListener("click", () => { sound.unlock(); openLeaderboard(); });
 
 function showComplete() {
   const total = MISSIONS.reduce((a, m) => a + getBest(m.id), 0);
@@ -501,7 +593,15 @@ function updateHud() {
     tm.textContent = state.doorOpen ? "Assistant: door open" : state.models.rag ? `Assistant: index ready (k=${state.models.rag.k}, ${state.models.rag.hops ?? 2} hop${(state.models.rag.hops ?? 2) > 1 ? "s" : ""})` : "Assistant: no index";
     tm.classList.remove("hidden");
   }
-  $("#hud-hint").classList.toggle("hidden", !((state.dog && state.dog.status === "idle" && near(state.map.console)) || (cfg.teammate === "assistant" && !state.doorOpen && near(state.map.terminal))));
+  if (state.scanner) {
+    const sc = state.scanner;
+    tm.textContent = state.models.clusters ? `Scanner: ${sc.flagged.size} rack${sc.flagged.size === 1 ? "" : "s"} flagged · ${sc.checked.size} checked · ${sc.wrong}/${SCANNER.maxWrong} wrong` : "Scanner: no groups (nothing flagged)";
+    tm.classList.remove("hidden");
+  }
+  const rackHere = state.scanner && !m.hasDrive ? rackInReach(state.map, state.pos) : null;
+  const canCheck = rackHere !== null && !state.scanner.checked.has(state.scanner.farm.servers[rackHere].id);
+  // RETIRED 2026-10-26: no Mission 4 racks. $("#hud-hint").classList.toggle("hidden", !((state.dog && state.dog.status === "idle" && near(state.map.console)) || (cfg.teammate === "assistant" && !state.doorOpen && near(state.map.terminal))));
+  $("#hud-hint").classList.toggle("hidden", !((state.dog && state.dog.status === "idle" && near(state.map.console)) || (cfg.teammate === "assistant" && !state.doorOpen && near(state.map.terminal)) || canCheck));
   // Players walked up to the vault expecting to go in: say who crosses and where to go instead.
   const atVault = state.dog?.status === "idle" && !near(state.map.console) && nearVaultWall();
   // RETIRED 2026-10-24: the tip line only knew the vault-wall message; timed tips (flashTip) now take priority.
@@ -524,6 +624,7 @@ function currentObjectiveKind() {
   if (m.hasDrive) return "exit";
   if (cfg.teammate === "dog") return null;                         // the dog fetches the drive; the console has its own beacon
   if (cfg.teammate === "assistant" && !state.doorOpen) return null; // the terminal has its own beacon
+  if (cfg.teammate === "scanner") return null;                     // the flagged racks glow and carry their names
   return "drive";
 }
 function objectiveTarget() {
@@ -532,6 +633,7 @@ function objectiveTarget() {
   if (m.hasDrive) return { cell: state.map.exit, label: "EXIT", kind: "exit" };
   if (cfg.teammate === "dog") return state.dog?.status === "idle" ? { cell: state.map.console, label: "CONSOLE", kind: "use" } : null;
   if (cfg.teammate === "assistant" && !state.doorOpen) return { cell: state.map.terminal, label: "TERMINAL", kind: "use" };
+  if (cfg.teammate === "scanner") { const r = state.scanner && nextFlaggedRack(state.scanner, state.map, state.pos); return r ? { cell: r, label: "FLAGGED RACK", kind: "use" } : null; }
   return state.map.drive ? { cell: state.map.drive, label: "DATA DRIVE", kind: "drive" } : null;
 }
 function updateNavArrow() {
@@ -581,6 +683,11 @@ const GUIDE = {
     () => `The <b class="gold">drive</b> is locked in the CEO's room. Follow the <b class="green">arrow</b> to the <b>terminal</b> and ${K("press <kbd>E</kbd>", "tap the <b>HACK TERMINAL</b> button that appears there")}.`,
     () => `Your <b>hacking assistant</b> searches the leaked emails with the index you built, and works out the password. Type it in. <b class="red">3 wrong passwords</b> start the alarm.`,
     () => `Then grab the <b class="gold">drive</b> and reach the <b class="green">exit</b>.`,
+  ],
+  4: [
+    () => `Your <b>network scanner</b> lights up the racks of the group you called "archive" in the Lab: they glow <b class="cyan">cyan</b> and show their names.`,
+    () => `Walk up to a rack and ${K("press <kbd>E</kbd>", "tap <b>CHECK RACK</b>")} to look inside. An empty rack logs your access: <b class="red">a guard comes to check</b>, and <b class="red">5 empty racks</b> start the alarm.`,
+    () => `The rack rows hide you from the guards. When you find the <b class="gold">drive</b>, reach the <b class="green">exit</b>.`,
   ],
 };
 const GUIDE_KEY = "neural-heist.guide";
@@ -658,6 +765,7 @@ function currentAction() {
   if (state.screen !== "playing" || guide.open || !state.config) return null;
   if (state.dog && state.dog.status === "idle" && near(state.map.console)) return "SEND DOG";
   if (state.config.teammate === "assistant" && !state.doorOpen && near(state.map.terminal)) return "HACK TERMINAL";
+  if (state.scanner && !state.mission.hasDrive && rackInReach(state.map, state.pos) !== null && !state.scanner.checked.has(state.scanner.farm.servers[rackInReach(state.map, state.pos)].id)) return "CHECK RACK";
   return null;
 }
 (() => {
@@ -696,7 +804,7 @@ show("start");
 // Fixed-size simulation steps: each step is at most 0.05 s (no tunnelling through walls), but a slow
 // frame runs several steps, so the game stays real-time at low frame rates instead of slowing down.
 const MAX_STEP = 0.05, MAX_FRAME = 0.25;
-const OPAQUE_SCREENS = new Set(["start", "settings", "howto", "briefing", "lab", "missions"]);
+const OPAQUE_SCREENS = new Set(["start", "settings", "howto", "briefing", "lab", "missions", "leaderboard"]);
 function frame(now) {
   const frameDt = Math.min((now - last) / 1000, MAX_FRAME); last = now; t += frameDt;
   const steps = Math.max(1, Math.ceil(frameDt / MAX_STEP));
@@ -789,6 +897,7 @@ function draw(dt) {
     if (L.droneView && state.drone) L.droneView.update(state.drone, t);
     L.decor.update(t);
     if (L.terminalView) L.terminalView.update(!state.doorOpen && near(state.map.terminal), state.doorOpen, t);
+    if (L.rackView) L.rackView.update(state.scanner, state.scanner && !state.mission?.hasDrive ? rackInReach(state.map, state.pos) : null, t);
     if (L.vaultView && state.mission) L.vaultView.update(state.dog, state.mission, state.dog?.status === "idle" && near(state.map.console), t);
   }
   brain.tick(dt);
