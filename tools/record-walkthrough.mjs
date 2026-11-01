@@ -9,7 +9,9 @@ import os from "node:os";
 import { execFileSync } from "node:child_process";
 
 const base = process.argv[2] || "https://reetika-k.github.io/neural-heist/";
-const out = path.resolve(process.argv[3] || "public/demo/neural-heist-walkthrough.mp4");
+// 2026-11-01: version 2 (4 missions, guided Labs, leaderboard) is recorded to its own file; the submitted video
+// (public/demo/neural-heist-walkthrough.mp4) is never overwritten.
+const out = path.resolve(process.argv[3] || "public/demo/neural-heist-walkthrough-v2.mp4");
 const frames = fs.mkdtempSync(path.join(os.tmpdir(), "nh-walkthrough-"));
 
 const target = await (await fetch(`http://localhost:9337/json/new?${encodeURIComponent(base)}`, { method: "PUT" })).json();
@@ -47,7 +49,7 @@ const cutTo = async (x, z, settle = 400) => { recording = false; await js(`${S}.
 await send("Page.enable"); await send("Runtime.enable");
 await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false });
 await waitFor("!!window.__heist", 30000);
-await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1 }))`);
+await js(`localStorage.clear(); localStorage.setItem("neural-heist.guide", JSON.stringify({ 1: 1, 2: 1, 3: 1, 4: 1 }))`);
 await send("Page.reload"); await sleep(2000); await waitFor("!!window.__heist", 30000);
 await send("Page.startScreencast", { format: "jpeg", quality: 80, maxWidth: 1280, maxHeight: 720, everyNthFrame: 1 });
 recording = true;
@@ -56,7 +58,7 @@ try {
   // ---------- title ----------
   await card(`<div style="font-size:15px;letter-spacing:.25em;color:#7fe9ff">GAMEPLAY WALKTHROUGH</div><div style="font:800 64px/1 Orbitron,system-ui;color:#29e6ff;letter-spacing:.06em">NEURAL HEIST</div><div>Train your own AI teammates, then trust them with the job</div><div style="font-size:15px;color:#b8bfe6">Recorded on the live site · ${base}</div>`);
   await sleep(4000); await card("");
-  await caption("Three missions. Each needs one AI skill that you train yourself in a Lab before playing.");
+  await caption("Four missions. Each needs one AI skill that you train yourself in a Lab before playing.");
   await sleep(4000);
   await click("#btn-start"); await waitFor(`${S}.screen === "briefing"`);
   await caption("Mission 1: guards and night-shift staff look alike. Teach the drone to tell them apart.");
@@ -99,12 +101,19 @@ try {
   await caption("Mission 2: only the robot dog fits through the laser vault.");
   await sleep(3500);
   await click("#btn-brief-lab"); await waitFor(`${S}.screen === "lab" && !!document.querySelector("#q-train")`);
-  await click("#q-classic"); await sleep(800);
-  await caption("Design the dog's rewards (goal +10, laser −10, each step −0.1) and train it with Q-learning.");
-  await sleep(2500);
+  await click("#q-classic"); await sleep(600);
+  await caption("Step 1, meet your dog: untrained, it moves at random… and is zapped by a laser.");
+  await click("#q-meet"); await waitFor(`/random steps|wandered|luck/.test(document.querySelector("#q-status").textContent)`, 20000); await sleep(2500);
+  await caption("Step 2, train it: it learns by trial and error from treats and zaps (Q-learning). Watch the attempts improve.");
   await click("#q-train"); await waitFor(`!document.querySelector("#q-go").disabled`, 90000);
-  await caption("The arrows are the learned policy: the shortest safe route, 28 steps, around every laser.");
-  await sleep(4500);
+  await caption("The green line is the route it learned. Treats and zaps are now plain choices you can change.");
+  await sleep(4000);
+  await caption("Step 3, test run: the dog walks its learned route before the mission.");
+  await click("#q-test"); await waitFor(`/Reached the drive|laser|circles/.test(document.querySelector("#q-status").textContent)`, 20000); await sleep(1800);
+  await caption("Experiment: guess what happens if lasers give a treat, then train and see.");
+  await click('[data-exp="reckless"]'); await sleep(1200); await click('[data-guess="goal"]');
+  await waitFor(`!!document.querySelector(".q-exp-result")`, 90000); await sleep(3500);
+  await js(`document.querySelector(".q-exp-reset").click()`); await click("#q-train"); await waitFor(`!document.querySelector("#q-go").disabled`, 90000); await sleep(800);
   await click("#q-go"); await waitFor(`${S}.screen === "playing"`, 15000);
   await caption("The arrow and the glowing beacon lead to the console beside the vault. A guard patrols right past it…");
   await sleep(2500);
@@ -127,14 +136,14 @@ try {
   await caption("Mission 3: the vault password is hidden in pieces across 40 leaked emails.");
   await sleep(3500);
   await click("#btn-brief-lab"); await waitFor(`!!document.querySelector("#rag-build")`);
-  await caption("Build the search index (TF-IDF) that the hacking assistant uses to find the clues.");
-  await click("#rag-build"); await sleep(4500);
-  await caption("With one search hop, only 1 of the 3 clue emails is found: the assistant could not answer.");
-  await click('[data-hops="1"]'); await js(`document.querySelector("#rag-summary").scrollIntoView({ block: "center" })`); await sleep(4000);
-  await caption("The second hop follows the lead from the best email: 3 of 3 clues found.");
-  await click('[data-hops="2"]'); await sleep(4000);
+  await caption("Meet your assistant: with no search index it only skims a few emails, and cannot answer.");
+  await click("#r-meet"); await sleep(3800);
+  await caption("Build the index (TF-IDF) and watch the search: the words each email shares with the question are highlighted.");
+  await click("#rag-build"); await sleep(1500); await js(`document.querySelector("#rag-results").scrollIntoView({ block: "start" })`); await sleep(3500);
+  await caption("The second search follows the lead (Mr. Varma's robot, the server room): 3 of 3 clues found.");
+  await js(`document.querySelector("#rag-summary").scrollIntoView({ block: "center" })`); await sleep(3500);
   await click("#rag-go"); await waitFor(`${S}.screen === "playing"`, 15000);
-  await caption("At the terminal, the assistant retrieves the emails and asks a real language model (Gemini, live).");
+  await caption("At the terminal: the clue board shows the three pieces it found, and a real language model (Gemini, live) works out the password.");
   await cutTo(8.5, 8.5); await press("e", "KeyE");
   await waitFor(`document.querySelector("#terminal").dataset.state === "ready"`, 60000); await sleep(5500);
   await caption("The model only suggests: the player types the password, and the game's code checks it.");
@@ -146,12 +155,31 @@ try {
   await cutTo(1.5, 12.5); await waitFor(`${S}.screen === "debrief"`, 10000);
   await caption("Mission 3 AI score = retrieval recall: how many clue emails the index found.");
   await sleep(4000);
+  // ---------- Mission 4: unsupervised learning (k-means) ----------
+  await click("#btn-next"); await waitFor(`${S}.screen === "briefing"`);
+  await caption("Mission 4: the records are on one of 24 unlabelled server racks.");
+  await sleep(3500);
+  await click("#btn-brief-lab"); await waitFor(`!!document.querySelector("#km-run")`);
+  await caption("Group the servers by how they behave with k-means clustering. No labels: the groups come from the data.");
+  await js(`${S}.lab.set({ k: 4, scaled: true })`); await click("#km-run");
+  await waitFor(`/Done: settled/.test(document.querySelector("#km-step").textContent)`, 20000); await sleep(1500);
+  await caption("The elbow chart and silhouette score point to 4 groups. Pick the one that behaves like an archive.");
+  await js(`document.querySelector('input[name="km-arch"][value="' + ${S}.lab.quietestGroup() + '"]').click()`); await sleep(3000);
+  await click("#km-go"); await waitFor(`${S}.screen === "playing"`, 15000);
+  await caption("The scanner lights up the chosen group's racks. Check them with E: an empty rack brings a guard.");
+  await sleep(2500);
+  { const t = await js(`(() => { const sc = ${S}.scanner; return ${S}.map.racks[sc.farm.servers.findIndex((x) => x.id === sc.farm.target)]; })()`);
+    await cutTo(t.x + 0.5, t.z - 0.5); await press("e", "KeyE"); }
+  await waitFor(`${S}.mission.hasDrive`, 8000); await sleep(2000);
+  await cutTo(1.5, 11.5); await waitFor(`${S}.screen === "debrief"`, 10000);
+  await caption("Archive match 100 %: the group you chose was exactly the archive servers. Add your score to the online leaderboard.");
+  await sleep(4500);
   await click("#btn-next"); await waitFor(`${S}.screen === "complete"`, 10000);
-  await caption("Heist complete: three AI skills, each trained by the player.");
+  await caption("Heist complete: four AI skills, each trained by the player.");
   await sleep(4500); await caption("");
 
   // ---------- end ----------
-  await card(`<div style="font:800 46px/1 Orbitron,system-ui;color:#29e6ff">NEURAL HEIST</div><div>Play: reetika-k.github.io/neural-heist</div><div>Dashboard: reetika-k.github.io/neural-heist/dashboard.html</div><div style="font-size:16px;color:#b8bfe6">Image classification · Reinforcement learning · Retrieval-augmented generation with a live LLM</div>`);
+  await card(`<div style="font:800 46px/1 Orbitron,system-ui;color:#29e6ff">NEURAL HEIST</div><div>Play: reetika-k.github.io/neural-heist</div><div>Dashboard: reetika-k.github.io/neural-heist/dashboard.html</div><div style="font-size:16px;color:#b8bfe6">Image classification · Reinforcement learning · Retrieval-augmented generation with a live LLM · Clustering</div>`);
   await sleep(4500);
 } catch (e) {
   console.log("state at failure:", await js(`JSON.stringify({ screen: ${S}.screen, dog: ${S}.dog?.status, plan: ${S}.dog?.plan?.outcome, pos: ${S}.pos, caughtBy: ${S}.caughtBy, reason: ${S}.mission?.reason })`).catch(() => "?"));

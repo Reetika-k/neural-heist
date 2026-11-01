@@ -14,6 +14,8 @@ Follows the 15-section *Project Submission Report template* of the IIT Patna B3 
 | **Play online** | https://reetika-k.github.io/neural-heist/ |
 | **Project dashboard** | https://reetika-k.github.io/neural-heist/dashboard.html |
 | **Repository** | https://github.com/Reetika-k/neural-heist |
+| **Version** | 2, updated after submission (November 2026): Mission 4, online leaderboard, guided Labs |
+| **As submitted (v1)** | https://reetika-k.github.io/neural-heist/v1/ · source tag `v1.0-submission` · report `docs/submitted/Neural_Heist_Capstone_Submission_v1.pdf` |
 
 ## 2. Project overview
 
@@ -254,6 +256,7 @@ New missions: regression (guard patrol timing), a small neural network (a sound 
 
 - Gameplay walkthrough video (2 min 23 s, captioned, recorded on the live site): https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough.mp4
 - Five-minute demo script for a live demonstration: `docs/DEMO_SCRIPT.md`.
+- The version as submitted (v1, three missions): https://reetika-k.github.io/neural-heist/v1/ · its dashboard: https://reetika-k.github.io/neural-heist/v1/dashboard.html · its source: tag `v1.0-submission`.
 - Play online: https://reetika-k.github.io/neural-heist/
 - Project dashboard: https://reetika-k.github.io/neural-heist/dashboard.html
 - Repository: https://github.com/Reetika-k/neural-heist

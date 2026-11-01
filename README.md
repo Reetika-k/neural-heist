@@ -9,6 +9,8 @@ Built for the IIT Patna capstone, Project 2: *Build and Host a Video Game*, usin
 >
 > **Submission report (PDF):** [docs/Neural_Heist_Capstone_Submission.pdf](docs/Neural_Heist_Capstone_Submission.pdf), built from [docs/CAPSTONE_DOCUMENTATION.md](docs/CAPSTONE_DOCUMENTATION.md) with `npm run submission`.
 >
+> **Version 2 (November 2026):** Mission 4, an online leaderboard and guided Labs, added after the capstone submission. **The submitted version stays online unchanged:** https://reetika-k.github.io/neural-heist/v1/ (game) · https://reetika-k.github.io/neural-heist/v1/dashboard.html (dashboard) · tag [`v1.0-submission`](https://github.com/Reetika-k/neural-heist/tree/v1.0-submission) (source) · [submitted report](docs/submitted/Neural_Heist_Capstone_Submission_v1.pdf).
+>
 > **Status:** complete: four missions (Mission 4, Server Farm, added 2026-10-26). Every push to `main` is tested and published to GitHub Pages by `.github/workflows/deploy-pages.yml`. Online, Mission 3's assistant sends the emails your index retrieved to a real language model (Gemini 3.5 Flash-Lite, through a Cloudflare Worker that keeps the key secret; [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)). If the model is unreachable or a visitor reaches the limit of 20 requests an hour, it reasons offline over the same emails, so the mission always works.
 
 ## Play it

@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags too: the submitted version is rebuilt from tag v1.0-submission
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -30,6 +32,15 @@ jobs:
       # VITE_LLM_URL is optional: set it as a repository variable once the Cloudflare Worker is deployed.
       # Without it the hacking assistant reasons offline over the emails the player's index retrieved.
       - run: npm run build
+        env:
+          VITE_LLM_URL: ${{ vars.VITE_LLM_URL }}
+      # The version submitted for the capstone stays online, unchanged, at /neural-heist/v1/ (game, dashboard, video):
+      # it is rebuilt from its git tag on every deploy, so it can never drift from what was submitted.
+      - name: Build the submitted version (tag v1.0-submission) into dist/v1
+        run: |
+          git worktree add ../v1 v1.0-submission
+          cd ../v1 && npm ci && npm run build
+          cp -R dist "$GITHUB_WORKSPACE/dist/v1"
         env:
           VITE_LLM_URL: ${{ vars.VITE_LLM_URL }}
       - uses: actions/configure-pages@v5

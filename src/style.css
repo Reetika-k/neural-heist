@@ -499,3 +499,6 @@ body:not([data-screen="playing"]) .btn-mute { top: 12px; bottom: auto; right: 12
   .q-actions .btn-primary, .q-actions .btn-ghost { flex: 1 1 0; min-width: 0; }
   .q-actions .btn-link { flex-basis: 100%; order: 5; font-size: 12px; text-align: center; padding: 0; }
 }
+
+/* 2026-11-01: what changed since the capstone submission */
+.whats-new { margin-top: 6px; color: var(--dim); } .whats-new a { color: var(--cyan); }
