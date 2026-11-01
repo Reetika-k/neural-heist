@@ -42,7 +42,7 @@ The proposed solution is Neural Heist. Before each mission the player trains one
 |---|---|
 | Feel what labels and data quantity do | Mission 1 Lab: label 30 CCTV snapshots, train a k-nearest-neighbour classifier, compare training accuracy with accuracy on 40 held-back photos, get an overfitting warning with too few labels; the drone then uses that exact model |
 | Feel precision vs recall | A "how sure before calling someone a guard" slider and a table of guards spotted, guards missed, false alarms and civilians cleared. In the mission a missed guard has no visible cone, and a false alarm draws a real guard over to check |
-| Feel what rewards do | Mission 2 Lab: reward sliders (goal, laser, step), an episode count and ready-made settings; Q-learning trains live with a reward curve and policy arrows; the robot dog follows that exact policy. Vault extras: new random vaults, bonus batteries, blinking lasers, slippery puddles, a training challenge, and maps of what the dog learned and where it explored |
+| Feel what rewards do | Mission 2 Lab, guided: 1. meet an untrained dog that moves at random and gets zapped; 2. train it and watch its attempts play out, with a live count of how they end (zapped, lost, reached the drive); 3. test-run its learned route, then start the mission. Rewards are plain choices (🦴 reaching the drive: no / small / big treat; ⚡ touching a laser: treat / doesn't matter / hurts; 🐾 each step: free / costs a little / costs a lot), and "guess, then test" experiments ask the player to predict what a reward design will do before training. Exact sliders, new random vaults, batteries, blinking lasers, puddles and the learned-value maps are in an Advanced Lab |
 | Feel what unsupervised learning does | Mission 4 Lab: 24 unlabelled servers; choose the readings, scaling and the number of groups (k), watch k-means move its centres, judge k with an elbow chart and a silhouette score, and name the group that behaves like an archive. In the mission the scanner flags that group's racks; every empty rack opened brings a guard |
 | Feel why retrieval matters for language models | Mission 3 Lab: chunk size, results per search (k) and a one-hop / two-hop switch; a "clues found" meter and a preview of the assistant's answer. In the mission, the retrieved emails go to Gemini, which works out the password; the player types it in |
 | A real game | Stealth missions with a data drive, exit, timer, alarm, 3 stars, debrief, best scores, mission select, pause menu, restart, sound, settings, phone controls |
@@ -116,7 +116,7 @@ Every piece of game and AI logic is a pure JavaScript module with no Three.js or
 *Mission 1: the drone tags the people it classified; guards it recognised show their vision cones.*
 
 ![Mission 2 Lab](screenshots/10-qlab.png)
-*Mission 2 Lab: reward sliders, live Q-learning, the learned route.*
+*Mission 2 Lab (guided): three steps, plain treats-and-zaps choices, the learned route, and one action bar with the next step.*
 
 ![Robot dog](screenshots/11-dog.png)
 *Mission 2: the robot dog crosses the laser vault with the policy it learned.*
@@ -176,7 +176,7 @@ Why each line is there: "ONLY the emails below" keeps the answer grounded in ret
 
 ## 11. Testing report
 
-Main test scenarios (all run in a real browser or as automated tests; the full list of 57 is in `docs/test-report.md`):
+Main test scenarios (all run in a real browser or as automated tests; the full list of 59 is in `docs/test-report.md`):
 
 | # | User action | Expected result | Actual result | Status |
 |---|---|---|---|---|
@@ -197,15 +197,17 @@ Main test scenarios (all run in a real browser or as automated tests; the full l
 | 15 | Play on a phone (390 px) | Menus, Labs and gameplay usable | Drag to move; SEND DOG appears at the console; 15 / 15 phone checks | Pass |
 | 16 | Group the servers without scaling, then with scaling and k = 4 (Mission 4) | Without scaling the archive is mixed up; scaled, k = 4 finds it | Unscaled: archive match F1 0.67; scaled, k = 4: exactly the 5 archive servers (F1 1.00), silhouette 0.77, the highest of k = 2…6; k = 3 merges the archive into an 11-rack group and five empty racks start the alarm | Pass |
 | 17 | Win a mission, add the score under a nickname, open the Leaderboard | The score appears with its rank; other players' scores are visible | "Saved: you are #1 on Rooftop"; a bad nickname is refused with a reason; the Leaderboard shows the top 10 per mission and an overall ranking; scores that do not add up under the scoring rules are refused by the server | Pass |
+| 18 | First visit to the Mission 2 Lab: meet the dog, train it, test-run it | A new player knows what to do at every moment | Three steps with one action at a time; the untrained dog walks at random and is zapped; while training the bar counts attempts and how they end; the Test run walks the learned route ("Reached the drive in 22 steps"); extra options unlock after the first training | Pass |
+| 19 | Experiment "What if touching a laser gives the dog a treat?": guess, then train | The guess is compared with what the dog really learns | Guessed "reaches the drive"; the dog ran into a laser: "Not quite", with the reason. Measured on 10 vaults × 2 seeds: each experiment gives the same outcome 20 / 20 (laser treat → laser, free steps → lost, costly steps → laser, 300 runs → lost) | Pass |
 
 Automated test suites, current runs (2026-10-24):
 
 | Suite | Result |
 |---|---|
-| Unit tests (`npm test`): game rules, guards, A*, classifier, Q-learning, retrieval, k-means, Worker, sound | 95 / 95 pass |
-| Browser test (`npm run test:e2e`): every screen, all four missions, Labs, Brain panel, export, settings, pause, sound | 110 / 110 pass on the dev server (with Mission 4 and the leaderboard); 88 / 88 on the live site with the language model connected (before the 4 sound checks were added) |
+| Unit tests (`npm test`): game rules, guards, A*, classifier, Q-learning, retrieval, k-means, Worker, sound | 97 / 97 pass |
+| Browser test (`npm run test:e2e`): every screen, all four missions, Labs, Brain panel, export, settings, pause, sound | 118 / 118 pass on the dev server (with Mission 4, the leaderboard and the guided dog Lab); 88 / 88 on the live site with the language model connected (before the 4 sound checks were added) |
 | Score scenarios (`npm run test:scores`): every debrief checked against the scoring rules | 56 / 56 pass (dev, with Mission 4); 38 / 38 on the live site before Mission 4 |
-| Phone check (`npm run test:phone`), 390 × 844 | 17 / 17 pass (dev, with the Mission 4 Lab and the leaderboard) |
+| Phone check (`npm run test:phone`), 390 × 844 | 19 / 19 pass (dev, with the Mission 4 Lab, the leaderboard and the guided dog Lab) |
 | Second browser: Safari 26.6 on macOS (`npm run test:safari`) | 27 / 27 pass: all four missions, the live language model, and leaving the game silences it |
 
 Key measured results (all reproducible with fixed seeds, collected in the dashboard):
@@ -223,7 +225,7 @@ Key measured results (all reproducible with fixed seeds, collected in the dashbo
 
 ## 12. Challenges and solutions
 
-`docs/challenges.md` lists 37 problems and fixes, each with what broke, the cause, how AI helped and the fix. A selection:
+`docs/challenges.md` lists 38 problems and fixes, each with what broke, the cause, how AI helped and the fix. A selection:
 
 | Problem | Cause | Fix |
 |---|---|---|

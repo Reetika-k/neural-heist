@@ -34,7 +34,7 @@ You are a hacker in a neon Indian city run by a corrupt tech company. Each missi
 | Mission | Lab | Teammate in the mission | AI/ML |
 |---|---|---|---|
 | 1. Rooftop | Label 30 CCTV snapshots, train, check accuracy on 40 held-back photos; set how sure the drone must be before calling a guard and see the missed guards and false alarms | Drone scans everyone; guards it identifies show their vision cones, missed guards stay invisible, and a civilian wrongly called a guard draws a real guard over | Image classification (k-NN), overfitting, precision vs recall |
-| 2. Laser Vault | Set the rewards and the episode count, watch Q-learning train; pick a new random vault or the classic one, and add bonus batteries, blinking lasers or slippery puddles; see what it learned and where it explored; beat your training-challenge record | Robot dog crosses the vault with the learned policy while you hide from the guard who patrols past the console; a bad policy trips a laser | Reinforcement learning (Q-learning) |
+| 2. Laser Vault | Guided: meet the untrained dog, train it while watching its attempts and a live count of how they end, test-run its learned route. Choose treats and zaps in plain words, and try "guess, then test" experiments; exact numbers, new random vaults, batteries, blinking lasers, puddles and value maps are in the Advanced Lab | Robot dog crosses the vault with the learned policy while you hide from the guard who patrols past the console; a bad policy trips a laser | Reinforcement learning (Q-learning) |
 | 3. Executive Floor | Chunk 40 leaked emails, build the index, switch between one and two search hops, and test it: see which clue emails it finds (3 of 3?) and the password the assistant would work out; you never type the password in the Lab | Hacking assistant retrieves emails and asks an LLM for the vault password | Embeddings, retrieval, RAG, LLM |
 | 4. Server Farm | Group 24 unlabelled servers with k-means: choose the readings, scaling and k, watch the centres move, judge k with the elbow chart and silhouette score, and name the archive group | Network scanner flags that group's racks; check racks with E: each empty rack brings a guard, five set off the alarm | Unsupervised learning (k-means clustering) |
 
@@ -57,12 +57,12 @@ The first time you play each mission, a short guide explains what to do (the gam
 ## Tests
 
 ```bash
-npm test                 # 95 unit tests (Node, no browser)
+npm test                 # 97 unit tests (Node, no browser)
 # browser tests: start the dev server, then Chrome with
 #   --headless=new --mute-audio --remote-debugging-port=9337 --remote-allow-origins=*   (--mute-audio: test runs stay silent)
-npm run test:e2e         # 110 checks: every screen, pause menu, all four missions, Brain panel, export, settings
+npm run test:e2e         # 118 checks: every screen, pause menu, all four missions, Brain panel, export, settings
 npm run test:scores      # 56 score checks: every debrief, stars, best scores, mission select and the Heist Complete total
-npm run test:phone       # 17 checks at 390 px width
+npm run test:phone       # 19 checks at 390 px width
 npm run test:safari      # 27 checks in real Safari (safaridriver -p 4444; Safari → Develop → Allow Remote Automation)
 # leaderboard locally: node tools/scores-dev.mjs  then  VITE_SCORES_URL=http://localhost:8788/scores npm run dev
 ```

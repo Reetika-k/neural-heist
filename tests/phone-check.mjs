@@ -64,7 +64,12 @@ check("drag left anywhere: the player moves left on screen; the ring disappears 
 // the E key on a phone: a named button appears only next to the console
 await js(`window.__heist.openBriefing(1)`); await sleep(200);
 await js(`document.querySelector("#btn-brief-lab").click()`); for (let i = 0; i < 50 && !(await js(`!!document.querySelector("#q-go")`)); i++) await sleep(100);
-await js(`window.__heist.state.lab.trainNow(1); document.querySelector("#q-go").click()`); await sleep(800);
+// guided Mission 2 Lab on a phone (2026-11-01): fits, steps stacked, the action bar's buttons reachable at the bottom
+check("guided dog Lab fits the phone; Train the dog is reachable in the bottom bar", await js(fits) && await js(visible("#q-train")) && await js(`getComputedStyle(document.querySelector("#q-actionbar")).position === "sticky"`));
+await js(`window.__heist.state.lab.trainNow(1)`); await sleep(300);
+check("after training: Test run and Start mission reachable in the bar; treats and zaps fit", await js(visible("#q-test")) && await js(visible("#q-go")) && await js(fits));
+fs.writeFileSync("docs/screenshots/35-phone-dog-lab.png", Buffer.from((await send("Page.captureScreenshot", { format: "png" })).result.data, "base64"));
+await js(`document.querySelector("#q-go").click()`); await sleep(800);
 for (let i = 0; i < 4; i++) { await js(`document.querySelector("#guide-next")?.click()`); await sleep(120); }
 await js(parkGuards.replace("x: 17, z: 1", "x: 21, z: 14").replace("x: 17.5, z: 1.5", "x: 21.5, z: 14.5"));
 const hiddenAway = await js(`document.querySelector("#t-use").classList.contains("hidden")`);

@@ -178,13 +178,30 @@ try {
   check("Q-learning Lab: grid, three reward sliders, chart", await js(`${S}.screen === "lab" && !!document.querySelector("#q-grid") && document.querySelectorAll(".slider input").length >= 4 && !!document.querySelector("#q-chart")`));
   // a first visit gets a fresh random vault; the checks below use the Classic vault, whose numbers are known (28 steps)
   check("first visit to the Lab: a fresh random vault with its shortest route shown", await js(`/^Vault #\\d+$/.test(document.querySelector("#q-vault-label").textContent) && Number(document.querySelector("#q-shortest").textContent) >= 22`), await js(`document.querySelector("#q-vault-label").textContent`));
+  // guided Lab (2026-11-01: "so confusing to train the dog")
+  check("guided first visit: 3 steps, step 1 active, extra options hidden until the first training, one action bar", await js(`document.querySelectorAll("#q-steps li").length === 3 && document.querySelector('#q-steps li[data-step="1"]').classList.contains("active") && document.querySelector(".lab").classList.contains("q-first") && getComputedStyle(document.querySelector("#q-rewards")).display === "none" && /Meet your dog/.test(document.querySelector("#q-next").textContent)`));
+  await js(`document.querySelector("#q-meet").click()`);
+  check("Meet your dog: the untrained dog walks at random and the Lab says what happened", await waitFor(`/random steps|wandered|luck/.test(document.querySelector("#q-status").textContent) && /Train the dog/.test(document.querySelector("#q-next").textContent)`, 20000), await js(`document.querySelector("#q-status").textContent.slice(0, 90)`));
   await js(`${S}.lab.setVault("classic")`);
   check("Classic button: the original vault, shortest route 28", await js(`document.querySelector("#q-vault-label").textContent === "Classic vault" && document.querySelector("#q-shortest").textContent === "28"`));
   await js(`document.querySelector("#q-train").click()`); await waitFor(`Number(document.querySelector("#q-ep").textContent) > 0 && Number(document.querySelector("#q-eps").textContent) < 1`, 10000);
+  check("while training: attempt counter and how recent attempts ended, in the action bar", await waitFor(`/Attempt \\d/.test(document.querySelector("#q-next").textContent) && /zapped/.test(document.querySelector("#q-next").textContent)`, 5000), await js(`document.querySelector("#q-next").textContent`));
   const live = await js(`({ ep: Number(document.querySelector("#q-ep").textContent), eps: Number(document.querySelector("#q-eps").textContent) })`);
   check("Train runs Q-learning live (episodes rise, epsilon falls)", live.ep > 0 && live.eps < 1, JSON.stringify(live));
   await waitFor(`!document.querySelector("#q-verdict").classList.contains("hidden")`, 15000);
   await shot("10-qlab.png");
+  // after the first training: the options unlock; plain choices mirror the numbers; test run; experiment
+  await waitFor(`!document.querySelector(".lab").classList.contains("q-first")`, 60000);
+  check("first training done: treats-and-zaps choices, experiments and Advanced Lab unlock; the choices show the current rewards", await js(`getComputedStyle(document.querySelector("#q-rewards")).display !== "none" && document.querySelector('[data-reward="laser"][data-value="-10"]').getAttribute("aria-checked") === "true" && localStorage.getItem("neural-heist.qlab.guided") === "1"`));
+  await js(`document.querySelector("#q-test").click()`);
+  check("Test run: the dog walks its learned route and the Lab reports the result", await waitFor(`/Reached the drive|ran into a laser|circles/.test(document.querySelector("#q-status").textContent)`, 20000), await js(`document.querySelector("#q-status").textContent.slice(0, 80)`));
+  await js(`document.querySelector('[data-reward="step"][data-value="0"]').click()`); await sleep(100);
+  check("plain choice 'Each step: Free' sets the exact reward and its warning", await js(`document.querySelector("#r-step").value === "0" && /no reason to hurry|wander/i.test(document.querySelector('[data-hint="step"]').textContent)`), await js(`document.querySelector('[data-hint="step"]').textContent`));
+  await js(`document.querySelector('[data-exp="reckless"]').click()`); await sleep(100);
+  await js(`document.querySelector('[data-guess="goal"]').click()`);
+  check("experiment 'lasers give a treat': guess, train, compare: the dog ran into a laser, the guess is marked wrong", await waitFor(`!!document.querySelector(".q-exp-result") && /ran into a laser/.test(document.querySelector(".q-exp-result").textContent) && /Not quite/.test(document.querySelector("#q-next").textContent)`, 60000), await js(`document.querySelector(".q-exp-result")?.textContent ?? ""`));
+  await js(`document.querySelector(".q-exp-reset").click()`); await sleep(100);
+  check("'Back to the recommended treats and zaps' restores +10 / −10 / −0.1", await js(`document.querySelector("#r-goal").value === "10" && document.querySelector("#r-laser").value === "-10" && document.querySelector("#r-step").value === "-0.1"`));
   // README scenario 6: positive reward for lasers
   await js(`${S}.lab.setRewards({ goal: 10, laser: 5, step: -0.1 })`);
   const badV = await js(`${S}.lab.trainNow(1).outcome`);
