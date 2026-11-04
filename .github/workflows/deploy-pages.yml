@@ -34,15 +34,31 @@ jobs:
       - run: npm run build
         env:
           VITE_LLM_URL: ${{ vars.VITE_LLM_URL }}
-      # The version submitted for the capstone stays online, unchanged, at /neural-heist/v1/ (game, dashboard, video):
-      # it is rebuilt from its git tag on every deploy, so it can never drift from what was submitted.
-      - name: Build the submitted version (tag v1.0-submission) into dist/v1
+      # Which version the main link shows is the repository variable LIVE_VERSION (2026-11-04):
+      #   v1 (default, while the capstone is evaluated): the submitted version at /neural-heist/, the newest at /neural-heist/v2/
+      #   v2 (after grading):                           the newest at /neural-heist/
+      # The submitted version is always also at /neural-heist/v1/. It is rebuilt from tag v1.0-submission on every deploy,
+      # so it cannot drift from what was submitted.
+      - name: Build the submitted version (tag v1.0-submission)
         run: |
           git worktree add ../v1 v1.0-submission
           cd ../v1 && npm ci && npm run build
-          cp -R dist "$GITHUB_WORKSPACE/dist/v1"
         env:
           VITE_LLM_URL: ${{ vars.VITE_LLM_URL }}
+      - name: Arrange the site
+        run: |
+          mv dist ../newest
+          if [ "${LIVE_VERSION:-v1}" = "v2" ]; then
+            cp -R ../newest dist
+          else
+            cp -R ../v1/dist dist
+            cp -R ../newest dist/v2
+            mkdir -p dist/demo && cp ../newest/demo/neural-heist-walkthrough-v2.mp4 dist/demo/ # keep the version-2 video link working
+          fi
+          cp -R ../v1/dist dist/v1
+          ls dist
+        env:
+          LIVE_VERSION: ${{ vars.LIVE_VERSION }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

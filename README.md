@@ -3,13 +3,13 @@
 A browser stealth-action game where you train your own AI teammates, then use them in missions.
 Built for the IIT Patna capstone, Project 2: *Build and Host a Video Game*, using vibe coding with an AI coding assistant.
 
-> **Play online:** https://reetika-k.github.io/neural-heist/ · **Project dashboard:** https://reetika-k.github.io/neural-heist/dashboard.html · **Repository:** https://github.com/Reetika-k/neural-heist
+> **Play online (version 2):** https://reetika-k.github.io/neural-heist/v2/ · **Project dashboard:** https://reetika-k.github.io/neural-heist/v2/dashboard.html · **Repository:** https://github.com/Reetika-k/neural-heist
 >
 > **Gameplay walkthrough (video, 3 min, version 2):** https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough-v2.mp4 · as submitted: https://reetika-k.github.io/neural-heist/demo/neural-heist-walkthrough.mp4
 >
 > **Submission report (PDF):** [docs/Neural_Heist_Capstone_Submission.pdf](docs/Neural_Heist_Capstone_Submission.pdf), built from [docs/CAPSTONE_DOCUMENTATION.md](docs/CAPSTONE_DOCUMENTATION.md) with `npm run submission`.
 >
-> **Version 2 (November 2026):** Mission 4, an online leaderboard and guided Labs, added after the capstone submission. **The submitted version stays online unchanged:** https://reetika-k.github.io/neural-heist/v1/ (game) · https://reetika-k.github.io/neural-heist/v1/dashboard.html (dashboard) · tag [`v1.0-submission`](https://github.com/Reetika-k/neural-heist/tree/v1.0-submission) (source) · [submitted report](docs/submitted/Neural_Heist_Capstone_Submission_v1.pdf).
+> **Version 2 (November 2026):** Mission 4, an online leaderboard and guided Labs, added after the capstone submission. **While the capstone is evaluated, the main link https://reetika-k.github.io/neural-heist/ shows the version exactly as submitted** (also at https://reetika-k.github.io/neural-heist/v1/; dashboard https://reetika-k.github.io/neural-heist/dashboard.html; source tag [`v1.0-submission`](https://github.com/Reetika-k/neural-heist/tree/v1.0-submission); [submitted report](docs/submitted/Neural_Heist_Capstone_Submission_v1.pdf)). Version 2 is at https://reetika-k.github.io/neural-heist/v2/.
 >
 > **Status:** complete: four missions (Mission 4, Server Farm, added 2026-10-26). Every push to `main` is tested and published to GitHub Pages by `.github/workflows/deploy-pages.yml`. Online, Mission 3's assistant sends the emails your index retrieved to a real language model (Gemini 3.5 Flash-Lite, through a Cloudflare Worker that keeps the key secret; [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)). If the model is unreachable or a visitor reaches the limit of 20 requests an hour, it reasons offline over the same emails, so the mission always works.
 

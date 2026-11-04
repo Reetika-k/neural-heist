@@ -8,7 +8,7 @@ const CONFIG = {
   eyebrow: "IIT Patna · AI/ML Capstone · Project Submission Report",
   title: "NEURAL HEIST",
   subtitle: "A browser stealth-action game where you train your own AI teammates",
-  note: "Follows the 15-section Project Submission Report template of the IIT Patna B3 Capstone guidelines (Project 2: Build and Host a Video Game). Version 2, updated after submission (November 2026); the submitted version is kept online at /neural-heist/v1/.",
+  note: "Follows the 15-section Project Submission Report template of the IIT Patna B3 Capstone guidelines (Project 2: Build and Host a Video Game). Version 2, updated after submission (November 2026), at /neural-heist/v2/; the main link shows the submitted version while the capstone is evaluated.",
   hero: { file: "screenshots/16-look-m1.png", caption: "Mission 1, Rooftop: the drone has marked the guards it recognised." },
   colours: { band: "linear-gradient(135deg, #0a0f2c, #1b1450 60%, #3a0f4f)", accent: "#29e6ff", rule: "#29b6d6" },
 };

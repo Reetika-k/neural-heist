@@ -163,7 +163,7 @@ parts.push(`<h1>Neural Heist — Project dashboard</h1><p class="sub">IIT Patna 
 
 const def = qRuns[0];
 // 2026-11-01: this dashboard was updated after the capstone submission; the submitted one stays online
-parts.push(`<div class="card" style="border-color:#ffd23d"><b>Updated after the capstone submission (November 2026):</b> Mission 4 (k-means clustering), an online leaderboard, and guided Labs for Missions 2 and 3. Every result from the submitted version still holds. The dashboard as submitted: <a href="v1/dashboard.html">v1/dashboard.html</a> · the game as submitted: <a href="v1/">v1/</a> · source: tag <code>v1.0-submission</code>.</div>`);
+parts.push(`<div class="card" style="border-color:#ffd23d"><b>Updated after the capstone submission (November 2026):</b> Mission 4 (k-means clustering), an online leaderboard, and guided Labs for Missions 2 and 3. Every result from the submitted version still holds. The dashboard as submitted: <a href="/neural-heist/v1/dashboard.html">/neural-heist/v1/dashboard.html</a> · the game as submitted: <a href="/neural-heist/v1/">/neural-heist/v1/</a> · source: tag <code>v1.0-submission</code>.</div>`);
 parts.push(`<div class="grid">${[
   ["missions", MISSIONS.length], ["AI teammates you train", 4],
   ["drone accuracy, 30 labels", pct(labelCounts.at(-1).acc)], ["dog reaches goal (sensible rewards)", `${def.goal}/${SEEDS} seeds`],
